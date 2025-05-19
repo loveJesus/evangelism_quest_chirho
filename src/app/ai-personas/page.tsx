@@ -3,15 +3,17 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { generateNewPersona, sendMessageToPersona, updatePersonaImage } from "@/lib/actions";
+import { generateNewPersona, sendMessageToPersona, updatePersonaImage, fetchSuggestedResponse } from "@/lib/actions";
 import type { GenerateAiPersonaOutput, GenerateAiPersonaInput } from "@/ai/flows/generate-ai-persona";
 import type { AIPersonaConvincingOutput, AIPersonaConvincingInput } from "@/ai/flows/ai-persona-convincing";
 import type { UpdatePersonaVisualsInput, UpdatePersonaVisualsOutput } from "@/ai/flows/update-persona-visuals";
+import type { SuggestEvangelisticResponseInput, SuggestEvangelisticResponseOutput } from "@/ai/flows/suggest-evangelistic-response";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -30,6 +32,9 @@ export default function AIPersonasPage() {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isUpdatingImage, setIsUpdatingImage] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
+  const [suggestedAnswer, setSuggestedAnswer] = useState<string | null>(null);
+  const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +43,8 @@ export default function AIPersonasPage() {
     setMessages([]);
     setUserInput("");
     setDynamicPersonaImage(null);
-    const personaThemeDescription = `A person at difficulty level ${difficulty}. They might have some challenging questions or life situations. Their story should be unique.`;
+    setSuggestedAnswer(null);
+    const personaThemeDescription = `A person at difficulty level ${difficulty}. Their story should be unique, with varied professions, names, and backgrounds.`;
     
     try {
       const result = await generateNewPersona({ personaDescription: personaThemeDescription } as GenerateAiPersonaInput);
@@ -79,7 +85,7 @@ export default function AIPersonasPage() {
         scrollElement.scrollTop = scrollElement.scrollHeight;
       }
     }
-  }, [messages]);
+  }, [messages, suggestedAnswer]); // Add suggestedAnswer to dependencies to scroll when it appears/disappears
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || !persona || !dynamicPersonaImage) return;
@@ -88,6 +94,7 @@ export default function AIPersonasPage() {
     setMessages((prev) => [...prev, newUserMessage]);
     const currentInput = userInput; 
     setUserInput("");
+    setSuggestedAnswer(null); // Clear suggestion on send
     setIsSendingMessage(true);
 
     const convincingInput: AIPersonaConvincingInput = {
@@ -103,7 +110,7 @@ export default function AIPersonasPage() {
         const newPersonaMessage: Message = { sender: "persona", text: personaResponse.personaResponse, id: (Date.now() + 1).toString() };
         setMessages((prev) => [...prev, newPersonaMessage]);
 
-        if (personaResponse.visualContextForNextImage && dynamicPersonaImage) { // ensure dynamicPersonaImage is not null
+        if (personaResponse.visualContextForNextImage && dynamicPersonaImage) {
           setIsUpdatingImage(true);
           const imageUpdateInput: UpdatePersonaVisualsInput = {
             baseImageUri: dynamicPersonaImage, 
@@ -130,7 +137,8 @@ export default function AIPersonasPage() {
             description: `${persona.personaName || 'The persona'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
-          setDifficultyLevel((prev) => prev + 1);
+          setDifficultyLevel((prev) => Math.min(prev + 1, 10)); // Cap difficulty for now
+          // loadNewPersona will be triggered by difficultyLevel change
         }
       } else {
         toast({
@@ -151,13 +159,50 @@ export default function AIPersonasPage() {
     setIsSendingMessage(false);
   };
 
+  const handleSuggestAnswer = async () => {
+    if (!persona || messages.length === 0) return;
+    const lastPersonaMessage = messages.filter(m => m.sender === 'persona').pop();
+    if (!lastPersonaMessage) return;
+
+    setIsFetchingSuggestion(true);
+    setSuggestedAnswer(null);
+
+    const suggestionInput: SuggestEvangelisticResponseInput = {
+      personaLastResponse: lastPersonaMessage.text,
+      personaName: persona.personaName,
+      // Optionally, build a brief conversation history string here
+      // conversationHistory: messages.slice(-5).map(m => `${m.sender}: ${m.text}`).join('\n') 
+    };
+
+    try {
+      const result = await fetchSuggestedResponse(suggestionInput);
+      if (result.success && result.data) {
+        setSuggestedAnswer((result.data as SuggestEvangelisticResponseOutput).suggestedResponse);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Suggestion Failed",
+          description: result.error || "Could not fetch a suggestion.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred while fetching the suggestion.",
+      });
+    }
+    setIsFetchingSuggestion(false);
+  };
+
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,100px)-2rem)] max-h-[calc(100vh-var(--header-height,100px)-2rem)]">
       <Card className="lg:w-1/3 flex-shrink-0 overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             {isLoadingPersona ? "Loading Persona..." : `AI Persona: ${persona?.personaName || "Details"}`}
-            <Button variant="outline" size="icon" onClick={() => loadNewPersona(difficultyLevel)} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage}>
+            <Button variant="outline" size="icon" onClick={() => loadNewPersona(difficultyLevel)} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion}>
               {isLoadingPersona ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               <span className="sr-only">New Persona</span>
             </Button>
@@ -185,7 +230,7 @@ export default function AIPersonasPage() {
                     objectFit="cover"
                     data-ai-hint="portrait person"
                     unoptimized={dynamicPersonaImage.startsWith('data:image')}
-                    key={dynamicPersonaImage} // Force re-render on image change
+                    key={dynamicPersonaImage} 
                   />
                 )}
                 {isUpdatingImage && (
@@ -260,8 +305,34 @@ export default function AIPersonasPage() {
               )}
             </div>
           </ScrollArea>
+          {suggestedAnswer && (
+            <Alert variant="default" className="m-4 border-accent shadow-md">
+                <Lightbulb className="h-4 w-4 text-accent" />
+                <AlertTitle className="flex justify-between items-center">
+                    Suggested Answer
+                    <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswer(null)} className="h-6 w-6">
+                        <XCircle className="h-4 w-4" />
+                        <span className="sr-only">Dismiss suggestion</span>
+                    </Button>
+                </AlertTitle>
+                <AlertDescription className="mt-1 text-sm whitespace-pre-wrap">
+                    {suggestedAnswer}
+                </AlertDescription>
+                 <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2" 
+                    onClick={() => {
+                        setUserInput(suggestedAnswer);
+                        setSuggestedAnswer(null);
+                    }}
+                >
+                    Use this suggestion
+                </Button>
+            </Alert>
+          )}
           <div className="border-t p-4 bg-background/50">
-            <div className="flex gap-2">
+            <div className="flex items-end gap-2">
               <Textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -274,12 +345,25 @@ export default function AIPersonasPage() {
                     handleSendMessage();
                   }
                 }}
-                disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || !persona}
+                disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !persona}
               />
-              <Button onClick={handleSendMessage} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || !userInput.trim() || !persona} className="self-end">
-                {(isSendingMessage || isUpdatingImage) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                <span className="sr-only">Send</span>
-              </Button>
+              <div className="flex flex-col gap-1">
+                <Button 
+                  onClick={handleSuggestAnswer} 
+                  disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !persona || messages.filter(m=>m.sender==='persona').length === 0} 
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  title="Suggest an answer"
+                >
+                  {isFetchingSuggestion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                  <span className="sr-only sm:not-sr-only sm:ml-1">Suggest</span>
+                </Button>
+                <Button onClick={handleSendMessage} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !userInput.trim() || !persona} className="w-full">
+                  {(isSendingMessage || isUpdatingImage) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  <span className="sr-only sm:not-sr-only sm:ml-1">Send</span>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

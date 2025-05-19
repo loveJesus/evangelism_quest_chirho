@@ -17,7 +17,7 @@ const GenerateAiPersonaInputSchema = z.object({
     .default(
       'A person with a unique life story, who may have difficult questions before they come to believe.'
     )
-    .describe('A general description or theme for the desired persona (e.g., struggling with loss, curious skeptic).'),
+    .describe('A general description or theme for the desired persona (e.g., struggling with loss, curious skeptic, specific profession).'),
 });
 export type GenerateAiPersonaInput = z.infer<typeof GenerateAiPersonaInputSchema>;
 
@@ -44,19 +44,20 @@ const generateAiPersonaFlow = ai.defineFlow(
     outputSchema: GenerateAiPersonaOutputSchema,
   },
   async (input: GenerateAiPersonaInput) => {
-    const personaDataPrompt = `You are an AI that generates characters for evangelism simulations.
-Create a character based on the following input hint: "${input.personaDescription}".
+    const personaDataPrompt = `You are an AI that generates diverse and unique characters for evangelism simulations.
+Based on the following input hint: "${input.personaDescription}".
+Create a character ensuring a WIDE VARIETY of names, professions, cultural backgrounds, and life situations. Avoid common tropes or repeating recent characters.
 The character needs:
-1. A first name.
-2. A detailed backstory (a few paragraphs). This backstory is for the AI to understand its role and should allow for discovery through conversation.
-3. A brief meeting context (1-2 engaging sentences) describing how the user might encounter this person. This context should be imaginative, provide a starting point for a conversation, and be consistent with a potential visual.
+1. A unique first name (avoid very common names like Caleb, Kai, Eliza unless the input hint strongly suggests it).
+2. A detailed backstory (a few paragraphs). This backstory is for the AI to understand its role and should allow for discovery through conversation. It should include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith.
+3. A brief, imaginative meeting context (1-2 engaging sentences) describing how the user might encounter this person. This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character. Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings.
 
 Return ONLY a JSON object with three keys: "personaName", "personaDetails", and "meetingContext".
-Example JSON:
+Example JSON (ensure to vary from this example):
 {
-  "personaName": "Eliza",
-  "personaDetails": "Eliza is a librarian in her late 30s, recently widowed. She finds solace in books but is quietly struggling with grief and questions about the future. She is introspective and values deep conversations but is wary of easy answers. She often visits the old park to read and reflect.",
-  "meetingContext": "You are in the local library and notice Eliza, the librarian, looking a bit down as she re-shelves books. You feel a nudge to say something kind."
+  "personaName": "Priya",
+  "personaDetails": "Priya is a software developer in her late 20s, deeply analytical and passionate about ethical AI. She volunteers at a local coding bootcamp for underprivileged youth on weekends. While open-minded, she's skeptical of anything that can't be logically proven and has had negative experiences with organized religion in her family. She's currently pondering the societal impact of rapidly advancing technology.",
+  "meetingContext": "You're at a community tech fair, and Priya is giving a short presentation on AI ethics. She seems approachable for a question afterwards."
 }
 Ensure the output is a single, valid JSON object and nothing else.`;
 
@@ -75,7 +76,6 @@ Ensure the output is a single, valid JSON object and nothing else.`;
 
     let parsedPersonaData: { personaName: string; personaDetails: string; meetingContext: string };
     try {
-      // Attempt to parse the text, robustly handling potential non-JSON prefixes/suffixes from the model
       const jsonString = personaDataResult.text.match(/\{[\s\S]*\}/)?.[0];
       if (!jsonString) {
         throw new Error("No JSON object found in the model's response.");
@@ -86,20 +86,17 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       }
     } catch (e) {
       console.error("Failed to parse persona data JSON:", personaDataResult.text, e);
-      // Provide a fallback structure if parsing fails, to prevent app crash
       parsedPersonaData = {
-        personaName: "Alex",
-        personaDetails: "Alex is a thoughtful individual facing some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error.",
-        meetingContext: "You've encountered Alex by chance today. Perhaps a friendly greeting is in order?",
+        personaName: "Jordan (Fallback)",
+        personaDetails: "Jordan is a thoughtful individual encountering some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error in parsing.",
+        meetingContext: "You've encountered Jordan by chance today. Perhaps a friendly greeting is in order?",
       };
-      // Optionally, re-throw or handle more gracefully if fallback isn't desired long-term
-      // throw new Error(`Failed to generate valid persona data structure: ${(e as Error).message}`);
     }
 
     const imagePrompt = `Generate a realistic portrait style image of a person named ${parsedPersonaData.personaName}.
-Their general disposition can be inferred from: ${parsedPersonaData.personaDetails.substring(0, 250)}...
+Their general disposition and appearance can be inferred from: ${parsedPersonaData.personaDetails.substring(0, 250)}...
 They are encountered in this specific context: "${parsedPersonaData.meetingContext}".
-The image should focus on ${parsedPersonaData.personaName} and subtly reflect the mood or setting of the meeting context. Aim for a friendly and approachable look suitable for a chat simulation.`;
+The image should focus on ${parsedPersonaData.personaName} and subtly reflect the mood or setting of the meeting context. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure diverse appearances.`;
 
     const imageResult = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -122,11 +119,10 @@ The image should focus on ${parsedPersonaData.personaName} and subtly reflect th
         throw new Error("Image generation failed for persona.");
     }
 
-
     return {
       personaName: parsedPersonaData.personaName,
-      personaDetails: parsedPersonaData.personaDetails, // Full backstory for AI context
-      meetingContext: parsedPersonaData.meetingContext, // For user display
+      personaDetails: parsedPersonaData.personaDetails,
+      meetingContext: parsedPersonaData.meetingContext,
       personaImage: imageUrl,
     };
   }
