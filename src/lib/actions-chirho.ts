@@ -51,7 +51,7 @@ export async function initializeUserChirho(userId: string, email: string | null,
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
-      if(Object.keys(updates).length > 1 || !existingData.lastLogin) { // only update if more than just lastLogin or if lastLogin was never set
+      if(Object.keys(updates).length > 1 || !existingData.lastLogin) { 
         console.log("initializeUserChirho Action: Attempting to update user document for:", userId, "with updates:", updates);
         await updateDoc(userDocRef, updates);
         console.log("initializeUserChirho Action: User profile updated in Firestore:", userId);
@@ -153,6 +153,7 @@ export async function updatePersonaImageChirho(input: UpdatePersonaVisualsInputC
 }
 
 export async function fetchSuggestedResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<{ success: boolean; data?: SuggestEvangelisticResponseOutputChirho; error?: string; }> {
+  console.log("Server action fetchSuggestedResponseChirho received input:", input); // Log the input to the server action
   try {
     const resultChirho = await suggestEvangelisticResponseChirho(input);
     return { success: true, data: resultChirho };
@@ -170,21 +171,16 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
   
   try {
-    // Add new conversation with its client-generated ID.
-    // Add a serverTimestamp for reliable server-side ordering if needed later, though client timestamp is primary for now.
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
     await setDoc(newConvDocRef, { ...conversationData, archivedAtServer: serverTimestamp() });
     console.log(`Archived conversation ${conversationData.id} for user ${userId}`);
 
-    // Pruning logic: Keep only the MAX_ARCHIVED_CONVERSATIONS_CHIRHO newest ones
-    // Query for more than needed, ordered by client-generated timestamp (desc for newest first)
-    const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO + 5)); // Fetch a few extra
+    const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO + 5)); 
     const snapshot = await getDocs(q);
     
     if (snapshot.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
       const batch = writeBatch(dbChirho);
-      // The snapshot is already ordered newest first. We need to delete the ones at the end of this list.
-      const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); // Get the oldest ones beyond the limit
+      const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); 
       
       docsToDelete.forEach(docToDelete => {
         batch.delete(docToDelete.ref);
@@ -204,7 +200,6 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
   if (!userId) return { success: false, error: "User ID is required." };
   
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
-  // Fetch conversations ordered by client-generated timestamp, newest first
   const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
   
   try {
@@ -226,7 +221,7 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
     const snapshot = await getDocs(userConversationsRef);
     if (snapshot.empty) {
       console.log(`No archived conversations to clear for user ${userId}`);
-      return { success: true }; // Nothing to delete
+      return { success: true }; 
     }
     const batch = writeBatch(dbChirho);
     snapshot.docs.forEach(doc => {
@@ -240,4 +235,3 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
     return { success: false, error: error.message || "Failed to clear conversation history." };
   }
 }
-

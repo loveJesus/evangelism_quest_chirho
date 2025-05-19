@@ -452,7 +452,7 @@ export default function AIPersonasPageChirho() {
     
     const actualPersonaName = (personaChirho.personaNameChirho && personaChirho.personaNameChirho.trim() !== "") 
                               ? personaChirho.personaNameChirho 
-                              : "Character"; // Using a clear, non-empty placeholder
+                              : "Character"; 
 
     const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : "the person";
 
@@ -942,5 +942,3 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     )}
   </div>
 );
-
-
