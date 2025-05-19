@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lightbulb, Sun, Settings, Icon, Gamepad2, LogIn, LogOut } from "lucide-react"; 
+import { Lightbulb, Sun, Settings, Icon, Gamepad2, LogIn, LogOut, Loader2 } from "lucide-react"; 
 import {
   SidebarMenu,
   SidebarMenuItem,

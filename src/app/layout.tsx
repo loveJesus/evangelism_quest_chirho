@@ -2,9 +2,10 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { AppLayoutChirho } from '@/components/layout/app-layout-chirho'; // Updated import
+import { AppLayoutChirho } from '@/components/layout/app-layout-chirho';
 import { ToasterChirho } from '@/components/ui/toaster'; 
-import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho'; // Updated import
+import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
+import { AuthProviderChirho } from '@/contexts/auth-context-chirho'; // Import AuthProviderChirho
 
 const geistSansChirho = Geist({
   variable: '--font-geist-sans',
@@ -29,10 +30,12 @@ export default function RootLayoutChirho({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSansChirho.variable} ${geistMonoChirho.variable} antialiased`}>
-        <CustomizationProviderChirho>
-          <AppLayoutChirho>{children}</AppLayoutChirho>
-          <ToasterChirho />
-        </CustomizationProviderChirho>
+        <AuthProviderChirho> {/* Wrap with AuthProviderChirho */}
+          <CustomizationProviderChirho>
+            <AppLayoutChirho>{children}</AppLayoutChirho>
+            <ToasterChirho />
+          </CustomizationProviderChirho>
+        </AuthProviderChirho>
       </body>
     </html>
   );
