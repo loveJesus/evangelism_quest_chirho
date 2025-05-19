@@ -9,7 +9,7 @@
  * - AIPersonaConvincingOutputChirho - The return type for the aiPersonaConvincingChirho function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
 import {z} from 'genkit';
 
 const AIPersonaConvincingInputSchemaChirho = z.object({
@@ -18,9 +18,9 @@ const AIPersonaConvincingInputSchemaChirho = z.object({
     .describe(
       'The difficulty level of the AI persona, with higher numbers indicating more resistance to persuasion or more complex questions.'
     ),
-  personaDescriptionChirho: z // This will contain the full backstory including the name.
+  personaDescriptionChirho: z 
     .string()
-    .describe('A detailed description of the AI persona, including their name, background, beliefs, and emotional state.'),
+    .describe('A detailed description of the AI persona, including their name (which the AI uses internally), background, beliefs, and emotional state.'),
   messageChirho: z.string().describe('The evangelistic message or conversational input from the user to be presented to the AI persona.'),
 });
 export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingInputSchemaChirho>;
@@ -53,10 +53,10 @@ The current difficulty level of this simulation is {{{difficultyLevelChirho}}} (
 The user just said: "{{{messageChirho}}}"
 
 Based on your persona and the user's message:
-1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
+1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural (personas often refer to themselves by name in real conversation, but don't overdo it).
 2.  Determine if you are "convincedChirho" (i.e., you have come to believe in Jesus Christ for salvation). This should be a significant moment and typically only occur after your main doubts and questions (appropriate for your difficulty level) have been addressed over several interactions. It should be rare, especially at higher difficulty levels. Do not become convinced easily or too quickly.
 3.  If not convinced, formulate a "nextQuestionChirho" which should be a genuine question, doubt, or point of hesitation that naturally follows from your "personaResponseChirho" or reflects your current main obstacle to belief. This helps guide the conversation. If convinced, "nextQuestionChirho" can be null or an empty string.
-4.  Provide a "visualContextForNextImageChirho": a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. This will be used to generate a new image of you. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
+4.  Provide a "visualContextForNextImageChirho": a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
 
 Output your entire response as a single, valid JSON object with the following keys: "personaResponseChirho", "convincedChirho", "nextQuestionChirho", "visualContextForNextImageChirho".
 
@@ -92,7 +92,7 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
             personaResponseChirho: "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?",
             convincedChirho: false,
             nextQuestionChirho: "Could you rephrase your last message?",
-            visualContextForNextImageChirho: "looking confused", // Provide a default visual cue
+            visualContextForNextImageChirho: "looking confused", 
         };
     }
     // Ensure all fields are present, even if optional ones are null
@@ -104,4 +104,3 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
     };
   }
 );
-

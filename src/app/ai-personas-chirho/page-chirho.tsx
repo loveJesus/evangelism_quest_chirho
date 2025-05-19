@@ -4,17 +4,19 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import dynamic from 'next/dynamic';
-import { generateNewPersonaChirho, sendMessageToPersonaChirho, updatePersonaImageChirho, fetchSuggestedResponseChirho } from "@/lib/actions-chirho";
-import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from "@/ai/flows/generate-ai-persona-chirho";
-import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai/flows/ai-persona-convincing-chirho";
-import type { UpdatePersonaVisualsInputChirho, UpdatePersonaVisualsOutputChirho } from "@/ai/flows/update-persona-visuals-chirho";
-import type { SuggestEvangelisticResponseInputChirho, SuggestEvangelisticResponseOutputChirho } from "@/ai/flows/suggest-evangelistic-response-chirho";
+import { useAuthChirho } from '@/contexts/auth-context-chirho';
+import { useRouter } from 'next/navigation';
+import { generateNewPersonaChirho, sendMessageToPersonaChirho, updatePersonaImageChirho, fetchSuggestedResponseChirho, decrementUserCreditsChirho, addTestCreditsChirho } from "@/lib/actions-chirho";
+import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
+import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai-chirho/flows-chirho/ai-persona-convincing-chirho";
+import type { UpdatePersonaVisualsInputChirho } from "@/ai-chirho/flows-chirho/update-persona-visuals-chirho";
+import type { SuggestEvangelisticResponseInputChirho, SuggestEvangelisticResponseOutputChirho } from "@/ai-chirho/flows-chirho/suggest-evangelistic-response-chirho";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2 } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -38,7 +40,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
 
 const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho.tsx').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
 
@@ -63,9 +64,12 @@ interface ArchivedConversationChirho {
 }
 
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
-const LOCAL_STORAGE_HISTORY_KEY_CHIRHO = 'faithforward-conversationHistoryChirho';
+const LOCAL_STORAGE_HISTORY_KEY_CHIRHO_BASE = 'faithforward-conversationHistoryChirho';
 
 export default function AIPersonasPageChirho() {
+  const { currentUserChirho, userProfileChirho, loadingAuthChirho, updateLocalUserProfileChirho } = useAuthChirho();
+  const routerChirho = useRouter();
+
   const [personaChirho, setPersonaChirho] = useState<GenerateAiPersonaOutputChirho | null>(null);
   const [dynamicPersonaImageChirho, setDynamicPersonaImageChirho] = useState<string | null>(null);
   const [messagesChirho, setMessagesChirho] = useState<MessageChirho[]>([]);
@@ -80,6 +84,7 @@ export default function AIPersonasPageChirho() {
   const [archivedConversationsChirho, setArchivedConversationsChirho] = useState<ArchivedConversationChirho[]>([]);
   const [selectedArchivedConversationChirho, setSelectedArchivedConversationChirho] = useState<ArchivedConversationChirho | null>(null);
   const [isHistoryDialogOpenChirho, setIsHistoryDialogOpenChirho] = useState<boolean>(false);
+  const [isBuyCreditsDialogOpenChirho, setIsBuyCreditsDialogOpenChirho] = useState<boolean>(false);
   
   const [imagePopupUrlChirho, setImagePopupUrlChirho] = useState<string | null>(null);
   const [isImagePopupOpenChirho, setIsImagePopupOpenChirho] = useState<boolean>(false);
@@ -88,20 +93,38 @@ export default function AIPersonasPageChirho() {
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const justContinuedConversationRef = useRef(false);
+  
+  const getLocalStorageHistoryKeyChirho = useCallback(() => {
+    if (!currentUserChirho) return null;
+    return `${LOCAL_STORAGE_HISTORY_KEY_CHIRHO_BASE}-${currentUserChirho.uid}`;
+  }, [currentUserChirho]);
+
 
   useEffect(() => {
-    try {
-      const storedHistory = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY_CHIRHO);
-      if (storedHistory) {
-        setArchivedConversationsChirho(JSON.parse(storedHistory));
-      }
-    } catch (error) {
-      console.error("Error loading conversation history from localStorage:", error);
+    if (loadingAuthChirho) return;
+    if (!currentUserChirho) {
+      routerChirho.push('/login-chirho');
+      return;
     }
-  }, []);
+    const storageKey = getLocalStorageHistoryKeyChirho();
+    if(storageKey){
+        try {
+          const storedHistory = localStorage.getItem(storageKey);
+          if (storedHistory) {
+            setArchivedConversationsChirho(JSON.parse(storedHistory));
+          }
+        } catch (error) {
+          console.error("Error loading conversation history from localStorage:", error);
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserChirho, loadingAuthChirho, routerChirho]);
 
   const archiveCurrentConversationChirho = useCallback((currentPersona: GenerateAiPersonaOutputChirho, currentMessages: MessageChirho[], convinced: boolean) => {
-    if (!currentPersona || currentMessages.length === 0) return;
+    if (!currentPersona || currentMessages.length === 0 || !currentUserChirho) return;
+    
+    const storageKey = getLocalStorageHistoryKeyChirho();
+    if(!storageKey) return;
 
     const newArchiveEntry: ArchivedConversationChirho = {
       id: Date.now().toString(),
@@ -119,7 +142,7 @@ export default function AIPersonasPageChirho() {
     setArchivedConversationsChirho(prevArchivedChirho => {
       const updatedHistory = [newArchiveEntry, ...prevArchivedChirho].slice(0, MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
       try {
-        localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY_CHIRHO, JSON.stringify(updatedHistory));
+        localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
       } catch (error) {
         console.error("Error saving conversation history to localStorage:", error);
         toastChirho({
@@ -130,11 +153,13 @@ export default function AIPersonasPageChirho() {
       }
       return updatedHistory;
     });
-  }, [difficultyLevelChirho, toastChirho]);
+  }, [difficultyLevelChirho, toastChirho, currentUserChirho, getLocalStorageHistoryKeyChirho]);
 
   const handleClearHistoryChirho = () => {
+    const storageKey = getLocalStorageHistoryKeyChirho();
+    if(!storageKey) return;
     try {
-      localStorage.removeItem(LOCAL_STORAGE_HISTORY_KEY_CHIRHO);
+      localStorage.removeItem(storageKey);
       setArchivedConversationsChirho([]);
       setSelectedArchivedConversationChirho(null); 
       toastChirho({
@@ -186,7 +211,7 @@ export default function AIPersonasPageChirho() {
         return; 
     }
 
-    if (personaChirho && messagesChirho.length > 0) {
+    if (personaChirho && messagesChirho.length > 1) { // Length > 1 to avoid archiving empty initial meeting context
       archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false);
     }
 
@@ -195,13 +220,13 @@ export default function AIPersonasPageChirho() {
     setUserInputChirho("");
     setDynamicPersonaImageChirho(null);
     setSuggestedAnswerChirho(null);
-    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique, with varied professions, names (common, uncommon, diverse cultural backgrounds; AVOID REPEATING names like Caleb, Kai, Zephyr, Zephyrine), and backgrounds. Determine if their name is known based on context. Include sex and age.`;
+    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique.`;
     
     try {
       const resultChirho = await generateNewPersonaChirho({ personaDescriptionChirho: personaThemeDescriptionChirho } as GenerateAiPersonaInputChirho);
       if (resultChirho.success && resultChirho.data) {
         setPersonaChirho(resultChirho.data);
-        setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho); // Initial image for card
+        setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho);
         const initialMessageTextChirho = resultChirho.data.meetingContextChirho
           ? `${resultChirho.data.meetingContextChirho} (You can start the conversation.)`
           : "Hello! I'm ready to talk.";
@@ -209,7 +234,7 @@ export default function AIPersonasPageChirho() {
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: resultChirho.data.personaImageChirho // Same initial image for the first bubble
+          imageUrlChirho: resultChirho.data.personaImageChirho 
         }]);
       } else {
         toastChirho({
@@ -228,16 +253,18 @@ export default function AIPersonasPageChirho() {
         setPersonaChirho(null);
     }
     setIsLoadingPersonaChirho(false);
-  }, [toastChirho, archiveCurrentConversationChirho, personaChirho, messagesChirho]);
+  }, [toastChirho, archiveCurrentConversationChirho, personaChirho, messagesChirho, currentUserChirho]);
 
   useEffect(() => {
+    if (!currentUserChirho || loadingAuthChirho) return; // Don't load persona if not logged in or auth is loading
+
     if (justContinuedConversationRef.current) {
       justContinuedConversationRef.current = false; 
       return;
     }
     loadNewPersonaChirho(difficultyLevelChirho, false, null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho]); 
+  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho]); 
 
 
   useEffect(() => {
@@ -259,7 +286,32 @@ export default function AIPersonasPageChirho() {
   }, [selectedArchivedConversationChirho]);
 
   const handleSendMessageChirho = async () => {
-    if (!userInputChirho.trim() || !personaChirho || !dynamicPersonaImageChirho) return;
+    if (!userInputChirho.trim() || !personaChirho || !dynamicPersonaImageChirho || !currentUserChirho || !userProfileChirho) return;
+
+    if (userProfileChirho.credits <= 0) {
+      toastChirho({
+        variant: "destructive",
+        title: "Out of Credits",
+        description: "You have no message credits left. Please get more to continue.",
+      });
+      setIsBuyCreditsDialogOpenChirho(true);
+      return;
+    }
+
+    const creditDecrementResult = await decrementUserCreditsChirho(currentUserChirho.uid);
+    if (!creditDecrementResult.success) {
+      toastChirho({
+        variant: "destructive",
+        title: "Credit Error",
+        description: creditDecrementResult.error || "Failed to update credits. Message not sent.",
+      });
+      if(creditDecrementResult.error === "Insufficient credits.") setIsBuyCreditsDialogOpenChirho(true);
+      return;
+    }
+    if (creditDecrementResult.newCredits !== undefined) {
+      updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
+    }
+
 
     const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
     setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newUserMessageChirho]);
@@ -326,6 +378,13 @@ export default function AIPersonasPageChirho() {
           description: resultChirho.error || "Could not get persona's response.",
         });
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
+         // Rollback credit if AI fails to respond
+         if(currentUserChirho) {
+            const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1); // Assuming 1 credit per message
+            if(creditRollback.success && creditRollback.newCredits !== undefined) {
+                updateLocalUserProfileChirho({credits: creditRollback.newCredits});
+            }
+         }
       }
     } catch (errorChirho) {
         toastChirho({
@@ -334,14 +393,27 @@ export default function AIPersonasPageChirho() {
             description: "An unexpected error occurred while sending the message.",
         });
         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
+        // Rollback credit on unexpected error
+         if(currentUserChirho) {
+            const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
+            if(creditRollback.success && creditRollback.newCredits !== undefined) {
+                updateLocalUserProfileChirho({credits: creditRollback.newCredits});
+            }
+         }
     }
     setIsSendingMessageChirho(false);
   };
 
   const handleSuggestAnswerChirho = async () => {
-    if (!personaChirho || messagesChirho.length === 0) return;
+    if (!personaChirho || messagesChirho.length === 0 || !currentUserChirho || !userProfileChirho) return;
     const lastPersonaMessageChirho = messagesChirho.filter(mChirho => mChirho.sender === 'persona').pop();
     if (!lastPersonaMessageChirho) return;
+
+    // Optional: Could also charge credits for suggestions
+    // if (userProfileChirho.credits <= 0) { /* ... handle out of credits ... */ }
+    // const creditDecrementResult = await decrementUserCreditsChirho(currentUserChirho.uid);
+    // if (!creditDecrementResult.success) { /* ... handle error ... */ }
+    // updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
 
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
@@ -379,16 +451,49 @@ export default function AIPersonasPageChirho() {
     }
   };
 
+  const handleAddTestCredits = async () => {
+    if (!currentUserChirho) return;
+    setIsSendingMessageChirho(true); // Reuse for general loading state
+    const result = await addTestCreditsChirho(currentUserChirho.uid, 1000); // Add 1000 test credits
+    if (result.success && result.newCredits !== undefined) {
+      updateLocalUserProfileChirho({ credits: result.newCredits });
+      toastChirho({
+        title: "Credits Added",
+        description: "1000 test credits have been added to your account.",
+      });
+      setIsBuyCreditsDialogOpenChirho(false);
+    } else {
+      toastChirho({
+        variant: "destructive",
+        title: "Error Adding Credits",
+        description: result.error || "Failed to add test credits.",
+      });
+    }
+    setIsSendingMessageChirho(false);
+  };
+
+
+  if (loadingAuthChirho) {
+    return <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  }
+
+  if (!currentUserChirho || !userProfileChirho) {
+     // This should be handled by the redirect in useEffect, but as a fallback
+    return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p></div>;
+  }
+
+
   const personaDisplayNameChirho = personaChirho && personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : "A New Encounter";
   const chatWithNameChirho = personaChirho && personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? personaChirho.personaNameChirho : "the Person";
   const messagePlaceholderNameChirho = personaChirho && personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? personaChirho.personaNameChirho : "the person";
+  const noCreditsChirho = userProfileChirho.credits <= 0;
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,100px)-2rem)] max-h-[calc(100vh-var(--header-height,100px)-2rem)]">
       <Card className="lg:w-1/3 flex-shrink-0 overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
-            {isLoadingPersonaChirho ? "Loading Persona..." : `AI Persona: ${personaDisplayNameChirho}`}
+            {isLoadingPersonaChirho && !personaChirho ? "Loading Persona..." : `AI Persona: ${personaDisplayNameChirho}`}
              <div className="flex gap-2">
               <Dialog open={isHistoryDialogOpenChirho} onOpenChange={(open) => {
                 setIsHistoryDialogOpenChirho(open);
@@ -406,7 +511,7 @@ export default function AIPersonasPageChirho() {
                       {selectedArchivedConversationChirho ? `Chat with ${selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : "Person"}` : "Conversation History"}
                     </DialogTitle>
                     <DialogDescription>
-                      {selectedArchivedConversationChirho ? `Conversation from ${new Date(selectedArchivedConversationChirho.timestamp).toLocaleString()}` : "Select a past conversation to view details or clear history."}
+                      {selectedArchivedConversationChirho ? `Conversation from ${new Date(selectedArchivedConversationChirho.timestamp).toLocaleString()}` : "Select a past conversation to view details, continue, or clear history."}
                     </DialogDescription>
                   </DialogHeader>
                   {!selectedArchivedConversationChirho ? (
@@ -441,7 +546,7 @@ export default function AIPersonasPageChirho() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete all your conversation history.
+                                  This action cannot be undone. This will permanently delete all your conversation history for this account.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -515,10 +620,7 @@ export default function AIPersonasPageChirho() {
                           ))}
                         </div>
                       </ScrollArea>
-                    </div>
-                  )}
-                   <DialogFooter className="mt-4">
-                      {selectedArchivedConversationChirho && (
+                      <DialogFooter className="mt-4">
                         <Button
                             variant="default"
                             onClick={() => {
@@ -530,15 +632,16 @@ export default function AIPersonasPageChirho() {
                         >
                             Continue this Conversation
                         </Button>
-                      )}
-                      <DialogClose asChild>
-                        <Button variant="outline">Close</Button>
-                      </DialogClose>
-                    </DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">Close</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
               <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho, false, null)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho}>
-                {isLoadingPersonaChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {isLoadingPersonaChirho && messagesChirho.length === 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="sr-only">New Persona</span>
               </Button>
             </div>
@@ -548,7 +651,7 @@ export default function AIPersonasPageChirho() {
           )}
         </CardHeader>
         <CardContent>
-          {isLoadingPersonaChirho ? (
+          {isLoadingPersonaChirho && !personaChirho ? (
             <div className="space-y-4">
               <div className="w-full aspect-square bg-muted rounded-lg animate-pulse" />
               <div className="h-6 w-3/4 bg-muted rounded animate-pulse mt-2" />
@@ -557,7 +660,11 @@ export default function AIPersonasPageChirho() {
             </div>
           ) : personaChirho && dynamicPersonaImageChirho ? (
             <>
-              <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden shadow-md">
+              <div 
+                className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden shadow-md cursor-pointer hover:opacity-80"
+                onClick={() => handleImagePopupChirho(dynamicPersonaImageChirho)}
+                title="Click to enlarge image"
+              >
                 {dynamicPersonaImageChirho && (
                   <Image
                     src={dynamicPersonaImageChirho}
@@ -567,6 +674,7 @@ export default function AIPersonasPageChirho() {
                     data-ai-hint="portrait person"
                     unoptimized={!!(dynamicPersonaImageChirho && typeof dynamicPersonaImageChirho === 'string' && dynamicPersonaImageChirho.startsWith('data:image'))}
                     key={dynamicPersonaImageChirho} 
+                    priority={true}
                   />
                 )}
                 {isUpdatingImageChirho && (
@@ -592,11 +700,51 @@ export default function AIPersonasPageChirho() {
             </Alert>
           )}
         </CardContent>
+         <CardFooter className="border-t pt-4">
+          <Dialog open={isBuyCreditsDialogOpenChirho} onOpenChange={setIsBuyCreditsDialogOpenChirho}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}>
+                <CreditCard className="mr-2 h-4 w-4" /> Get More Message Credits
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Get More Message Credits</DialogTitle>
+                <DialogDescription>
+                  Choose a package to continue your conversations. (Payment integration is a demo).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Card className="p-4 hover:shadow-lg transition-shadow">
+                  <CardTitle className="text-lg">Test Package</CardTitle>
+                  <CardDescription>Add 1000 credits for testing purposes.</CardDescription>
+                  <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
+                    {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Get 1000 Test Credits"}
+                  </Button>
+                </Card>
+                <Card className="p-4 bg-muted/50">
+                  <CardTitle className="text-lg">Basic Evangelist Pack (Example)</CardTitle>
+                  <CardDescription>$5.00 - Approximately 5000 message credits. (Actual payment not implemented)</CardDescription>
+                  <Button className="mt-2 w-full" disabled={true}>Buy Now (Disabled)</Button>
+                </Card>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardFooter>
       </Card>
 
       <Card className="flex-grow flex flex-col shadow-xl max-h-full">
         <CardHeader>
           <CardTitle>Chat with {chatWithNameChirho}</CardTitle>
+          <CardDescription className="flex items-center gap-1">
+            <MessageCircleMore className="h-4 w-4 text-primary" /> 
+            Credits remaining: {userProfileChirho?.credits ?? 0}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col overflow-hidden p-0">
           <ScrollArea className="flex-grow p-6" ref={scrollAreaRefChirho}>
@@ -612,7 +760,7 @@ export default function AIPersonasPageChirho() {
                     <AvatarIconChirho 
                         className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`} 
                         imageUrlChirho={msgChirho.imageUrlChirho}
-                        onClick={() => msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                        onClick={() => handleImagePopupChirho(msgChirho.imageUrlChirho)}
                         title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
                     >
                       {!msgChirho.imageUrlChirho && <Bot className="h-5 w-5" />}
@@ -624,7 +772,7 @@ export default function AIPersonasPageChirho() {
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border"
                     } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
-                     onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                     onClick={() => msgChirho.sender === "persona" && handleImagePopupChirho(msgChirho.imageUrlChirho)}
                      title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
@@ -669,31 +817,43 @@ export default function AIPersonasPageChirho() {
                         setUserInputChirho(suggestedAnswerChirho);
                         setSuggestedAnswerChirho(null);
                     }}
+                    disabled={noCreditsChirho}
                 >
                     Use this suggestion
                 </Button>
             </Alert>
+          )}
+          {noCreditsChirho && personaChirho && (
+             <Alert variant="destructive" className="m-4">
+                <AlertTitle>Out of Message Credits</AlertTitle>
+                <AlertDescription>
+                  You've used all your message credits. Please get more to continue chatting with {chatWithNameChirho}.
+                  <Button className="mt-2 w-full" size="sm" onClick={() => setIsBuyCreditsDialogOpenChirho(true)}>
+                    <CreditCard className="mr-2 h-4 w-4" /> Get More Credits
+                  </Button>
+                </AlertDescription>
+             </Alert>
           )}
           <div className="border-t p-4 bg-background/50">
             <div className="flex items-end gap-2">
               <Textarea
                 value={userInputChirho}
                 onChange={(eChirho) => setUserInputChirho(eChirho.target.value)}
-                placeholder={isLoadingPersonaChirho || !personaChirho ? "Loading persona..." : `Message ${messagePlaceholderNameChirho}...`}
+                placeholder={isLoadingPersonaChirho || !personaChirho ? "Loading persona..." : (noCreditsChirho ? "Out of credits. Get more to continue." :`Message ${messagePlaceholderNameChirho}...`)}
                 className="flex-grow resize-none"
                 rows={2}
                 onKeyDown={(eChirho) => {
-                  if (eChirho.key === 'Enter' && !eChirho.shiftKey) {
+                  if (eChirho.key === 'Enter' && !eChirho.shiftKey && !noCreditsChirho) {
                     eChirho.preventDefault();
                     handleSendMessageChirho();
                   }
                 }}
-                disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho}
+                disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || noCreditsChirho}
               />
               <div className="flex flex-col gap-1">
                 <Button
                   onClick={handleSuggestAnswerChirho}
-                  disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || messagesChirho.filter(mChirho=>mChirho.sender==='persona').length === 0}
+                  disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || messagesChirho.filter(mChirho=>mChirho.sender==='persona').length === 0 || noCreditsChirho}
                   variant="outline"
                   size="sm"
                   className="w-full"
@@ -702,7 +862,7 @@ export default function AIPersonasPageChirho() {
                   {isFetchingSuggestionChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
                   <span className="sr-only sm:not-sr-only sm:ml-1">Suggest</span>
                 </Button>
-                <Button onClick={handleSendMessageChirho} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !userInputChirho.trim() || !personaChirho} className="w-full">
+                <Button onClick={handleSendMessageChirho} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !userInputChirho.trim() || !personaChirho || noCreditsChirho} className="w-full">
                   {(isSendingMessageChirho || isUpdatingImageChirho) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   <span className="sr-only sm:not-sr-only sm:ml-1">Send</span>
                 </Button>

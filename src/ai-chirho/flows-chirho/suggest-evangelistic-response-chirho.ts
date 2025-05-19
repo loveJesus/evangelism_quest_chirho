@@ -8,7 +8,7 @@
  * - SuggestEvangelisticResponseOutputChirho - The return type for the function.
  */
 
-import {ai} from '@/ai/genkit-chirho'; // Updated import
+import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
 import {z} from 'genkit';
 
 const SuggestEvangelisticResponseInputSchemaChirho = z.object({

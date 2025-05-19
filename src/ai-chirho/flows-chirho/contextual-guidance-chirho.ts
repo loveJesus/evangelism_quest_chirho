@@ -8,7 +8,7 @@
  * - ContextualGuidanceOutputChirho - The return type for the contextualGuidanceChirho function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
 import {z} from 'genkit';
 
 const ContextualGuidanceInputSchemaChirho = z.object({

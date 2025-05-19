@@ -8,7 +8,7 @@
  * - GenerateAiPersonaOutputChirho - The return type for the generateAiPersonaChirho function.
  */
 
-import {ai} from '@/ai/genkit-chirho';
+import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
 
 const GenerateAiPersonaInputSchemaChirho = z.object({

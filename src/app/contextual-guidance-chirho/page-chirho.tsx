@@ -6,7 +6,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { fetchContextualGuidanceChirho } from "@/lib/actions-chirho"; // Updated import
-import type { ContextualGuidanceOutputChirho } from "@/ai/flows/contextual-guidance-chirho"; // Updated import
+import type { ContextualGuidanceOutputChirho } from "@/ai-chirho/flows-chirho/contextual-guidance-chirho"; // Updated import
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
