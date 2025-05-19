@@ -14,15 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Eye } from "lucide-react"; // Added Eye
 import { useToastChirho } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 
-// Dynamically import the ImagePopupDialogChirho component with SSR disabled
 const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho.tsx').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
-
 
 interface MessageChirho {
   sender: "user" | "persona";
@@ -65,11 +63,10 @@ export default function AIPersonasPageChirho() {
   const [imagePopupUrlChirho, setImagePopupUrlChirho] = useState<string | null>(null);
   const [isImagePopupOpenChirho, setIsImagePopupOpenChirho] = useState<boolean>(false);
 
-
   const { toastChirho } = useToastChirho();
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
-
+  const justContinuedConversationRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -89,11 +86,11 @@ export default function AIPersonasPageChirho() {
       id: Date.now().toString(),
       timestamp: Date.now(),
       personaNameChirho: currentPersona.personaNameChirho,
-      initialPersonaImageChirho: currentPersona.personaImageChirho,
+      initialPersonaImageChirho: currentPersona.personaImageChirho, // Store the base image
       meetingContextChirho: currentPersona.meetingContextChirho,
       personaDetailsChirho: currentPersona.personaDetailsChirho,
       difficultyLevelChirho: difficultyLevelChirho,
-      messagesChirho: [...currentMessages],
+      messagesChirho: [...currentMessages], // Ensure all messages, including their specific image URLs, are archived
       convincedChirho: convinced,
     };
 
@@ -113,8 +110,40 @@ export default function AIPersonasPageChirho() {
     });
   }, [difficultyLevelChirho, toastChirho]);
 
+  const loadNewPersonaChirho = useCallback(async (
+    difficultyToLoadChirho: number, 
+    convincedStatusOverride?: boolean, 
+    conversationToContinue?: ArchivedConversationChirho | null
+  ) => {
+    if (conversationToContinue) {
+        setIsLoadingPersonaChirho(true);
+        setPersonaChirho({
+            personaNameChirho: conversationToContinue.personaNameChirho,
+            personaDetailsChirho: conversationToContinue.personaDetailsChirho,
+            meetingContextChirho: conversationToContinue.meetingContextChirho,
+            personaImageChirho: conversationToContinue.initialPersonaImageChirho,
+        });
+        setMessagesChirho([...conversationToContinue.messagesChirho]);
+        
+        const lastPersonaMessageWithImage = [...conversationToContinue.messagesChirho].filter(m => m.sender === 'persona' && m.imageUrlChirho).pop();
+        setDynamicPersonaImageChirho(lastPersonaMessageWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho);
+        
+        setDifficultyLevelChirho(conversationToContinue.difficultyLevelChirho);
+        justContinuedConversationRef.current = true; // Set flag to prevent immediate reload by useEffect
 
-  const loadNewPersonaChirho = useCallback(async (difficultyChirho: number, convincedStatusOverride?: boolean) => {
+        setUserInputChirho("");
+        setSuggestedAnswerChirho(null);
+        setIsHistoryDialogOpenChirho(false); 
+        setSelectedArchivedConversationChirho(null);
+        setIsLoadingPersonaChirho(false);
+        toastChirho({
+            title: "Conversation Continued",
+            description: `Continuing chat with ${conversationToContinue.personaNameChirho}. Scroll up to see previous messages.`,
+            duration: 5000,
+        });
+        return; 
+    }
+
     if (personaChirho && messagesChirho.length > 0) {
       archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false);
     }
@@ -124,7 +153,7 @@ export default function AIPersonasPageChirho() {
     setUserInputChirho("");
     setDynamicPersonaImageChirho(null);
     setSuggestedAnswerChirho(null);
-    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyChirho}. Their story should be unique, with varied professions, names, and backgrounds.`;
+    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique, with varied professions, names, and backgrounds.`;
     
     try {
       const resultChirho = await generateNewPersonaChirho({ personaDescriptionChirho: personaThemeDescriptionChirho } as GenerateAiPersonaInputChirho);
@@ -138,7 +167,7 @@ export default function AIPersonasPageChirho() {
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: resultChirho.data.personaImageChirho
+          imageUrlChirho: resultChirho.data.personaImageChirho // Initial image for first message
         }]);
       } else {
         toastChirho({
@@ -160,9 +189,16 @@ export default function AIPersonasPageChirho() {
   }, [toastChirho, archiveCurrentConversationChirho, personaChirho, messagesChirho]);
 
   useEffect(() => {
-    loadNewPersonaChirho(difficultyLevelChirho);
+    if (justContinuedConversationRef.current) {
+      justContinuedConversationRef.current = false; 
+      return;
+    }
+    // Default behavior: load a new persona if difficulty changes (and not just after continuing)
+    // This will also handle the initial load.
+    loadNewPersonaChirho(difficultyLevelChirho, false, null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho]);
+  }, [difficultyLevelChirho]); // loadNewPersonaChirho is stable via useCallback, so not needed here if its own deps are correct.
+
 
   useEffect(() => {
     if (scrollAreaRefChirho.current) {
@@ -182,24 +218,21 @@ export default function AIPersonasPageChirho() {
     }
   }, [selectedArchivedConversationChirho]);
 
-
   const handleSendMessageChirho = async () => {
     if (!userInputChirho.trim() || !personaChirho || !dynamicPersonaImageChirho) return;
 
     const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
-    // Use the current dynamic image for the user message context
-    const imageForUserMessageContext = dynamicPersonaImageChirho; 
-    setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, {...newUserMessageChirho, imageUrlChirho: imageForUserMessageContext}]);
+    setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newUserMessageChirho]);
     const currentInputChirho = userInputChirho;
     setUserInputChirho("");
     setSuggestedAnswerChirho(null);
     setIsSendingMessageChirho(true);
 
-    let currentDynamicImage = dynamicPersonaImageChirho; // Capture current image before potential updates
+    let currentDynamicImageForResponse = dynamicPersonaImageChirho; 
 
     const convincingInputChirho: AIPersonaConvincingInputChirho = {
       difficultyLevelChirho: difficultyLevelChirho,
-      personaDescriptionChirho: personaChirho.personaDetailsChirho, // Full backstory for AI context
+      personaDescriptionChirho: `${personaChirho.personaNameChirho}: ${personaChirho.personaDetailsChirho}`,
       messageChirho: currentInputChirho,
     };
 
@@ -208,13 +241,12 @@ export default function AIPersonasPageChirho() {
       if (resultChirho.success && resultChirho.data) {
         const personaResponseChirho = resultChirho.data as AIPersonaConvincingOutputChirho;
         
-        let imageForPersonaMessage = currentDynamicImage; // Default to current image
+        let imageForPersonaMessage = currentDynamicImageForResponse;
 
-        // If AI suggests a visual update, regenerate the image
-        if (personaResponseChirho.visualContextForNextImageChirho && currentDynamicImage) {
+        if (personaResponseChirho.visualContextForNextImageChirho && currentDynamicImageForResponse) {
           setIsUpdatingImageChirho(true);
           const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
-            baseImageUriChirho: currentDynamicImage, // Use the most recent dynamic image as base
+            baseImageUriChirho: currentDynamicImageForResponse, 
             personaNameChirho: personaChirho.personaNameChirho,
             originalMeetingContextChirho: personaChirho.meetingContextChirho,
             newVisualPromptChirho: personaResponseChirho.visualContextForNextImageChirho,
@@ -222,10 +254,8 @@ export default function AIPersonasPageChirho() {
           const imageResultChirho = await updatePersonaImageChirho(imageUpdateInputChirho);
           if (imageResultChirho.success && imageResultChirho.data) {
             setDynamicPersonaImageChirho(imageResultChirho.data.updatedImageUriChirho);
-            imageForPersonaMessage = imageResultChirho.data.updatedImageUriChirho; // Use newly generated image for this message
-            currentDynamicImage = imageResultChirho.data.updatedImageUriChirho; // Update the baseline dynamic image
+            imageForPersonaMessage = imageResultChirho.data.updatedImageUriChirho;
           } else {
-            // If image update fails, log warning but proceed with text response
             console.warn("Image update failed, keeping previous image for message. Error:", imageResultChirho.error)
           }
           setIsUpdatingImageChirho(false);
@@ -235,10 +265,9 @@ export default function AIPersonasPageChirho() {
           sender: "persona",
           text: personaResponseChirho.personaResponseChirho,
           id: (Date.now() + 1).toString(),
-          imageUrlChirho: imageForPersonaMessage // Store the image active at the time of this message
+          imageUrlChirho: imageForPersonaMessage 
         };
         setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newPersonaMessageChirho]);
-
 
         if (personaResponseChirho.convincedChirho) {
           toastChirho({
@@ -246,9 +275,8 @@ export default function AIPersonasPageChirho() {
             description: `${personaChirho.personaNameChirho || 'The persona'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
-          // Pass all messages including the last ones for complete archive
           archiveCurrentConversationChirho(personaChirho, [...messagesChirho, newUserMessageChirho, newPersonaMessageChirho], true);
-          setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); // This will trigger loadNewPersonaChirho via useEffect
+          setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); 
         }
       } else {
         toastChirho({
@@ -256,7 +284,6 @@ export default function AIPersonasPageChirho() {
           title: "Error Getting Response",
           description: resultChirho.error || "Could not get persona's response.",
         });
-         // Optionally, remove the user's message if the persona fails to respond
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
       }
     } catch (errorChirho) {
@@ -281,7 +308,6 @@ export default function AIPersonasPageChirho() {
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
       personaNameChirho: personaChirho.personaNameChirho,
-      // conversationHistoryChirho: messagesChirho.map(m => `${m.sender}: ${m.text}`).join('\n') // Optional: provide more context
     };
 
     try {
@@ -305,13 +331,12 @@ export default function AIPersonasPageChirho() {
     setIsFetchingSuggestionChirho(false);
   };
   
-  const handleArchivedMessageImagePopupChirho = (imageUrl: string | null | undefined) => {
+  const handleImagePopupChirho = (imageUrl: string | null | undefined) => {
     if (imageUrl) {
       setImagePopupUrlChirho(imageUrl);
       setIsImagePopupOpenChirho(true);
     }
   };
-
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,100px)-2rem)] max-h-[calc(100vh-var(--header-height,100px)-2rem)]">
@@ -322,7 +347,7 @@ export default function AIPersonasPageChirho() {
              <div className="flex gap-2">
               <Dialog open={isHistoryDialogOpenChirho} onOpenChange={(open) => {
                 setIsHistoryDialogOpenChirho(open);
-                if (!open) setSelectedArchivedConversationChirho(null); // Reset selection when dialog closes
+                if (!open) setSelectedArchivedConversationChirho(null);
               }}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon" title="View History" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho}>
@@ -371,8 +396,9 @@ export default function AIPersonasPageChirho() {
                                 alt={`${selectedArchivedConversationChirho.personaNameChirho} initial`}
                                 width={40}
                                 height={40}
-                                className="rounded-full object-cover"
-                                unoptimized={selectedArchivedConversationChirho.initialPersonaImageChirho.startsWith('data:image')}
+                                className="rounded-full object-cover cursor-pointer hover:opacity-80"
+                                unoptimized={!!(selectedArchivedConversationChirho.initialPersonaImageChirho && selectedArchivedConversationChirho.initialPersonaImageChirho.startsWith('data:image'))}
+                                onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)}
                              />
                            )}
                           <div>
@@ -393,20 +419,31 @@ export default function AIPersonasPageChirho() {
                                  <AvatarIconChirho 
                                     className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
                                     imageUrlChirho={msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho}
-                                    onClick={() => msgChirho.imageUrlChirho && handleArchivedMessageImagePopupChirho(msgChirho.imageUrlChirho)}
-                                    title={msgChirho.imageUrlChirho ? "Click to view image" : ""}
+                                    onClick={() => msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                                    title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
                                 >
                                   {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && <Bot className="h-5 w-5" />}
                                 </AvatarIconChirho>
                               )}
                                <div
-                                className={`max-w-[70%] rounded-lg p-3 shadow ${
+                                className={`max-w-[70%] rounded-lg p-3 shadow relative ${
                                   msgChirho.sender === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
                                 } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
-                                onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleArchivedMessageImagePopupChirho(msgChirho.imageUrlChirho)}
-                                title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click to view image" : ""}
+                                onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                                title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
                               >
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
+                                {msgChirho.sender === "persona" && msgChirho.imageUrlChirho && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                                        onClick={(e) => { e.stopPropagation(); handleImagePopupChirho(msgChirho.imageUrlChirho); }}
+                                        title="View image"
+                                    >
+                                        <Eye className="h-3 w-3" />
+                                    </Button>
+                                )}
                               </div>
                               {msgChirho.sender === "user" && (
                                 <AvatarIconChirho className="bg-secondary text-secondary-foreground">
@@ -420,13 +457,26 @@ export default function AIPersonasPageChirho() {
                     </div>
                   )}
                    <DialogFooter className="mt-4">
+                      {selectedArchivedConversationChirho && (
+                        <Button
+                            variant="default"
+                            onClick={() => {
+                                if (selectedArchivedConversationChirho) {
+                                    loadNewPersonaChirho(selectedArchivedConversationChirho.difficultyLevelChirho, false, selectedArchivedConversationChirho);
+                                }
+                            }}
+                            disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}
+                        >
+                            Continue this Conversation
+                        </Button>
+                      )}
                       <DialogClose asChild>
                         <Button variant="outline">Close</Button>
                       </DialogClose>
                     </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho}>
+              <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho, false, null)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho}>
                 {isLoadingPersonaChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="sr-only">New Persona</span>
               </Button>
@@ -454,8 +504,8 @@ export default function AIPersonasPageChirho() {
                     fill
                     style={{ objectFit: "cover" }}
                     data-ai-hint="portrait person"
-                    unoptimized={dynamicPersonaImageChirho.startsWith('data:image')}
-                    key={dynamicPersonaImageChirho} // Force re-render on image change
+                    unoptimized={!!(dynamicPersonaImageChirho && typeof dynamicPersonaImageChirho === 'string' && dynamicPersonaImageChirho.startsWith('data:image'))}
+                    key={dynamicPersonaImageChirho} 
                   />
                 )}
                 {isUpdatingImageChirho && (
@@ -498,18 +548,36 @@ export default function AIPersonasPageChirho() {
                   }`}
                 >
                   {msgChirho.sender === "persona" && (
-                    <AvatarIconChirho className="bg-accent text-accent-foreground" imageUrlChirho={msgChirho.imageUrlChirho}>
+                    <AvatarIconChirho 
+                        className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`} 
+                        imageUrlChirho={msgChirho.imageUrlChirho}
+                        onClick={() => msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                        title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
+                    >
                       {!msgChirho.imageUrlChirho && <Bot className="h-5 w-5" />}
                     </AvatarIconChirho>
                   )}
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 shadow ${
+                    className={`max-w-[70%] rounded-lg p-3 shadow relative ${
                       msgChirho.sender === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border"
-                    }`}
+                    } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
+                     onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
+                     title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
+                     {msgChirho.sender === "persona" && msgChirho.imageUrlChirho && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); handleImagePopupChirho(msgChirho.imageUrlChirho); }}
+                            title="View image"
+                        >
+                            <Eye className="h-3 w-3" />
+                        </Button>
+                    )}
                   </div>
                   {msgChirho.sender === "user" && (
                      <AvatarIconChirho className="bg-secondary text-secondary-foreground">
@@ -594,7 +662,6 @@ export default function AIPersonasPageChirho() {
         </CardContent>
       </Card>
 
-      {/* Dynamically imported Image Popup Dialog for Archived Messages */}
       <DynamicImagePopupDialogChirho
         isOpenChirho={isImagePopupOpenChirho}
         onCloseChirho={() => setIsImagePopupOpenChirho(false)}
@@ -605,7 +672,6 @@ export default function AIPersonasPageChirho() {
   );
 }
 
-// Avatar icon component - displays image if provided, otherwise children (e.g., Bot/User icon)
 const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title }: { children?: React.ReactNode, className?: string, imageUrlChirho?: string | null, onClick?: () => void, title?: string }) => (
   <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 overflow-hidden ${className}`} onClick={onClick} title={title}>
     {imageUrlChirho && typeof imageUrlChirho === 'string' && imageUrlChirho.startsWith('data:image') ? (
@@ -613,9 +679,9 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     ) : imageUrlChirho && typeof imageUrlChirho === 'string' ? (
        <Image src={imageUrlChirho} alt="Persona" width={32} height={32} className="object-cover w-full h-full" />
     ) : (
-      children // Render Bot/User icon if no image URL
+      children
     )}
   </div>
 );
 
-
+    
