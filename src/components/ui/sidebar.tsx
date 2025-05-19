@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -5,7 +6,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobileChirho } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,32 +20,32 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
-const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const SIDEBAR_COOKIE_NAME_CHIRHO = "sidebar_state"
+const SIDEBAR_COOKIE_MAX_AGE_CHIRHO = 60 * 60 * 24 * 7
+const SIDEBAR_WIDTH_CHIRHO = "16rem"
+const SIDEBAR_WIDTH_MOBILE_CHIRHO = "18rem"
+const SIDEBAR_WIDTH_ICON_CHIRHO = "3rem"
+const SIDEBAR_KEYBOARD_SHORTCUT_CHIRHO = "b"
 
-type SidebarContext = {
-  state: "expanded" | "collapsed"
-  open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
-  isMobile: boolean
-  toggleSidebar: () => void
+type SidebarContextChirho = {
+  stateChirho: "expanded" | "collapsed"
+  openChirho: boolean
+  setOpenChirho: (openChirho: boolean) => void
+  openMobileChirho: boolean
+  setOpenMobileChirho: (openMobileChirho: boolean) => void
+  isMobileChirho: boolean
+  toggleSidebarChirho: () => void
 }
 
-const SidebarContext = React.createContext<SidebarContext | null>(null)
+const SidebarContextChirho = React.createContext<SidebarContextChirho | null>(null)
 
-function useSidebar() {
-  const context = React.useContext(SidebarContext)
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.")
+function useSidebarChirho() {
+  const contextChirho = React.useContext(SidebarContextChirho)
+  if (!contextChirho) {
+    throw new Error("useSidebarChirho must be used within a SidebarProviderChirho.")
   }
 
-  return context
+  return contextChirho
 }
 
 const SidebarProvider = React.forwardRef<
@@ -58,8 +59,8 @@ const SidebarProvider = React.forwardRef<
   (
     {
       defaultOpen = true,
-      open: openProp,
-      onOpenChange: setOpenProp,
+      open: openPropChirho,
+      onOpenChange: setOpenPropChirho,
       className,
       style,
       children,
@@ -67,76 +68,76 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
-    const [openMobile, setOpenMobile] = React.useState(false)
+    const isMobileChirho = useIsMobileChirho()
+    const [openMobileChirho, setOpenMobileChirho] = React.useState(false)
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
-    const setOpen = React.useCallback(
-      (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
-        if (setOpenProp) {
-          setOpenProp(openState)
+    const [_openChirho, _setOpenChirho] = React.useState(defaultOpen)
+    const openChirho = openPropChirho ?? _openChirho
+    const setOpenChirho = React.useCallback(
+      (valueChirho: boolean | ((valueChirho: boolean) => boolean)) => {
+        const openStateChirho = typeof valueChirho === "function" ? valueChirho(openChirho) : valueChirho
+        if (setOpenPropChirho) {
+          setOpenPropChirho(openStateChirho)
         } else {
-          _setOpen(openState)
+          _setOpenChirho(openStateChirho)
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        document.cookie = `${SIDEBAR_COOKIE_NAME_CHIRHO}=${openStateChirho}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE_CHIRHO}`
       },
-      [setOpenProp, open]
+      [setOpenPropChirho, openChirho]
     )
 
     // Helper to toggle the sidebar.
-    const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+    const toggleSidebarChirho = React.useCallback(() => {
+      return isMobileChirho
+        ? setOpenMobileChirho((openChirho) => !openChirho)
+        : setOpenChirho((openChirho) => !openChirho)
+    }, [isMobileChirho, setOpenChirho, setOpenMobileChirho])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
+      const handleKeyDownChirho = (event: KeyboardEvent) => {
         if (
-          event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+          event.key === SIDEBAR_KEYBOARD_SHORTCUT_CHIRHO &&
           (event.metaKey || event.ctrlKey)
         ) {
           event.preventDefault()
-          toggleSidebar()
+          toggleSidebarChirho()
         }
       }
 
-      window.addEventListener("keydown", handleKeyDown)
-      return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [toggleSidebar])
+      window.addEventListener("keydown", handleKeyDownChirho)
+      return () => window.removeEventListener("keydown", handleKeyDownChirho)
+    }, [toggleSidebarChirho])
 
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
-    const state = open ? "expanded" : "collapsed"
+    const stateChirho = openChirho ? "expanded" : "collapsed"
 
-    const contextValue = React.useMemo<SidebarContext>(
+    const contextValueChirho = React.useMemo<SidebarContextChirho>(
       () => ({
-        state,
-        open,
-        setOpen,
-        isMobile,
-        openMobile,
-        setOpenMobile,
-        toggleSidebar,
+        stateChirho,
+        openChirho,
+        setOpenChirho,
+        isMobileChirho,
+        openMobileChirho,
+        setOpenMobileChirho,
+        toggleSidebarChirho,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [stateChirho, openChirho, setOpenChirho, isMobileChirho, openMobileChirho, setOpenMobileChirho, toggleSidebarChirho]
     )
 
     return (
-      <SidebarContext.Provider value={contextValue}>
+      <SidebarContextChirho.Provider value={contextValueChirho}>
         <TooltipProvider delayDuration={0}>
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                "--sidebar-width": SIDEBAR_WIDTH_CHIRHO,
+                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON_CHIRHO,
                 ...style,
               } as React.CSSProperties
             }
@@ -150,7 +151,7 @@ const SidebarProvider = React.forwardRef<
             {children}
           </div>
         </TooltipProvider>
-      </SidebarContext.Provider>
+      </SidebarContextChirho.Provider>
     )
   }
 )
@@ -175,7 +176,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobileChirho, stateChirho, openMobileChirho, setOpenMobileChirho } = useSidebarChirho()
 
     if (collapsible === "none") {
       return (
@@ -192,16 +193,16 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile) {
+    if (isMobileChirho) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet open={openMobileChirho} onOpenChange={setOpenMobileChirho} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
             className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                "--sidebar-width": SIDEBAR_WIDTH_MOBILE_CHIRHO,
               } as React.CSSProperties
             }
             side={side}
@@ -216,8 +217,8 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className="group peer hidden md:block text-sidebar-foreground"
-        data-state={state}
-        data-collapsible={state === "collapsed" ? collapsible : ""}
+        data-state={stateChirho}
+        data-collapsible={stateChirho === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
       >
@@ -263,7 +264,7 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebarChirho } = useSidebarChirho()
 
   return (
     <Button
@@ -274,7 +275,7 @@ const SidebarTrigger = React.forwardRef<
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event)
-        toggleSidebar()
+        toggleSidebarChirho()
       }}
       {...props}
     >
@@ -289,7 +290,7 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebarChirho } = useSidebarChirho()
 
   return (
     <button
@@ -297,7 +298,7 @@ const SidebarRail = React.forwardRef<
       data-sidebar="rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
+      onClick={toggleSidebarChirho}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
@@ -511,7 +512,7 @@ const SidebarMenuItem = React.forwardRef<
 ))
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
-const sidebarMenuButtonVariants = cva(
+const sidebarMenuButtonVariantsChirho = cva(
   "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
@@ -539,7 +540,7 @@ const SidebarMenuButton = React.forwardRef<
     asChild?: boolean
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  } & VariantProps<typeof sidebarMenuButtonVariants>
+  } & VariantProps<typeof sidebarMenuButtonVariantsChirho>
 >(
   (
     {
@@ -554,7 +555,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobileChirho, stateChirho } = useSidebarChirho()
 
     const button = (
       <Comp
@@ -562,7 +563,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariantsChirho({ variant, size }), className)}
         {...props}
       />
     )
@@ -583,7 +584,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={stateChirho !== "collapsed" || isMobileChirho}
           {...tooltip}
         />
       </Tooltip>
@@ -651,7 +652,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   }
 >(({ className, showIcon = false, ...props }, ref) => {
   // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
+  const widthChirho = React.useMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
   }, [])
 
@@ -673,7 +674,7 @@ const SidebarMenuSkeleton = React.forwardRef<
         data-sidebar="menu-skeleton-text"
         style={
           {
-            "--skeleton-width": width,
+            "--skeleton-width": widthChirho,
           } as React.CSSProperties
         }
       />
@@ -759,5 +760,5 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
+  useSidebarChirho as useSidebar,
 }

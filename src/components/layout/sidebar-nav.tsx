@@ -8,43 +8,43 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"; // Assuming these are ShadCN and should not be suffixed
 import { cn } from "@/lib/utils";
 
-interface NavItem {
+interface NavItemChirho {
   href: string;
   label: string;
-  icon: Icon;
+  icon: Icon; // This is a Lucide type, should not change
   soon?: boolean;
 }
 
-const navItems: NavItem[] = [
+const navItemsChirho: NavItemChirho[] = [
   { href: "/ai-personas", label: "AI Personas", icon: Users },
   { href: "/contextual-guidance", label: "Contextual Guidance", icon: Lightbulb },
   { href: "/daily-inspiration", label: "Daily Inspiration", icon: Sun },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function SidebarNav() {
-  const pathname = usePathname();
+export function SidebarNavChirho() {
+  const pathnameChirho = usePathname();
 
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} passHref legacyBehavior>
+      {navItemsChirho.map((itemChirho) => (
+        <SidebarMenuItem key={itemChirho.href}>
+          <Link href={itemChirho.href} passHref legacyBehavior>
             <SidebarMenuButton
               className={cn(
                 "w-full justify-start",
-                 item.soon && "cursor-not-allowed opacity-50"
+                 itemChirho.soon && "cursor-not-allowed opacity-50"
               )}
-              isActive={pathname === item.href || (item.href === "/ai-personas" && pathname === "/")}
-              tooltip={item.label}
-              disabled={item.soon}
-              aria-disabled={item.soon}
+              isActive={pathnameChirho === itemChirho.href || (itemChirho.href === "/ai-personas" && pathnameChirho === "/")}
+              tooltip={itemChirho.label}
+              disabled={itemChirho.soon}
+              aria-disabled={itemChirho.soon}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}{item.soon && " (Soon)"}</span>
+              <itemChirho.icon className="h-5 w-5" />
+              <span className="truncate group-data-[collapsible=icon]:hidden">{itemChirho.label}{itemChirho.soon && " (Soon)"}</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>

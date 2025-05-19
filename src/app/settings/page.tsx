@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { useCustomization, FontSize, Theme } from "@/contexts/customization-context";
+import { useCustomizationChirho, FontSizeChirho, ThemeChirho } from "@/contexts/customization-context";
 import { Moon, Sun, CaseLower, CaseUpper, Laptop } from "lucide-react";
 
-export default function SettingsPage() {
-  const { fontSize, setFontSize, theme, setTheme, effectiveTheme } = useCustomization();
+export default function SettingsPageChirho() {
+  const { fontSizeChirho, setFontSizeChirho, themeChirho, setThemeChirho, effectiveThemeChirho } = useCustomizationChirho();
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
@@ -26,24 +26,24 @@ export default function SettingsPage() {
               Choose your preferred color scheme. System will match your OS setting.
             </p>
             <div className="flex space-x-2 pt-2">
-              {(['light', 'dark', 'system'] as Theme[]).map((t) => (
+              {(['light', 'dark', 'system'] as ThemeChirho[]).map((tChirho) => (
                 <Button
-                  key={t}
-                  variant={theme === t ? "default" : "outline"}
-                  onClick={() => setTheme(t)}
+                  key={tChirho}
+                  variant={themeChirho === tChirho ? "default" : "outline"}
+                  onClick={() => setThemeChirho(tChirho)}
                   className="flex-1 capitalize"
-                  aria-pressed={theme === t}
+                  aria-pressed={themeChirho === tChirho}
                 >
-                  {t === 'light' && <Sun className="mr-2 h-4 w-4" />}
-                  {t === 'dark' && <Moon className="mr-2 h-4 w-4" />}
-                  {t === 'system' && <Laptop className="mr-2 h-4 w-4" />}
-                  {t}
+                  {tChirho === 'light' && <Sun className="mr-2 h-4 w-4" />}
+                  {tChirho === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+                  {tChirho === 'system' && <Laptop className="mr-2 h-4 w-4" />}
+                  {tChirho}
                 </Button>
               ))}
             </div>
-             {theme === 'system' && (
+             {themeChirho === 'system' && (
               <p className="text-xs text-muted-foreground pt-1">
-                Currently using: {effectiveTheme} mode.
+                Currently using: {effectiveThemeChirho} mode.
               </p>
             )}
           </div>
@@ -55,23 +55,23 @@ export default function SettingsPage() {
             </p>
             <RadioGroup
               id="font-size-selector"
-              value={fontSize}
-              onValueChange={(value: string) => setFontSize(value as FontSize)}
+              value={fontSizeChirho}
+              onValueChange={(valueChirho: string) => setFontSizeChirho(valueChirho as FontSizeChirho)}
               className="grid grid-cols-3 gap-4 pt-2"
             >
-              {(['small', 'medium', 'large'] as FontSize[]).map((size) => (
+              {(['small', 'medium', 'large'] as FontSizeChirho[]).map((sizeChirho) => (
                 <Label
-                  key={size}
-                  htmlFor={`font-${size}`}
+                  key={sizeChirho}
+                  htmlFor={`font-${sizeChirho}`}
                   className={`border rounded-md p-4 flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-primary ${
-                    fontSize === size ? 'border-primary ring-2 ring-primary' : ''
+                    fontSizeChirho === sizeChirho ? 'border-primary ring-2 ring-primary' : ''
                   }`}
                 >
-                  <RadioGroupItem value={size} id={`font-${size}`} className="sr-only" />
-                  {size === 'small' && <CaseLower className="h-6 w-6 mb-1" />}
-                  {size === 'medium' && <span className="text-xl font-bold mb-1">Aa</span>}
-                  {size === 'large' && <CaseUpper className="h-6 w-6 mb-1" />}
-                  <span className="text-sm capitalize">{size}</span>
+                  <RadioGroupItem value={sizeChirho} id={`font-${sizeChirho}`} className="sr-only" />
+                  {sizeChirho === 'small' && <CaseLower className="h-6 w-6 mb-1" />}
+                  {sizeChirho === 'medium' && <span className="text-xl font-bold mb-1">Aa</span>}
+                  {sizeChirho === 'large' && <CaseUpper className="h-6 w-6 mb-1" />}
+                  <span className="text-sm capitalize">{sizeChirho}</span>
                 </Label>
               ))}
             </RadioGroup>

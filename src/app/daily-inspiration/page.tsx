@@ -3,24 +3,24 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { quotes, InspirationalQuote } from "@/lib/quotes";
+import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes";
 import { Sun, CalendarDays } from "lucide-react";
 
-export default function DailyInspirationPage() {
-  const [dailyQuote, setDailyQuote] = useState<InspirationalQuote | null>(null);
-  const [currentDate, setCurrentDate] = useState<string>("");
+export default function DailyInspirationPageChirho() {
+  const [dailyQuoteChirho, setDailyQuoteChirho] = useState<InspirationalQuoteChirho | null>(null);
+  const [currentDateChirho, setCurrentDateChirho] = useState<string>("");
 
   useEffect(() => {
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    setDailyQuote(quotes[dayOfYear % quotes.length]);
+    const todayChirho = new Date();
+    const dayOfYearChirho = Math.floor((todayChirho.getTime() - new Date(todayChirho.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    setDailyQuoteChirho(quotesChirho[dayOfYearChirho % quotesChirho.length]);
     
-    setCurrentDate(today.toLocaleDateString(undefined, {
+    setCurrentDateChirho(todayChirho.toLocaleDateString(undefined, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     }));
   }, []);
 
-  if (!dailyQuote) {
+  if (!dailyQuoteChirho) {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Loading inspiration...</p>
@@ -37,14 +37,14 @@ export default function DailyInspirationPage() {
           </div>
           <CardTitle className="text-3xl font-bold">Daily Inspiration</CardTitle>
           <CardDescription className="flex items-center justify-center gap-2">
-            <CalendarDays className="h-4 w-4 text-muted-foreground"/> {currentDate}
+            <CalendarDays className="h-4 w-4 text-muted-foreground"/> {currentDateChirho}
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center p-8">
           <blockquote className="text-2xl italic font-serif text-foreground mb-4">
-            "{dailyQuote.text}"
+            "{dailyQuoteChirho.text}"
           </blockquote>
-          <p className="text-lg text-muted-foreground">&mdash; {dailyQuote.author}</p>
+          <p className="text-lg text-muted-foreground">&mdash; {dailyQuoteChirho.author}</p>
         </CardContent>
         <CardFooter className="text-center block">
           <p className="text-sm text-muted-foreground">

@@ -3,196 +3,194 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { generateNewPersona, sendMessageToPersona, updatePersonaImage, fetchSuggestedResponse } from "@/lib/actions";
-import type { GenerateAiPersonaOutput, GenerateAiPersonaInput } from "@/ai/flows/generate-ai-persona";
-import type { AIPersonaConvincingOutput, AIPersonaConvincingInput } from "@/ai/flows/ai-persona-convincing";
-import type { UpdatePersonaVisualsInput, UpdatePersonaVisualsOutput } from "@/ai/flows/update-persona-visuals";
-import type { SuggestEvangelisticResponseInput, SuggestEvangelisticResponseOutput } from "@/ai/flows/suggest-evangelistic-response";
+import { generateNewPersonaChirho, sendMessageToPersonaChirho, updatePersonaImageChirho, fetchSuggestedResponseChirho } from "@/lib/actions";
+import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from "@/ai/flows/generate-ai-persona";
+import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai/flows/ai-persona-convincing";
+import type { UpdatePersonaVisualsInputChirho, UpdatePersonaVisualsOutputChirho } from "@/ai/flows/update-persona-visuals";
+import type { SuggestEvangelisticResponseInputChirho, SuggestEvangelisticResponseOutputChirho } from "@/ai/flows/suggest-evangelistic-response";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToastChirho } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-interface Message {
+interface MessageChirho {
   sender: "user" | "persona";
   text: string;
   id: string;
 }
 
-export default function AIPersonasPage() {
-  const [persona, setPersona] = useState<GenerateAiPersonaOutput | null>(null);
-  const [dynamicPersonaImage, setDynamicPersonaImage] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [userInput, setUserInput] = useState("");
-  const [isLoadingPersona, setIsLoadingPersona] = useState(true);
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [isUpdatingImage, setIsUpdatingImage] = useState(false);
-  const [difficultyLevel, setDifficultyLevel] = useState(1);
-  const [suggestedAnswer, setSuggestedAnswer] = useState<string | null>(null);
-  const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+export default function AIPersonasPageChirho() {
+  const [personaChirho, setPersonaChirho] = useState<GenerateAiPersonaOutputChirho | null>(null);
+  const [dynamicPersonaImageChirho, setDynamicPersonaImageChirho] = useState<string | null>(null);
+  const [messagesChirho, setMessagesChirho] = useState<MessageChirho[]>([]);
+  const [userInputChirho, setUserInputChirho] = useState("");
+  const [isLoadingPersonaChirho, setIsLoadingPersonaChirho] = useState(true);
+  const [isSendingMessageChirho, setIsSendingMessageChirho] = useState(false);
+  const [isUpdatingImageChirho, setIsUpdatingImageChirho] = useState(false);
+  const [difficultyLevelChirho, setDifficultyLevelChirho] = useState(1);
+  const [suggestedAnswerChirho, setSuggestedAnswerChirho] = useState<string | null>(null);
+  const [isFetchingSuggestionChirho, setIsFetchingSuggestionChirho] = useState(false);
 
-  const { toast } = useToast();
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toastChirho } = useToastChirho();
+  const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
 
-  const loadNewPersona = useCallback(async (difficulty: number) => {
-    setIsLoadingPersona(true);
-    setMessages([]);
-    setUserInput("");
-    setDynamicPersonaImage(null);
-    setSuggestedAnswer(null);
-    const personaThemeDescription = `A person at difficulty level ${difficulty}. Their story should be unique, with varied professions, names, and backgrounds.`;
+  const loadNewPersonaChirho = useCallback(async (difficultyChirho: number) => {
+    setIsLoadingPersonaChirho(true);
+    setMessagesChirho([]);
+    setUserInputChirho("");
+    setDynamicPersonaImageChirho(null);
+    setSuggestedAnswerChirho(null);
+    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyChirho}. Their story should be unique, with varied professions, names, and backgrounds.`;
     
     try {
-      const result = await generateNewPersona({ personaDescription: personaThemeDescription } as GenerateAiPersonaInput);
-      if (result.success && result.data) {
-        setPersona(result.data);
-        setDynamicPersonaImage(result.data.personaImage);
-        const initialMessageText = result.data.meetingContext 
-          ? `${result.data.meetingContext} (You can start the conversation.)`
+      const resultChirho = await generateNewPersonaChirho({ personaDescriptionChirho: personaThemeDescriptionChirho } as GenerateAiPersonaInputChirho);
+      if (resultChirho.success && resultChirho.data) {
+        setPersonaChirho(resultChirho.data);
+        setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho);
+        const initialMessageTextChirho = resultChirho.data.meetingContextChirho 
+          ? `${resultChirho.data.meetingContextChirho} (You can start the conversation.)`
           : "Hello! I'm ready to talk.";
-        setMessages([{ sender: "persona", text: initialMessageText, id: Date.now().toString() }]);
+        setMessagesChirho([{ sender: "persona", text: initialMessageTextChirho, id: Date.now().toString() }]);
       } else {
-        toast({
+        toastChirho({
           variant: "destructive",
           title: "Error Generating Persona",
-          description: result.error || "Could not load a new persona. Please try again.",
+          description: resultChirho.error || "Could not load a new persona. Please try again.",
         });
-        setPersona(null); 
+        setPersonaChirho(null); 
       }
-    } catch (error) {
-        toast({
+    } catch (errorChirho) {
+        toastChirho({
             variant: "destructive",
             title: "Error",
             description: "An unexpected error occurred while generating the persona.",
         });
-        setPersona(null);
+        setPersonaChirho(null);
     }
-    setIsLoadingPersona(false);
-  }, [toast]);
+    setIsLoadingPersonaChirho(false);
+  }, [toastChirho]);
 
   useEffect(() => {
-    loadNewPersona(difficultyLevel);
-  }, [loadNewPersona, difficultyLevel]);
+    loadNewPersonaChirho(difficultyLevelChirho);
+  }, [loadNewPersonaChirho, difficultyLevelChirho]);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
+    if (scrollAreaRefChirho.current) {
+      const scrollElementChirho = scrollAreaRefChirho.current.querySelector('div[data-radix-scroll-area-viewport]');
+      if (scrollElementChirho) {
+        scrollElementChirho.scrollTop = scrollElementChirho.scrollHeight;
       }
     }
-  }, [messages, suggestedAnswer]); // Add suggestedAnswer to dependencies to scroll when it appears/disappears
+  }, [messagesChirho, suggestedAnswerChirho]); 
 
-  const handleSendMessage = async () => {
-    if (!userInput.trim() || !persona || !dynamicPersonaImage) return;
+  const handleSendMessageChirho = async () => {
+    if (!userInputChirho.trim() || !personaChirho || !dynamicPersonaImageChirho) return;
 
-    const newUserMessage: Message = { sender: "user", text: userInput, id: Date.now().toString() };
-    setMessages((prev) => [...prev, newUserMessage]);
-    const currentInput = userInput; 
-    setUserInput("");
-    setSuggestedAnswer(null); // Clear suggestion on send
-    setIsSendingMessage(true);
+    const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
+    setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newUserMessageChirho]);
+    const currentInputChirho = userInputChirho; 
+    setUserInputChirho("");
+    setSuggestedAnswerChirho(null); 
+    setIsSendingMessageChirho(true);
 
-    const convincingInput: AIPersonaConvincingInput = {
-      difficultyLevel,
-      personaDescription: persona.personaDetails, 
-      message: currentInput,
+    const convincingInputChirho: AIPersonaConvincingInputChirho = {
+      difficultyLevelChirho: difficultyLevelChirho,
+      personaDescriptionChirho: personaChirho.personaDetailsChirho, 
+      messageChirho: currentInputChirho,
     };
 
     try {
-      const result = await sendMessageToPersona(convincingInput);
-      if (result.success && result.data) {
-        const personaResponse = result.data as AIPersonaConvincingOutput;
-        const newPersonaMessage: Message = { sender: "persona", text: personaResponse.personaResponse, id: (Date.now() + 1).toString() };
-        setMessages((prev) => [...prev, newPersonaMessage]);
+      const resultChirho = await sendMessageToPersonaChirho(convincingInputChirho);
+      if (resultChirho.success && resultChirho.data) {
+        const personaResponseChirho = resultChirho.data as AIPersonaConvincingOutputChirho;
+        const newPersonaMessageChirho: MessageChirho = { sender: "persona", text: personaResponseChirho.personaResponseChirho, id: (Date.now() + 1).toString() };
+        setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newPersonaMessageChirho]);
 
-        if (personaResponse.visualContextForNextImage && dynamicPersonaImage) {
-          setIsUpdatingImage(true);
-          const imageUpdateInput: UpdatePersonaVisualsInput = {
-            baseImageUri: dynamicPersonaImage, 
-            personaName: persona.personaName,
-            originalMeetingContext: persona.meetingContext,
-            newVisualPrompt: personaResponse.visualContextForNextImage,
+        if (personaResponseChirho.visualContextForNextImageChirho && dynamicPersonaImageChirho) {
+          setIsUpdatingImageChirho(true);
+          const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
+            baseImageUriChirho: dynamicPersonaImageChirho, 
+            personaNameChirho: personaChirho.personaNameChirho,
+            originalMeetingContextChirho: personaChirho.meetingContextChirho,
+            newVisualPromptChirho: personaResponseChirho.visualContextForNextImageChirho,
           };
-          const imageResult = await updatePersonaImage(imageUpdateInput);
-          if (imageResult.success && imageResult.data) {
-            setDynamicPersonaImage(imageResult.data.updatedImageUri);
+          const imageResultChirho = await updatePersonaImageChirho(imageUpdateInputChirho);
+          if (imageResultChirho.success && imageResultChirho.data) {
+            setDynamicPersonaImageChirho(imageResultChirho.data.updatedImageUriChirho);
           } else {
-            toast({
+            toastChirho({
               variant: "destructive",
               title: "Image Update Failed",
-              description: imageResult.error || "Could not update the persona's image.",
+              description: imageResultChirho.error || "Could not update the persona's image.",
             });
           }
-          setIsUpdatingImage(false);
+          setIsUpdatingImageChirho(false);
         }
 
-        if (personaResponse.convinced) {
-          toast({
+        if (personaResponseChirho.convincedChirho) {
+          toastChirho({
             title: "Persona Convinced!",
-            description: `${persona.personaName || 'The persona'} has come to believe! A new, more challenging persona will now be generated.`,
+            description: `${personaChirho.personaNameChirho || 'The persona'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
-          setDifficultyLevel((prev) => Math.min(prev + 1, 10)); // Cap difficulty for now
-          // loadNewPersona will be triggered by difficultyLevel change
+          setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); 
         }
       } else {
-        toast({
+        toastChirho({
           variant: "destructive",
           title: "Error Getting Response",
-          description: result.error || "Could not get persona's response.",
+          description: resultChirho.error || "Could not get persona's response.",
         });
-         setMessages((prev) => prev.filter(m => m.id !== newUserMessage.id)); 
+         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); 
       }
-    } catch (error) {
-        toast({
+    } catch (errorChirho) {
+        toastChirho({
             variant: "destructive",
             title: "Error",
             description: "An unexpected error occurred while sending the message.",
         });
-        setMessages((prev) => prev.filter(m => m.id !== newUserMessage.id));
+        setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
     }
-    setIsSendingMessage(false);
+    setIsSendingMessageChirho(false);
   };
 
-  const handleSuggestAnswer = async () => {
-    if (!persona || messages.length === 0) return;
-    const lastPersonaMessage = messages.filter(m => m.sender === 'persona').pop();
-    if (!lastPersonaMessage) return;
+  const handleSuggestAnswerChirho = async () => {
+    if (!personaChirho || messagesChirho.length === 0) return;
+    const lastPersonaMessageChirho = messagesChirho.filter(mChirho => mChirho.sender === 'persona').pop();
+    if (!lastPersonaMessageChirho) return;
 
-    setIsFetchingSuggestion(true);
-    setSuggestedAnswer(null);
+    setIsFetchingSuggestionChirho(true);
+    setSuggestedAnswerChirho(null);
 
-    const suggestionInput: SuggestEvangelisticResponseInput = {
-      personaLastResponse: lastPersonaMessage.text,
-      personaName: persona.personaName,
-      // Optionally, build a brief conversation history string here
-      // conversationHistory: messages.slice(-5).map(m => `${m.sender}: ${m.text}`).join('\n') 
+    const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
+      personaLastResponseChirho: lastPersonaMessageChirho.text,
+      personaNameChirho: personaChirho.personaNameChirho,
+      // conversationHistoryChirho: messagesChirho.slice(-5).map(mChirho => `${mChirho.sender}: ${mChirho.text}`).join('\n') 
     };
 
     try {
-      const result = await fetchSuggestedResponse(suggestionInput);
-      if (result.success && result.data) {
-        setSuggestedAnswer((result.data as SuggestEvangelisticResponseOutput).suggestedResponse);
+      const resultChirho = await fetchSuggestedResponseChirho(suggestionInputChirho);
+      if (resultChirho.success && resultChirho.data) {
+        setSuggestedAnswerChirho((resultChirho.data as SuggestEvangelisticResponseOutputChirho).suggestedResponseChirho);
       } else {
-        toast({
+        toastChirho({
           variant: "destructive",
           title: "Suggestion Failed",
-          description: result.error || "Could not fetch a suggestion.",
+          description: resultChirho.error || "Could not fetch a suggestion.",
         });
       }
-    } catch (error) {
-      toast({
+    } catch (errorChirho) {
+      toastChirho({
         variant: "destructive",
         title: "Error",
         description: "An unexpected error occurred while fetching the suggestion.",
       });
     }
-    setIsFetchingSuggestion(false);
+    setIsFetchingSuggestionChirho(false);
   };
 
 
@@ -201,39 +199,39 @@ export default function AIPersonasPage() {
       <Card className="lg:w-1/3 flex-shrink-0 overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
-            {isLoadingPersona ? "Loading Persona..." : `AI Persona: ${persona?.personaName || "Details"}`}
-            <Button variant="outline" size="icon" onClick={() => loadNewPersona(difficultyLevel)} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion}>
-              {isLoadingPersona ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isLoadingPersonaChirho ? "Loading Persona..." : `AI Persona: ${personaChirho?.personaNameChirho || "Details"}`}
+            <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho}>
+              {isLoadingPersonaChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               <span className="sr-only">New Persona</span>
             </Button>
           </CardTitle>
-          {!isLoadingPersona && persona && (
-            <CardDescription>Difficulty Level: {difficultyLevel}</CardDescription>
+          {!isLoadingPersonaChirho && personaChirho && (
+            <CardDescription>Difficulty Level: {difficultyLevelChirho}</CardDescription>
           )}
         </CardHeader>
         <CardContent>
-          {isLoadingPersona ? (
+          {isLoadingPersonaChirho ? (
             <div className="space-y-4">
               <div className="w-full aspect-square bg-muted rounded-lg animate-pulse" />
               <div className="h-6 w-3/4 bg-muted rounded animate-pulse mt-2" />
               <div className="h-4 w-full bg-muted rounded animate-pulse" />
               <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
             </div>
-          ) : persona && dynamicPersonaImage ? (
+          ) : personaChirho && dynamicPersonaImageChirho ? (
             <>
               <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden shadow-md">
-                {dynamicPersonaImage && (
+                {dynamicPersonaImageChirho && (
                   <Image
-                    src={dynamicPersonaImage}
-                    alt={`AI Persona: ${persona.personaName}`}
+                    src={dynamicPersonaImageChirho}
+                    alt={`AI Persona: ${personaChirho.personaNameChirho}`}
                     layout="fill"
                     objectFit="cover"
                     data-ai-hint="portrait person"
-                    unoptimized={dynamicPersonaImage.startsWith('data:image')}
-                    key={dynamicPersonaImage} 
+                    unoptimized={dynamicPersonaImageChirho.startsWith('data:image')}
+                    key={dynamicPersonaImageChirho} 
                   />
                 )}
-                {isUpdatingImage && (
+                {isUpdatingImageChirho && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin text-white" />
                   </div>
@@ -245,7 +243,7 @@ export default function AIPersonasPage() {
                   Meeting Context
                 </h3>
                 <p className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-md border">
-                  {persona.meetingContext}
+                  {personaChirho.meetingContextChirho}
                 </p>
               </div>
             </>
@@ -260,44 +258,44 @@ export default function AIPersonasPage() {
 
       <Card className="flex-grow flex flex-col shadow-xl max-h-full">
         <CardHeader>
-          <CardTitle>Chat with {persona?.personaName || "Persona"}</CardTitle>
+          <CardTitle>Chat with {personaChirho?.personaNameChirho || "Persona"}</CardTitle>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col overflow-hidden p-0">
-          <ScrollArea className="flex-grow p-6" ref={scrollAreaRef}>
+          <ScrollArea className="flex-grow p-6" ref={scrollAreaRefChirho}>
             <div className="space-y-4">
-              {messages.map((msg) => (
+              {messagesChirho.map((msgChirho) => (
                 <div
-                  key={msg.id}
+                  key={msgChirho.id}
                   className={`flex items-end gap-2 ${
-                    msg.sender === "user" ? "justify-end" : "justify-start"
+                    msgChirho.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {msg.sender === "persona" && (
-                    <AvatarIcon className="bg-accent text-accent-foreground" imageUrl={dynamicPersonaImage}>
-                      {!dynamicPersonaImage && <Bot className="h-5 w-5" />}
-                    </AvatarIcon>
+                  {msgChirho.sender === "persona" && (
+                    <AvatarIconChirho className="bg-accent text-accent-foreground" imageUrlChirho={dynamicPersonaImageChirho}>
+                      {!dynamicPersonaImageChirho && <Bot className="h-5 w-5" />}
+                    </AvatarIconChirho>
                   )}
                   <div
                     className={`max-w-[70%] rounded-lg p-3 shadow ${
-                      msg.sender === "user"
+                      msgChirho.sender === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border" 
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                   </div>
-                  {msg.sender === "user" && (
-                     <AvatarIcon className="bg-secondary text-secondary-foreground">
+                  {msgChirho.sender === "user" && (
+                     <AvatarIconChirho className="bg-secondary text-secondary-foreground">
                       <User className="h-5 w-5" />
-                    </AvatarIcon>
+                    </AvatarIconChirho>
                   )}
                 </div>
               ))}
-              {(isSendingMessage || isUpdatingImage) && messages[messages.length-1]?.sender === 'user' && (
+              {(isSendingMessageChirho || isUpdatingImageChirho) && messagesChirho[messagesChirho.length-1]?.sender === 'user' && (
                  <div className="flex items-end gap-2 justify-start">
-                    <AvatarIcon className="bg-accent text-accent-foreground" imageUrl={dynamicPersonaImage}>
-                        {!dynamicPersonaImage && <Bot className="h-5 w-5" />}
-                    </AvatarIcon>
+                    <AvatarIconChirho className="bg-accent text-accent-foreground" imageUrlChirho={dynamicPersonaImageChirho}>
+                        {!dynamicPersonaImageChirho && <Bot className="h-5 w-5" />}
+                    </AvatarIconChirho>
                     <div className="max-w-[70%] rounded-lg p-3 shadow bg-card border">
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
@@ -305,26 +303,26 @@ export default function AIPersonasPage() {
               )}
             </div>
           </ScrollArea>
-          {suggestedAnswer && (
+          {suggestedAnswerChirho && (
             <Alert variant="default" className="m-4 border-accent shadow-md">
                 <Lightbulb className="h-4 w-4 text-accent" />
                 <AlertTitle className="flex justify-between items-center">
                     Suggested Answer
-                    <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswer(null)} className="h-6 w-6">
+                    <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswerChirho(null)} className="h-6 w-6">
                         <XCircle className="h-4 w-4" />
                         <span className="sr-only">Dismiss suggestion</span>
                     </Button>
                 </AlertTitle>
                 <AlertDescription className="mt-1 text-sm whitespace-pre-wrap">
-                    {suggestedAnswer}
+                    {suggestedAnswerChirho}
                 </AlertDescription>
                  <Button 
                     variant="outline" 
                     size="sm" 
                     className="mt-2" 
                     onClick={() => {
-                        setUserInput(suggestedAnswer);
-                        setSuggestedAnswer(null);
+                        setUserInputChirho(suggestedAnswerChirho);
+                        setSuggestedAnswerChirho(null);
                     }}
                 >
                     Use this suggestion
@@ -334,33 +332,33 @@ export default function AIPersonasPage() {
           <div className="border-t p-4 bg-background/50">
             <div className="flex items-end gap-2">
               <Textarea
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                placeholder={isLoadingPersona || !persona ? "Loading persona..." : `Message ${persona.personaName}...`}
+                value={userInputChirho}
+                onChange={(eChirho) => setUserInputChirho(eChirho.target.value)}
+                placeholder={isLoadingPersonaChirho || !personaChirho ? "Loading persona..." : `Message ${personaChirho.personaNameChirho}...`}
                 className="flex-grow resize-none"
                 rows={2}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
+                onKeyDown={(eChirho) => {
+                  if (eChirho.key === 'Enter' && !eChirho.shiftKey) {
+                    eChirho.preventDefault();
+                    handleSendMessageChirho();
                   }
                 }}
-                disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !persona}
+                disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho}
               />
               <div className="flex flex-col gap-1">
                 <Button 
-                  onClick={handleSuggestAnswer} 
-                  disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !persona || messages.filter(m=>m.sender==='persona').length === 0} 
+                  onClick={handleSuggestAnswerChirho} 
+                  disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || messagesChirho.filter(mChirho=>mChirho.sender==='persona').length === 0} 
                   variant="outline"
                   size="sm"
                   className="w-full"
                   title="Suggest an answer"
                 >
-                  {isFetchingSuggestion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                  {isFetchingSuggestionChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
                   <span className="sr-only sm:not-sr-only sm:ml-1">Suggest</span>
                 </Button>
-                <Button onClick={handleSendMessage} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || isFetchingSuggestion || !userInput.trim() || !persona} className="w-full">
-                  {(isSendingMessage || isUpdatingImage) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <Button onClick={handleSendMessageChirho} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !userInputChirho.trim() || !personaChirho} className="w-full">
+                  {(isSendingMessageChirho || isUpdatingImageChirho) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   <span className="sr-only sm:not-sr-only sm:ml-1">Send</span>
                 </Button>
               </div>
@@ -372,10 +370,10 @@ export default function AIPersonasPage() {
   );
 }
 
-const AvatarIcon = ({ children, className, imageUrl }: { children?: React.ReactNode, className?: string, imageUrl?: string | null }) => (
+const AvatarIconChirho = ({ children, className, imageUrlChirho }: { children?: React.ReactNode, className?: string, imageUrlChirho?: string | null }) => (
   <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 overflow-hidden ${className}`}>
-    {imageUrl ? (
-      <Image src={imageUrl} alt="Persona" width={32} height={32} className="object-cover w-full h-full" unoptimized={imageUrl.startsWith('data:image')} />
+    {imageUrlChirho ? (
+      <Image src={imageUrlChirho} alt="Persona" width={32} height={32} className="object-cover w-full h-full" unoptimized={imageUrlChirho.startsWith('data:image')} />
     ) : (
       children
     )}

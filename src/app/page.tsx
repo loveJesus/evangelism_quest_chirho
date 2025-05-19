@@ -1,6 +1,6 @@
 
-import AIPersonasPage from './ai-personas/page';
+import AIPersonasPageChirho from './ai-personas/page';
 
-export default function HomePage() {
-  return <AIPersonasPage />;
+export default function HomePageChirho() {
+  return <AIPersonasPageChirho />;
 }

@@ -1,21 +1,22 @@
+
 "use client"
 
-import { useToast } from "@/hooks/use-toast"
+import { useToastChirho } from "@/hooks/use-toast"
 import {
-  Toast,
+  Toast, // Assuming ShadCN component, not changing name
   ToastClose,
   ToastDescription,
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
+} from "@/components/ui/toast" // Assuming ShadCN component, not changing name
 
-export function Toaster() {
-  const { toasts } = useToast()
+export function ToasterChirho() { // Renamed component
+  const { toastsChirho, dismissChirho } = useToastChirho(); // Renamed hook and destructured items
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toastsChirho.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">

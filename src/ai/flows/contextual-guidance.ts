@@ -1,38 +1,38 @@
-// Implemented Genkit flow for contextual guidance to provide relevant Bible verses and talking points based on a given topic.
+
 'use server';
 /**
  * @fileOverview Provides contextual guidance by generating relevant Bible verses and talking points based on a given topic.
  *
- * - contextualGuidance - A function that generates Bible verses and talking points based on a topic.
- * - ContextualGuidanceInput - The input type for the contextualGuidance function.
- * - ContextualGuidanceOutput - The return type for the contextualGuidance function.
+ * - contextualGuidanceChirho - A function that generates Bible verses and talking points based on a topic.
+ * - ContextualGuidanceInputChirho - The input type for the contextualGuidanceChirho function.
+ * - ContextualGuidanceOutputChirho - The return type for the contextualGuidanceChirho function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const ContextualGuidanceInputSchema = z.object({
-  topic: z.string().describe('The topic or theme for which to generate Bible verses and talking points.'),
+const ContextualGuidanceInputSchemaChirho = z.object({
+  topicChirho: z.string().describe('The topic or theme for which to generate Bible verses and talking points.'),
 });
-export type ContextualGuidanceInput = z.infer<typeof ContextualGuidanceInputSchema>;
+export type ContextualGuidanceInputChirho = z.infer<typeof ContextualGuidanceInputSchemaChirho>;
 
-const ContextualGuidanceOutputSchema = z.object({
-  bibleVerses: z.array(z.string()).describe('A list of relevant Bible verses.'),
-  talkingPoints: z.array(z.string()).describe('A list of talking points related to the topic.'),
+const ContextualGuidanceOutputSchemaChirho = z.object({
+  bibleVersesChirho: z.array(z.string()).describe('A list of relevant Bible verses.'),
+  talkingPointsChirho: z.array(z.string()).describe('A list of talking points related to the topic.'),
 });
-export type ContextualGuidanceOutput = z.infer<typeof ContextualGuidanceOutputSchema>;
+export type ContextualGuidanceOutputChirho = z.infer<typeof ContextualGuidanceOutputSchemaChirho>;
 
-export async function contextualGuidance(input: ContextualGuidanceInput): Promise<ContextualGuidanceOutput> {
-  return contextualGuidanceFlow(input);
+export async function contextualGuidanceChirho(input: ContextualGuidanceInputChirho): Promise<ContextualGuidanceOutputChirho> {
+  return contextualGuidanceFlowChirho(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'contextualGuidancePrompt',
-  input: {schema: ContextualGuidanceInputSchema},
-  output: {schema: ContextualGuidanceOutputSchema},
+const promptChirho = ai.definePrompt({
+  name: 'contextualGuidancePromptChirho',
+  input: {schema: ContextualGuidanceInputSchemaChirho},
+  output: {schema: ContextualGuidanceOutputSchemaChirho},
   prompt: `You are a helpful AI assistant that provides relevant Bible verses and talking points based on a given topic or theme.
 
-  Topic: {{{topic}}}
+  Topic: {{{topicChirho}}}
 
   Please provide a list of relevant Bible verses and talking points that can be used for discussions or evangelism. The verses and talking points should be distinct and concise.
   Verses should include book name, chapter, and verse numbers.
@@ -40,20 +40,20 @@ const prompt = ai.definePrompt({
 
   Format:
   {
-   bibleVerses: string[];
-   talkingPoints: string[];
+   "bibleVersesChirho": string[];
+   "talkingPointsChirho": string[];
   }
   `,
 });
 
-const contextualGuidanceFlow = ai.defineFlow(
+const contextualGuidanceFlowChirho = ai.defineFlow(
   {
-    name: 'contextualGuidanceFlow',
-    inputSchema: ContextualGuidanceInputSchema,
-    outputSchema: ContextualGuidanceOutputSchema,
+    name: 'contextualGuidanceFlowChirho',
+    inputSchema: ContextualGuidanceInputSchemaChirho,
+    outputSchema: ContextualGuidanceOutputSchemaChirho,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input: ContextualGuidanceInputChirho) => {
+    const {output} = await promptChirho(input);
     return output!;
   }
 );

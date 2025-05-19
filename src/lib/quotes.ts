@@ -1,11 +1,11 @@
 
-export interface InspirationalQuote {
+export interface InspirationalQuoteChirho {
   id: number;
   text: string;
   author: string;
 }
 
-export const quotes: InspirationalQuote[] = [
+export const quotesChirho: InspirationalQuoteChirho[] = [
   {
     id: 1,
     text: "The best way to predict the future is to create it.",

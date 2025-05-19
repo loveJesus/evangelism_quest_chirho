@@ -5,15 +5,15 @@ import React, { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { fetchContextualGuidance } from "@/lib/actions";
-import type { ContextualGuidanceOutput } from "@/ai/flows/contextual-guidance";
+import { fetchContextualGuidanceChirho } from "@/lib/actions";
+import type { ContextualGuidanceOutputChirho } from "@/ai/flows/contextual-guidance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { useToastChirho } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Lightbulb, BookOpen, Copy, Share2 } from "lucide-react";
 import {
@@ -26,62 +26,62 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const formSchema = z.object({
-  topic: z.string().min(3, "Topic must be at least 3 characters long.").max(100, "Topic must be at most 100 characters long."),
+const formSchemaChirho = z.object({
+  topicChirho: z.string().min(3, "Topic must be at least 3 characters long.").max(100, "Topic must be at most 100 characters long."),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValuesChirho = z.infer<typeof formSchemaChirho>;
 
-export default function ContextualGuidancePage() {
-  const [guidance, setGuidance] = useState<ContextualGuidanceOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+export default function ContextualGuidancePageChirho() {
+  const [guidanceChirho, setGuidanceChirho] = useState<ContextualGuidanceOutputChirho | null>(null);
+  const [isLoadingChirho, setIsLoadingChirho] = useState(false);
+  const [errorChirho, setErrorChirho] = useState<string | null>(null);
+  const { toastChirho } = useToastChirho();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const formChirho = useForm<FormValuesChirho>({
+    resolver: zodResolver(formSchemaChirho),
     defaultValues: {
-      topic: "",
+      topicChirho: "",
     },
   });
 
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    setIsLoading(true);
-    setError(null);
-    setGuidance(null);
+  const onSubmitChirho: SubmitHandler<FormValuesChirho> = async (dataChirho) => {
+    setIsLoadingChirho(true);
+    setErrorChirho(null);
+    setGuidanceChirho(null);
 
-    const result = await fetchContextualGuidance({ topic: data.topic });
-    if (result.success && result.data) {
-      setGuidance(result.data);
+    const resultChirho = await fetchContextualGuidanceChirho({ topicChirho: dataChirho.topicChirho });
+    if (resultChirho.success && resultChirho.data) {
+      setGuidanceChirho(resultChirho.data);
     } else {
-      setError(result.error || "Failed to fetch guidance. Please try again.");
-      toast({
+      setErrorChirho(resultChirho.error || "Failed to fetch guidance. Please try again.");
+      toastChirho({
         variant: "destructive",
         title: "Error",
-        description: result.error || "Failed to fetch guidance.",
+        description: resultChirho.error || "Failed to fetch guidance.",
       });
     }
-    setIsLoading(false);
+    setIsLoadingChirho(false);
   };
 
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const handleCopyToClipboardChirho = (textChirho: string) => {
+    navigator.clipboard.writeText(textChirho)
       .then(() => {
-        toast({ title: "Copied!", description: "Content copied to clipboard." });
+        toastChirho({ title: "Copied!", description: "Content copied to clipboard." });
       })
       .catch(() => {
-        toast({ variant: "destructive", title: "Error", description: "Failed to copy content." });
+        toastChirho({ variant: "destructive", title: "Error", description: "Failed to copy content." });
       });
   };
   
-  const getShareableText = () => {
-    if (!guidance) return "";
-    let text = `Contextual Guidance on: ${form.getValues("topic")}\n\n`;
-    text += "Bible Verses:\n";
-    guidance.bibleVerses.forEach(verse => text += `- ${verse}\n`);
-    text += "\nTalking Points:\n";
-    guidance.talkingPoints.forEach(point => text += `- ${point}\n`);
-    return text;
+  const getShareableTextChirho = () => {
+    if (!guidanceChirho) return "";
+    let textChirho = `Contextual Guidance on: ${formChirho.getValues("topicChirho")}\n\n`;
+    textChirho += "Bible Verses:\n";
+    guidanceChirho.bibleVersesChirho.forEach(verseChirho => textChirho += `- ${verseChirho}\n`);
+    textChirho += "\nTalking Points:\n";
+    guidanceChirho.talkingPointsChirho.forEach(pointChirho => textChirho += `- ${pointChirho}\n`);
+    return textChirho;
   };
 
   return (
@@ -92,11 +92,11 @@ export default function ContextualGuidancePage() {
           <CardDescription>Enter a topic to receive relevant Bible verses and talking points for evangelism.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Form {...formChirho}>
+            <form onSubmit={formChirho.handleSubmit(onSubmitChirho)} className="space-y-4">
               <FormField
-                control={form.control}
-                name="topic"
+                control={formChirho.control}
+                name="topicChirho"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
@@ -107,8 +107,8 @@ export default function ContextualGuidancePage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
+              <Button type="submit" disabled={isLoadingChirho}>
+                {isLoadingChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
                 Get Guidance
               </Button>
             </form>
@@ -116,17 +116,17 @@ export default function ContextualGuidancePage() {
         </CardContent>
       </Card>
 
-      {error && (
+      {errorChirho && (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{errorChirho}</AlertDescription>
         </Alert>
       )}
 
-      {guidance && (
+      {guidanceChirho && (
         <Card className="shadow-xl">
           <CardHeader>
-            <CardTitle>Guidance for: "{form.getValues("topic")}"</CardTitle>
+            <CardTitle>Guidance for: "{formChirho.getValues("topicChirho")}"</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -136,8 +136,8 @@ export default function ContextualGuidancePage() {
               </h3>
               <ScrollArea className="h-48 rounded-md border p-4">
                 <ul className="space-y-2">
-                  {guidance.bibleVerses.map((verse, index) => (
-                    <li key={index} className="text-sm">{verse}</li>
+                  {guidanceChirho.bibleVersesChirho.map((verseChirho, indexChirho) => (
+                    <li key={indexChirho} className="text-sm">{verseChirho}</li>
                   ))}
                 </ul>
               </ScrollArea>
@@ -150,8 +150,8 @@ export default function ContextualGuidancePage() {
               </h3>
               <ScrollArea className="h-48 rounded-md border p-4">
                 <ul className="space-y-2">
-                  {guidance.talkingPoints.map((point, index) => (
-                    <li key={index} className="text-sm">{point}</li>
+                  {guidanceChirho.talkingPointsChirho.map((pointChirho, indexChirho) => (
+                    <li key={indexChirho} className="text-sm">{pointChirho}</li>
                   ))}
                 </ul>
               </ScrollArea>
@@ -173,17 +173,17 @@ export default function ContextualGuidancePage() {
                 </DialogHeader>
                 <ScrollArea className="h-64 my-4">
                     <pre className="text-sm whitespace-pre-wrap p-2 border rounded-md bg-muted">
-                        {getShareableText()}
+                        {getShareableTextChirho()}
                     </pre>
                 </ScrollArea>
                 <DialogFooter className="sm:justify-start">
-                   <Button type="button" onClick={() => handleCopyToClipboard(getShareableText())}>
+                   <Button type="button" onClick={() => handleCopyToClipboardChirho(getShareableTextChirho())}>
                     <Copy className="mr-2 h-4 w-4" /> Copy Text
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button onClick={() => handleCopyToClipboard(getShareableText())}>
+            <Button onClick={() => handleCopyToClipboardChirho(getShareableTextChirho())}>
               <Copy className="mr-2 h-4 w-4" /> Copy All
             </Button>
           </CardFooter>

@@ -3,122 +3,106 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
-export type FontSize = 'small' | 'medium' | 'large';
-export type Theme = 'light' | 'dark' | 'system';
+export type FontSizeChirho = 'small' | 'medium' | 'large';
+export type ThemeChirho = 'light' | 'dark' | 'system';
 
-interface CustomizationContextType {
-  fontSize: FontSize;
-  setFontSize: (size: FontSize) => void;
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  effectiveTheme: 'light' | 'dark';
+interface CustomizationContextTypeChirho {
+  fontSizeChirho: FontSizeChirho;
+  setFontSizeChirho: (sizeChirho: FontSizeChirho) => void;
+  themeChirho: ThemeChirho;
+  setThemeChirho: (themeChirho: ThemeChirho) => void;
+  effectiveThemeChirho: 'light' | 'dark';
 }
 
-const CustomizationContext = createContext<CustomizationContextType | undefined>(undefined);
+const CustomizationContextChirho = createContext<CustomizationContextTypeChirho | undefined>(undefined);
 
-export const CustomizationProvider = ({ children }: { children: ReactNode }) => {
-  const [fontSize, setFontSizeState] = useState<FontSize>('medium');
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
-  const [isMounted, setIsMounted] = useState(false);
+export const CustomizationProviderChirho = ({ children }: { children: ReactNode }) => {
+  const [fontSizeChirho, setFontSizeStateChirho] = useState<FontSizeChirho>('medium');
+  const [themeChirho, setThemeStateChirho] = useState<ThemeChirho>('system');
+  const [effectiveThemeChirho, setEffectiveThemeChirho] = useState<'light' | 'dark'>('light');
+  const [isMountedChirho, setIsMountedChirho] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    const storedFontSize = localStorage.getItem('faithforward-fontSize') as FontSize | null;
-    const storedTheme = localStorage.getItem('faithforward-theme') as Theme | null;
+    setIsMountedChirho(true);
+    const storedFontSizeChirho = localStorage.getItem('faithforward-fontSize') as FontSizeChirho | null; // Key not changed
+    const storedThemeChirho = localStorage.getItem('faithforward-theme') as ThemeChirho | null; // Key not changed
 
-    if (storedFontSize) setFontSizeState(storedFontSize);
-    if (storedTheme) {
-      setThemeState(storedTheme);
-    } else { 
-      // Set initial theme based on system preference if nothing is stored
-      // This runs client-side, so window.matchMedia is safe
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      // This will be applied in the applyTheme effect
-      // setEffectiveTheme(systemPrefersDark ? 'dark' : 'light');
-      // We actually want applyTheme to handle this logic on first load if theme is 'system'
+    if (storedFontSizeChirho) setFontSizeStateChirho(storedFontSizeChirho);
+    if (storedThemeChirho) {
+      setThemeStateChirho(storedThemeChirho);
     }
-
   }, []);
 
-  const applyFontSize = useCallback((size: FontSize) => {
-    let scale = 1;
-    if (size === 'small') scale = 0.875; // 14px base
-    else if (size === 'large') scale = 1.125; // 18px base
-    document.documentElement.style.setProperty('--font-scale-factor', scale.toString());
-    localStorage.setItem('faithforward-fontSize', size);
+  const applyFontSizeChirho = useCallback((sizeChirho: FontSizeChirho) => {
+    let scaleChirho = 1;
+    if (sizeChirho === 'small') scaleChirho = 0.875; 
+    else if (sizeChirho === 'large') scaleChirho = 1.125; 
+    document.documentElement.style.setProperty('--font-scale-factor', scaleChirho.toString()); // CSS var not changed
+    localStorage.setItem('faithforward-fontSize', sizeChirho); // Key not changed
   }, []);
 
-  const applyTheme = useCallback((currentTheme: Theme) => {
-    let finalTheme: 'light' | 'dark';
-    if (currentTheme === 'system') {
-      finalTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const applyThemeChirho = useCallback((currentThemeChirho: ThemeChirho) => {
+    let finalThemeChirho: 'light' | 'dark';
+    if (currentThemeChirho === 'system') {
+      finalThemeChirho = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
-      finalTheme = currentTheme;
+      finalThemeChirho = currentThemeChirho;
     }
     document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(finalTheme);
-    setEffectiveTheme(finalTheme);
-    localStorage.setItem('faithforward-theme', currentTheme);
+    document.documentElement.classList.add(finalThemeChirho);
+    setEffectiveThemeChirho(finalThemeChirho);
+    localStorage.setItem('faithforward-theme', currentThemeChirho); // Key not changed
   }, []);
 
 
   useEffect(() => {
-    if (isMounted) {
-      applyFontSize(fontSize);
+    if (isMountedChirho) {
+      applyFontSizeChirho(fontSizeChirho);
     }
-  }, [fontSize, isMounted, applyFontSize]);
+  }, [fontSizeChirho, isMountedChirho, applyFontSizeChirho]);
 
   useEffect(() => {
-    if (isMounted) {
-      applyTheme(theme);
+    if (isMountedChirho) {
+      applyThemeChirho(themeChirho);
     }
-  }, [theme, isMounted, applyTheme]);
+  }, [themeChirho, isMountedChirho, applyThemeChirho]);
 
-  // Listen for system theme changes
   useEffect(() => {
-    if (!isMounted || theme !== 'system') return;
+    if (!isMountedChirho || themeChirho !== 'system') return;
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      // Only call applyTheme if the theme is still 'system'
-      // This prevents overriding a user's explicit theme choice if they change system theme then pick a specific app theme
-      setThemeState(currentLocalTheme => {
-        if (currentLocalTheme === 'system') {
-           applyTheme('system');
+    const mediaQueryChirho = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChangeChirho = () => {
+      setThemeStateChirho(currentLocalThemeChirho => {
+        if (currentLocalThemeChirho === 'system') {
+           applyThemeChirho('system');
         }
-        return currentLocalTheme; // keep it 'system' or whatever it was changed to
+        return currentLocalThemeChirho; 
       });
     };
     
-    // Initial check for system theme if no theme was stored
-    if (localStorage.getItem('faithforward-theme') === null && theme === 'system') {
-        handleChange();
+    if (localStorage.getItem('faithforward-theme') === null && themeChirho === 'system') {
+        handleChangeChirho();
     }
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [isMounted, theme, applyTheme]);
+    mediaQueryChirho.addEventListener('change', handleChangeChirho);
+    return () => mediaQueryChirho.removeEventListener('change', handleChangeChirho);
+  }, [isMountedChirho, themeChirho, applyThemeChirho]);
 
 
-  const setFontSize = (size: FontSize) => setFontSizeState(size);
-  const setTheme = (newTheme: Theme) => setThemeState(newTheme);
+  const setFontSizeChirho = (sizeChirho: FontSizeChirho) => setFontSizeStateChirho(sizeChirho);
+  const setThemeChirho = (newThemeChirho: ThemeChirho) => setThemeStateChirho(newThemeChirho);
 
-  // The CustomizationContext.Provider should always be rendered to make the context available.
-  // Initial values (from useState) will be used on SSR and first client render.
-  // Client-side useEffects will then update these values from localStorage or system preferences.
   return (
-    <CustomizationContext.Provider value={{ fontSize, setFontSize, theme, setTheme, effectiveTheme }}>
+    <CustomizationContextChirho.Provider value={{ fontSizeChirho, setFontSizeChirho, themeChirho, setThemeChirho, effectiveThemeChirho }}>
       {children}
-    </CustomizationContext.Provider>
+    </CustomizationContextChirho.Provider>
   );
 };
 
-export const useCustomization = () => {
-  const context = useContext(CustomizationContext);
-  if (context === undefined) {
-    throw new Error('useCustomization must be used within a CustomizationProvider');
+export const useCustomizationChirho = () => {
+  const contextChirho = useContext(CustomizationContextChirho);
+  if (contextChirho === undefined) {
+    throw new Error('useCustomizationChirho must be used within a CustomizationProviderChirho');
   }
-  return context;
+  return contextChirho;
 };
-

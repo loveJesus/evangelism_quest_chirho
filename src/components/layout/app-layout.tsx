@@ -10,45 +10,45 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { SidebarNav } from "./sidebar-nav";
+} from "@/components/ui/sidebar"; // Assuming these are ShadCN and should not be suffixed
+import { SidebarNavChirho } from "./sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Church, PanelLeft } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileChirho } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCustomization } from "@/contexts/customization-context"; // For page title
+import { useCustomizationChirho } from "@/contexts/customization-context"; 
 
-const pageTitles: { [key: string]: string } = {
-  "/": "AI Personas",
-  "/ai-personas": "AI Personas",
-  "/contextual-guidance": "Contextual Guidance",
-  "/daily-inspiration": "Daily Inspiration",
-  "/settings": "Settings",
+const pageTitlesChirho: { [key: string]: string } = {
+  "/": "AI Personas Chirho",
+  "/ai-personas": "AI Personas Chirho",
+  "/contextual-guidance": "Contextual Guidance Chirho",
+  "/daily-inspiration": "Daily Inspiration Chirho",
+  "/settings": "Settings Chirho",
 };
 
-export function AppLayout({ children }: { children: ReactNode }) {
-  const isMobile = useIsMobile();
-  const pathname = usePathname();
-  const { effectiveTheme } = useCustomization(); // To pass theme to sidebar if needed, or for header styling
+export function AppLayoutChirho({ children }: { children: ReactNode }) {
+  const isMobileChirho = useIsMobileChirho();
+  const pathnameChirho = usePathname();
+  const { effectiveThemeChirho } = useCustomizationChirho(); 
 
-  const currentPageTitle = pageTitles[pathname] || "FaithForward";
+  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "FaithForward Chirho";
 
   return (
-    <SidebarProvider defaultOpen={!isMobile} open={!isMobile}>
+    <SidebarProvider defaultOpen={!isMobileChirho} open={!isMobileChirho}>
       <Sidebar
         variant="sidebar"
-        collapsible={isMobile ? "offcanvas" : "icon"}
+        collapsible={isMobileChirho ? "offcanvas" : "icon"}
         className="shadow-lg"
       >
         <SidebarHeader className="p-4 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
             <Church className="h-6 w-6" />
-            <span className="group-data-[collapsible=icon]:hidden">FaithForward</span>
+            <span className="group-data-[collapsible=icon]:hidden">FaithForward Chirho</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarNav />
+          <SidebarNavChirho />
         </SidebarContent>
         <SidebarFooter className="p-2">
           {/* Optional: Add settings or user profile link here if not in main nav */}
@@ -56,7 +56,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
-          {isMobile && (
+          {isMobileChirho && (
             <SidebarTrigger asChild>
               <Button size="icon" variant="outline" className="sm:hidden">
                 <PanelLeft className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Button>
             </SidebarTrigger>
           )}
-          <h1 className="text-xl font-semibold">{currentPageTitle}</h1>
+          <h1 className="text-xl font-semibold">{currentPageTitleChirho}</h1>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {children}
