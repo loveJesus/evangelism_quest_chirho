@@ -32,7 +32,7 @@ const formSchemaChirho = z.object({
 
 type FormValuesChirho = z.infer<typeof formSchemaChirho>;
 
-export default function ContextualGuidancePageChirho() {
+export default function ContextualGuidancePage() { // Renamed component
   const [guidanceChirho, setGuidanceChirho] = useState<ContextualGuidanceOutputChirho | null>(null);
   const [isLoadingChirho, setIsLoadingChirho] = useState(false);
   const [errorChirho, setErrorChirho] = useState<string | null>(null);
@@ -192,5 +192,3 @@ export default function ContextualGuidancePageChirho() {
     </div>
   );
 }
-
-    

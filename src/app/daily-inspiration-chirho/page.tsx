@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes-chirho"; 
 import { Sun, CalendarDays } from "lucide-react";
 
-export default function DailyInspirationPageChirho() {
+export default function DailyInspirationPage() { // Renamed component
   const [dailyQuoteChirho, setDailyQuoteChirho] = useState<InspirationalQuoteChirho | null>(null);
   const [currentDateChirho, setCurrentDateChirho] = useState<string>("");
 
@@ -55,5 +55,3 @@ export default function DailyInspirationPageChirho() {
     </div>
   );
 }
-
-    

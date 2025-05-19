@@ -1,8 +1,7 @@
-
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 'use server';
 /**
- * @fileOverview Generates a new AI persona with a unique backstory, name, meeting context, image, and name visibility for evangelism simulations.
+ * @fileOverview Generates a new AI persona with a unique backstory, name, meeting context, image, name visibility, and a short encounter title for evangelism simulations.
  *
  * - generateAiPersonaChirho - A function that generates the AI persona.
  * - GenerateAiPersonaInputChirho - The input type for the generateAiPersonaChirho function.
@@ -26,6 +25,7 @@ const GenerateAiPersonaOutputSchemaChirho = z.object({
   personaNameChirho: z.string().describe('The first name of the AI persona. Should be diverse and not repetitive.'),
   personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex and approximate age/age range.'),
   meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known.'),
+  encounterTitleChirho: z.string().describe('A short, engaging title for the encounter (max 5-7 words), suitable for display if the persona name is not immediately known. e.g., "The Distressed Artist", "Park Bench Contemplation", "Barista\'s Questions". This is different from the full meetingContextChirho.'),
   personaImageChirho: z
     .string()
     .describe(
@@ -63,24 +63,30 @@ Your primary goal is to create a NEW and UNIQUE character each time.
     *   Create a brief, imaginative meeting context (1-2 engaging sentences) describing how the user might encounter this person.
     *   This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character.
     *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings.
-4.  **Name Known to User ("personaNameKnownToUserChirho")**:
+4.  **Encounter Title ("encounterTitleChirho")**:
+    *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words). 
+    *   This title will be displayed to the user if the persona's name isn't immediately known.
+    *   Examples: "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
+    *   Make it descriptive of the situation or the persona's initial presentation.
+5.  **Name Known to User ("personaNameKnownToUserChirho")**:
     *   Based on the "meetingContextChirho", determine if the persona's name would be immediately known to the user.
     *   If the context implies the name is known (e.g., coworker, introduced by a friend, wearing a nametag like "Barista named Leo"), set to \`true\`.
     *   If it's a chance encounter with a stranger (e.g., "a person on a park bench", "someone who dropped their keys"), set to \`false\`.
 
-Return ONLY a JSON object with four keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", and "personaNameKnownToUserChirho".
+Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho".
 
 Example (ensure to vary ALL details, especially names, from this example):
 {
-  "personaNameChirho": "Aisha",
-  "personaDetailsChirho": "Aisha is a woman in her late 30s, working as a freelance graphic designer. She is creative and empathetic but has become cynical about institutions after a past negative experience with a community group. She's currently feeling a bit lost and is questioning her career path. She often spends her afternoons sketching in a local park. Her sex is female and her age is late 30s.",
-  "meetingContextChirho": "You're walking through a park and notice someone deeply engrossed in sketching. They sigh and put their pencil down, looking a bit dejected.",
+  "personaNameChirho": "Elara",
+  "personaDetailsChirho": "Elara is a woman in her late 20s, a marine biologist deeply passionate about ocean conservation. She's logical and scientifically minded, finding spiritual explanations hard to accept without empirical evidence. Recently, a close research project lost funding, leaving her disheartened and questioning her impact. Her sex is female, age late 20s.",
+  "meetingContextChirho": "You're at a coastal cleanup event. Elara is meticulously sorting plastics, her expression a mix of determination and weariness.",
+  "encounterTitleChirho": "The Weary Scientist",
   "personaNameKnownToUserChirho": false
 }
 Ensure the output is a single, valid JSON object and nothing else.`;
 
     const personaDataResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash',
+      model: 'googleai/gemini-2.0-flash', 
       prompt: personaDataPromptChirho,
       config: {
         safetySettings: [
@@ -92,25 +98,26 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       },
     });
 
-    let parsedPersonaDataChirho: { personaNameChirho: string; personaDetailsChirho: string; meetingContextChirho: string; personaNameKnownToUserChirho: boolean; };
+    let parsedPersonaDataChirho: { personaNameChirho: string; personaDetailsChirho: string; meetingContextChirho: string; encounterTitleChirho: string; personaNameKnownToUserChirho: boolean; };
     try {
       const jsonStringChirho = personaDataResultChirho.text.match(/\{[\s\S]*\}/)?.[0];
       if (!jsonStringChirho) {
-        throw new Error("No JSON object found in the model's response.");
+        throw new Error("No JSON object found in the model's response for persona data.");
       }
       parsedPersonaDataChirho = JSON.parse(jsonStringChirho);
-      if (!parsedPersonaDataChirho.personaNameChirho || !parsedPersonaDataChirho.personaDetailsChirho || !parsedPersonaDataChirho.meetingContextChirho || typeof parsedPersonaDataChirho.personaNameKnownToUserChirho !== 'boolean') {
-        throw new Error("Parsed JSON is missing required fields or personaNameKnownToUserChirho is not a boolean.");
+      if (!parsedPersonaDataChirho.personaNameChirho || !parsedPersonaDataChirho.personaDetailsChirho || !parsedPersonaDataChirho.meetingContextChirho || !parsedPersonaDataChirho.encounterTitleChirho || typeof parsedPersonaDataChirho.personaNameKnownToUserChirho !== 'boolean') {
+        throw new Error("Parsed JSON is missing required fields (name, details, context, title, or nameKnown) or personaNameKnownToUserChirho is not a boolean.");
       }
        if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(sex|gender)\s*:\s*(male|female|non-binary)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/age\s*:\s*.*?\d/i)) {
-        console.warn("Generated personaDetailsChirho might be missing explicit sex or age information based on simple check. Full details:", parsedPersonaDataChirho.personaDetailsChirho);
+        console.warn("Generated personaDetailsChirho might be missing explicit sex or age information. Full details:", parsedPersonaDataChirho.personaDetailsChirho);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to parse persona data JSON:", personaDataResultChirho.text, e);
       parsedPersonaDataChirho = {
         personaNameChirho: "Jordan (Fallback) Chirho",
-        personaDetailsChirho: "Jordan Chirho is a thoughtful individual, female, in their early 30s, encountering some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error in parsing.",
+        personaDetailsChirho: "Jordan Chirho is a thoughtful individual, female, in their early 30s, encountering some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error: " + e.message,
         meetingContextChirho: "You've encountered Jordan Chirho by chance today. Perhaps a friendly greeting is in order?",
+        encounterTitleChirho: "A Chance Encounter",
         personaNameKnownToUserChirho: false,
       };
     }
@@ -118,7 +125,7 @@ Ensure the output is a single, valid JSON object and nothing else.`;
     const imagePromptChirho = `Generate a 512x512 portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
 Their general disposition, sex, and age can be inferred from: ${parsedPersonaDataChirho.personaDetailsChirho.substring(0, 350)}...
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
-The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure diverse appearances.`;
+The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure diverse appearances. Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -137,17 +144,16 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
     const imageUrlChirho = imageResultChirho.media?.url;
     if (!imageUrlChirho) {
         console.error("Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
-        throw new Error("Image generation failed for persona.");
+        const placeholderDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
+        return {
+          ...parsedPersonaDataChirho,
+          personaImageChirho: placeholderDataUri, 
+        };
     }
 
     return {
-      personaNameChirho: parsedPersonaDataChirho.personaNameChirho,
-      personaDetailsChirho: parsedPersonaDataChirho.personaDetailsChirho,
-      meetingContextChirho: parsedPersonaDataChirho.meetingContextChirho,
+      ...parsedPersonaDataChirho,
       personaImageChirho: imageUrlChirho,
-      personaNameKnownToUserChirho: parsedPersonaDataChirho.personaNameKnownToUserChirho,
     };
   }
 );
-
-    

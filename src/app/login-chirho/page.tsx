@@ -32,7 +32,7 @@ const signupSchemaChirho = z.object({
 });
 type SignupFormValuesChirho = z.infer<typeof signupSchemaChirho>;
 
-export default function LoginPageChirho() {
+export default function LoginPage() { // Renamed component
   const { currentUserChirho, logInWithGoogleChirho, logInWithEmailChirho, signUpWithEmailChirho, loadingAuthChirho } = useAuthChirho();
   const routerChirho = useRouter();
   const [isSubmittingChirho, setIsSubmittingChirho] = useState(false);
@@ -165,5 +165,3 @@ export default function LoginPageChirho() {
     </div>
   );
 }
-
-    

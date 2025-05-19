@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useCustomizationChirho, FontSizeChirho, ThemeChirho } from "@/contexts/customization-context-chirho"; 
 import { Moon, Sun, CaseLower, CaseUpper, Laptop } from "lucide-react";
 
-export default function SettingsPageChirho() {
+export default function SettingsPage() { // Renamed component
   const { fontSizeChirho, setFontSizeChirho, themeChirho, setThemeChirho, effectiveThemeChirho } = useCustomizationChirho();
 
   return (
@@ -81,5 +81,3 @@ export default function SettingsPageChirho() {
     </div>
   );
 }
-
-    

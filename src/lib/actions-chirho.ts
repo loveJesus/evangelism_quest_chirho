@@ -7,9 +7,9 @@ import { contextualGuidanceChirho, type ContextualGuidanceInputChirho, type Cont
 import { updatePersonaVisualsChirho, type UpdatePersonaVisualsInputChirho, type UpdatePersonaVisualsOutputChirho } from "@/ai-chirho/flows-chirho/update-persona-visuals-chirho";
 import { suggestEvangelisticResponseChirho, type SuggestEvangelisticResponseInputChirho, type SuggestEvangelisticResponseOutputChirho } from "@/ai-chirho/flows-chirho/suggest-evangelistic-response-chirho";
 
-import { dbChirho, storageChirho } from '@/lib/firebase-config-chirho'; // Import storageChirho
+import { dbChirho, storageChirho } from '@/lib/firebase-config-chirho'; 
 import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"; // Firebase Storage imports
+import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"; 
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; 
 import type { ArchivedConversationChirho } from '@/app/ai-personas-chirho/page'; 
 
@@ -33,11 +33,16 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
     return { success: false, error: "User ID, image data, and image name are required." };
   }
   if (!imageDataUri.startsWith('data:image')) {
+    // Allow potentially already uploaded URLs to pass through without re-uploading
+    if (imageDataUri.startsWith('http')) {
+        console.warn("[Storage Action] uploadImageToStorageChirho received an HTTP URL, assuming already uploaded:", imageDataUri.substring(0, 50) + "...");
+        return { success: true, downloadURL: imageDataUri };
+    }
     return { success: false, error: "Invalid image data URI format." };
   }
 
   try {
-    const imageBlob = dataUriToBlobChirho(imageDataUri);
+    // const imageBlob = dataUriToBlobChirho(imageDataUri); // Not needed for uploadString with 'data_url'
     const storageRef = ref(storageChirho, `userImages/${userId}/${imageName}.png`);
     
     console.log(`[Storage Action] Attempting to upload image to: userImages/${userId}/${imageName}.png`);
@@ -85,14 +90,20 @@ export async function initializeUserChirho(userId: string, email: string | null,
       const updates: { lastLogin: any; displayName?: string | null; photoURL?: string | null } = {
         lastLogin: serverTimestamp(),
       };
-      if (displayName && existingData.displayName !== displayName) {
+      // Only update displayName if it's provided and different or if the existing one is generic
+      if (displayName && (existingData.displayName !== displayName || existingData.displayName === "User" || existingData.displayName === existingData.email?.split('@')[0])) {
         updates.displayName = displayName;
       }
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
-      await updateDoc(userDocRef, updates);
-      console.log("[Action initializeUserChirho] User profile updated in Firestore for:", userId);
+      if (Object.keys(updates).length > 1) { // Only update if more than just lastLogin changed
+        await updateDoc(userDocRef, updates);
+        console.log("[Action initializeUserChirho] User profile updated in Firestore for:", userId, "with updates:", updates);
+      } else {
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() }); // Still update lastLogin
+        console.log("[Action initializeUserChirho] User profile lastLogin updated for:", userId);
+      }
     }
     return { success: true };
   } catch (error: any) {
@@ -147,16 +158,15 @@ export async function addTestCreditsChirho(userId: string, amount: number): Prom
 
 export async function generateNewPersonaChirho(input: GenerateAiPersonaInputChirho, userId: string): Promise<{ success: boolean; data?: GenerateAiPersonaOutputChirho; error?: string; }> {
   try {
-    let resultChirho = await generateAiPersonaChirho(input); // This returns a data URI in personaImageChirho
+    let resultChirho = await generateAiPersonaChirho(input); 
     
     if (resultChirho.personaImageChirho && userId) {
       const imageName = `persona_${Date.now()}_initial`;
       const uploadResult = await uploadImageToStorageChirho(userId, resultChirho.personaImageChirho, imageName);
       if (uploadResult.success && uploadResult.downloadURL) {
-        resultChirho.personaImageChirho = uploadResult.downloadURL; // Replace data URI with Storage URL
+        resultChirho.personaImageChirho = uploadResult.downloadURL; 
       } else {
         console.warn("Failed to upload initial persona image to Firebase Storage, using data URI as fallback. Error:", uploadResult.error);
-        // Fallback: keep data URI if upload fails, though this might hit Firestore limits if archived
       }
     }
     return { success: true, data: resultChirho };
@@ -188,17 +198,15 @@ export async function fetchContextualGuidanceChirho(input: ContextualGuidanceInp
 
 export async function updatePersonaImageChirho(input: UpdatePersonaVisualsInputChirho, userId: string): Promise<{ success: boolean; data?: UpdatePersonaVisualsOutputChirho; error?: string; }> {
   try {
-    // The flow updatePersonaVisualsChirho returns a data URI in updatedImageUriChirho
     let resultChirho = await updatePersonaVisualsChirho(input); 
 
     if (resultChirho.updatedImageUriChirho && userId) {
       const imageName = `persona_${Date.now()}_update`;
       const uploadResult = await uploadImageToStorageChirho(userId, resultChirho.updatedImageUriChirho, imageName);
       if (uploadResult.success && uploadResult.downloadURL) {
-        resultChirho.updatedImageUriChirho = uploadResult.downloadURL; // Replace data URI
+        resultChirho.updatedImageUriChirho = uploadResult.downloadURL; 
       } else {
         console.warn("Failed to upload updated persona image to Firebase Storage, using data URI as fallback. Error:", uploadResult.error);
-        // Fallback: keep data URI if upload fails
       }
     }
     return { success: true, data: resultChirho };
@@ -219,7 +227,6 @@ export async function fetchSuggestedResponseChirho(input: SuggestEvangelisticRes
   }
 }
 
-// Firestore Conversation History Actions
 export async function archiveConversationToFirestoreChirho(userId: string, conversationData: ArchivedConversationChirho): Promise<{ success: boolean; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required." };
   if (!conversationData) return { success: false, error: "Conversation data is required." };
@@ -229,21 +236,20 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
   
   try {
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
-    const dataToSave = { 
+    // Ensure all image URLs are Firebase Storage URLs or null
+    const dataToSave: ArchivedConversationChirho = { 
         ...conversationData, 
         archivedAtServer: serverTimestamp(),
-        // Explicitly ensure large image URIs are not saved here if they somehow snuck in
-        initialPersonaImageChirho: conversationData.initialPersonaImageChirho || null, 
+        initialPersonaImageChirho: conversationData.initialPersonaImageChirho?.startsWith('gs://') || conversationData.initialPersonaImageChirho?.startsWith('https://firebasestorage.googleapis.com') ? conversationData.initialPersonaImageChirho : null,
         messagesChirho: conversationData.messagesChirho.map(msg => ({
             ...msg,
-            imageUrlChirho: msg.imageUrlChirho || null // Store the public URL or null
+            imageUrlChirho: msg.imageUrlChirho?.startsWith('gs://') || msg.imageUrlChirho?.startsWith('https://firebasestorage.googleapis.com') ? msg.imageUrlChirho : null
         }))
     };
 
     await setDoc(newConvDocRef, dataToSave);
     console.log(`[Firestore Action] Successfully archived conversation ${conversationData.id} for user ${userId}`);
 
-    // Pruning logic
     const q = query(userConversationsRef, orderBy("timestamp", "desc")); 
     const snapshot = await getDocs(q);
     
