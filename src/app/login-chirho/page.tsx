@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react'; // Using a generic loader
+import { Loader2 } from 'lucide-react'; 
 
 // Schema for login
 const loginSchemaChirho = z.object({
@@ -28,7 +28,7 @@ const signupSchemaChirho = z.object({
   confirmPassword: z.string().min(6, {message: "Password must be at least 6 characters."})
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"], // path of error
+  path: ["confirmPassword"], 
 });
 type SignupFormValuesChirho = z.infer<typeof signupSchemaChirho>;
 
@@ -72,14 +72,14 @@ export default function LoginPageChirho() {
     setIsSubmittingChirho(false);
   };
 
-  if (loadingAuthChirho && !isSubmittingChirho) { // Show page loader only if not submitting a form
+  if (loadingAuthChirho && !isSubmittingChirho) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-   if (currentUserChirho) { // If user becomes current while page is mounted (e.g. after successful form submit)
+   if (currentUserChirho) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Redirecting...</p>
@@ -92,7 +92,7 @@ export default function LoginPageChirho() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome to FaithForward Chirho</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Faith Forward ☧</CardTitle>
           <CardDescription>Sign in or create an account to continue</CardDescription>
         </CardHeader>
         <CardContent>
@@ -165,3 +165,5 @@ export default function LoginPageChirho() {
     </div>
   );
 }
+
+    

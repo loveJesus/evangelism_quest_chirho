@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
-import { useCustomizationChirho, FontSizeChirho, ThemeChirho } from "@/contexts/customization-context-chirho"; // Updated import
+import { useCustomizationChirho, FontSizeChirho, ThemeChirho } from "@/contexts/customization-context-chirho"; 
 import { Moon, Sun, CaseLower, CaseUpper, Laptop } from "lucide-react";
 
 export default function SettingsPageChirho() {
@@ -81,3 +81,5 @@ export default function SettingsPageChirho() {
     </div>
   );
 }
+
+    

@@ -5,15 +5,15 @@ import React, { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { fetchContextualGuidanceChirho } from "@/lib/actions-chirho"; // Updated import
-import type { ContextualGuidanceOutputChirho } from "@/ai-chirho/flows-chirho/contextual-guidance-chirho"; // Updated import
+import { fetchContextualGuidanceChirho } from "@/lib/actions-chirho"; 
+import type { ContextualGuidanceOutputChirho } from "@/ai-chirho/flows-chirho/contextual-guidance-chirho"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useToastChirho } from "@/hooks/use-toast-chirho"; // Updated import
+import { useToastChirho } from "@/hooks/use-toast-chirho"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Lightbulb, BookOpen, Copy, Share2 } from "lucide-react";
 import {
@@ -192,3 +192,5 @@ export default function ContextualGuidancePageChirho() {
     </div>
   );
 }
+
+    

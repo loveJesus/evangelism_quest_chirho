@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes-chirho"; // Updated import
+import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes-chirho"; 
 import { Sun, CalendarDays } from "lucide-react";
 
 export default function DailyInspirationPageChirho() {
@@ -55,3 +55,5 @@ export default function DailyInspirationPageChirho() {
     </div>
   );
 }
+
+    

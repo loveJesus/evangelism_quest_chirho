@@ -6,7 +6,17 @@ import Image from "next/image";
 import dynamic from 'next/dynamic';
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
 import { useRouter } from 'next/navigation';
-import { generateNewPersonaChirho, sendMessageToPersonaChirho, updatePersonaImageChirho, fetchSuggestedResponseChirho, decrementUserCreditsChirho, addTestCreditsChirho } from "@/lib/actions-chirho";
+import { 
+  generateNewPersonaChirho, 
+  sendMessageToPersonaChirho, 
+  updatePersonaImageChirho, 
+  fetchSuggestedResponseChirho, 
+  decrementUserCreditsChirho, 
+  addTestCreditsChirho,
+  fetchArchivedConversationsFromFirestoreChirho,
+  archiveConversationToFirestoreChirho,
+  clearArchivedConversationsFromFirestoreChirho
+} from "@/lib/actions-chirho";
 import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
 import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai-chirho/flows-chirho/ai-persona-convincing-chirho";
 import type { UpdatePersonaVisualsInputChirho } from "@/ai-chirho/flows-chirho/update-persona-visuals-chirho";
@@ -26,8 +36,8 @@ import {
   DialogTitle, 
   DialogDescription, 
   DialogClose, 
-  DialogFooter, 
-  DialogTrigger 
+  DialogFooter,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -43,28 +53,32 @@ import {
 
 const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho.tsx').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
 
-interface MessageChirho {
+export interface MessageChirho {
   sender: "user" | "persona";
   text: string;
   id: string;
-  imageUrlChirho?: string | null;
+  imageUrlChirho?: string | null; // This will be stripped for Firestore archives
 }
 
-interface ArchivedConversationChirho {
+export interface ArchivedConversationChirho {
   id: string;
   timestamp: number;
   personaNameChirho: string;
-  initialPersonaImageChirho: string;
+  // initialPersonaImageChirho is NOT stored in Firestore to save space.
+  // It can be reconstructed if needed from the first message, or a placeholder used.
+  // For simplicity, we'll fetch the persona's *current* image if they continue a chat,
+  // or use a placeholder for read-only history.
+  initialPersonaImageChirho?: string | null; 
   meetingContextChirho: string;
   personaDetailsChirho: string; 
   personaNameKnownToUserChirho: boolean;
   difficultyLevelChirho: number;
-  messagesChirho: MessageChirho[];
+  messagesChirho: MessageChirho[]; // imageUrlChirho will be stripped from these in Firestore
   convincedChirho: boolean;
 }
 
+
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
-const LOCAL_STORAGE_HISTORY_KEY_CHIRHO_BASE = 'faithforward-conversationHistoryChirho';
 
 export default function AIPersonasPageChirho() {
   const { currentUserChirho, userProfileChirho, loadingAuthChirho, updateLocalUserProfileChirho } = useAuthChirho();
@@ -88,92 +102,109 @@ export default function AIPersonasPageChirho() {
   
   const [imagePopupUrlChirho, setImagePopupUrlChirho] = useState<string | null>(null);
   const [isImagePopupOpenChirho, setIsImagePopupOpenChirho] = useState<boolean>(false);
+  const [isLoadingHistoryChirho, setIsLoadingHistoryChirho] = useState(false);
+
 
   const { toastChirho } = useToastChirho();
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const justContinuedConversationRef = useRef(false);
   
-  const getLocalStorageHistoryKeyChirho = useCallback(() => {
-    if (!currentUserChirho) return null;
-    return `${LOCAL_STORAGE_HISTORY_KEY_CHIRHO_BASE}-${currentUserChirho.uid}`;
-  }, [currentUserChirho]);
-
+  useEffect(() => {
+    if (currentUserChirho && !loadingAuthChirho) {
+      setIsLoadingHistoryChirho(true);
+      fetchArchivedConversationsFromFirestoreChirho(currentUserChirho.uid)
+        .then(result => {
+          if (result.success && result.data) {
+            setArchivedConversationsChirho(result.data);
+          } else {
+            console.error("Failed to fetch history:", result.error);
+            toastChirho({
+              variant: "destructive",
+              title: "History Load Failed",
+              description: result.error || "Could not retrieve your conversation history.",
+            });
+          }
+        })
+        .finally(() => setIsLoadingHistoryChirho(false));
+    } else if (!currentUserChirho && !loadingAuthChirho) {
+      setArchivedConversationsChirho([]); // Clear history if user logs out
+    }
+  }, [currentUserChirho, loadingAuthChirho, toastChirho]);
 
   useEffect(() => {
-    if (loadingAuthChirho) return;
-    if (!currentUserChirho) {
-      routerChirho.push('/login-chirho');
-      return;
+    if (!loadingAuthChirho) {
+      if (!currentUserChirho) {
+        // Reset state when user logs out or on initial load without a user
+        setPersonaChirho(null);
+        setMessagesChirho([]);
+        setDynamicPersonaImageChirho(null);
+        setSuggestedAnswerChirho(null);
+        setDifficultyLevelChirho(1);
+        setIsLoadingPersonaChirho(true); 
+        routerChirho.push('/login-chirho');
+      }
     }
-    const storageKey = getLocalStorageHistoryKeyChirho();
-    if(storageKey){
-        try {
-          const storedHistory = localStorage.getItem(storageKey);
-          if (storedHistory) {
-            setArchivedConversationsChirho(JSON.parse(storedHistory));
-          }
-        } catch (error) {
-          console.error("Error loading conversation history from localStorage:", error);
-        }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserChirho, loadingAuthChirho, routerChirho]);
 
-  const archiveCurrentConversationChirho = useCallback((currentPersona: GenerateAiPersonaOutputChirho, currentMessages: MessageChirho[], convinced: boolean) => {
+
+  const archiveCurrentConversationChirho = useCallback(async (currentPersona: GenerateAiPersonaOutputChirho, currentMessages: MessageChirho[], convinced: boolean) => {
     if (!currentPersona || currentMessages.length === 0 || !currentUserChirho) return;
     
-    const storageKey = getLocalStorageHistoryKeyChirho();
-    if(!storageKey) return;
-
     const newArchiveEntry: ArchivedConversationChirho = {
       id: Date.now().toString(),
       timestamp: Date.now(),
       personaNameChirho: currentPersona.personaNameChirho,
-      initialPersonaImageChirho: currentPersona.personaImageChirho, 
+      // initialPersonaImageChirho: currentPersona.personaImageChirho, // DO NOT STORE - TOO LARGE
+      initialPersonaImageChirho: null, // Explicitly set to null for Firestore to avoid size limits
       meetingContextChirho: currentPersona.meetingContextChirho,
       personaDetailsChirho: currentPersona.personaDetailsChirho,
       personaNameKnownToUserChirho: currentPersona.personaNameKnownToUserChirho,
       difficultyLevelChirho: difficultyLevelChirho,
-      messagesChirho: [...currentMessages],
+      messagesChirho: [...currentMessages].map(msg => ({ // Strip imageUrlChirho for Firestore
+        ...msg,
+        imageUrlChirho: undefined 
+      })),
       convincedChirho: convinced,
     };
 
-    setArchivedConversationsChirho(prevArchivedChirho => {
-      const updatedHistory = [newArchiveEntry, ...prevArchivedChirho].slice(0, MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
-      } catch (error) {
-        console.error("Error saving conversation history to localStorage:", error);
-        toastChirho({
-          variant: "destructive",
-          title: "History Save Error",
-          description: "Could not save conversation history locally. Storage might be full.",
-        });
-      }
-      return updatedHistory;
-    });
-  }, [difficultyLevelChirho, toastChirho, currentUserChirho, getLocalStorageHistoryKeyChirho]);
+    const result = await archiveConversationToFirestoreChirho(currentUserChirho.uid, newArchiveEntry);
+    if (result.success) {
+      // Update local state with the entry (which now also lacks the image data for consistency)
+      setArchivedConversationsChirho(prev => [newArchiveEntry, ...prev].sort((a,b) => b.timestamp - a.timestamp).slice(0, MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
+      toastChirho({
+        title: "Conversation Archived",
+        description: "Your chat has been saved to your history.",
+        duration: 3000
+      });
+    } else {
+      toastChirho({
+        variant: "destructive",
+        title: "Archive Error",
+        description: result.error || "Could not save conversation to Firestore.",
+      });
+    }
+  }, [difficultyLevelChirho, toastChirho, currentUserChirho]);
 
-  const handleClearHistoryChirho = () => {
-    const storageKey = getLocalStorageHistoryKeyChirho();
-    if(!storageKey) return;
-    try {
-      localStorage.removeItem(storageKey);
+  const handleClearHistoryChirho = async () => {
+    if (!currentUserChirho) return;
+    setIsLoadingHistoryChirho(true);
+    const result = await clearArchivedConversationsFromFirestoreChirho(currentUserChirho.uid);
+    if (result.success) {
       setArchivedConversationsChirho([]);
       setSelectedArchivedConversationChirho(null); 
       toastChirho({
         title: "History Cleared",
-        description: "All conversation history has been removed.",
+        description: "All conversation history has been removed from the server.",
       });
-    } catch (error) {
-      console.error("Error clearing conversation history from localStorage:", error);
+    } else {
       toastChirho({
         variant: "destructive",
         title: "Clear History Error",
-        description: "Could not clear conversation history.",
+        description: result.error || "Could not clear conversation history from Firestore.",
       });
     }
+    setIsLoadingHistoryChirho(false);
   };
 
   const loadNewPersonaChirho = useCallback(async (
@@ -187,13 +218,49 @@ export default function AIPersonasPageChirho() {
             personaNameChirho: conversationToContinue.personaNameChirho,
             personaDetailsChirho: conversationToContinue.personaDetailsChirho,
             meetingContextChirho: conversationToContinue.meetingContextChirho,
-            personaImageChirho: conversationToContinue.initialPersonaImageChirho,
+            // Since initialPersonaImageChirho is not stored in Firestore archive, we'll need to re-generate an image if needed
+            // For now, let's try to use the first image from the original persona generation if available from state, or generate new.
+            // This part is tricky without storing the original image.
+            // For simplicity in "continuing", we might have to regenerate or use a placeholder here.
+            // Let's re-generate a fresh image if continuing an old chat for visual consistency.
+            personaImageChirho: "", // This will be set by a new generation below.
             personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
         });
-        setMessagesChirho([...conversationToContinue.messagesChirho]);
+
+        // Restore messages - these won't have imageUrlChirho from Firestore
+        const restoredMessages = conversationToContinue.messagesChirho.map(msg => ({
+            ...msg,
+            imageUrlChirho: undefined // Ensure it's undefined as it wasn't stored
+        }));
+        setMessagesChirho(restoredMessages);
         
-        const lastPersonaMessageWithImage = [...conversationToContinue.messagesChirho].filter(m => m.sender === 'persona' && m.imageUrlChirho).pop();
-        setDynamicPersonaImageChirho(lastPersonaMessageWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho);
+        // Re-generate initial image for the continued persona
+        const personaThemeDescriptionForContinuedChirho = `Continuing conversation with ${conversationToContinue.personaNameChirho}, who you met because: ${conversationToContinue.meetingContextChirho}. Persona details: ${conversationToContinue.personaDetailsChirho.substring(0,150)}...`;
+        try {
+            const regenResultChirho = await generateNewPersonaChirho({ personaDescriptionChirho: personaThemeDescriptionForContinuedChirho } as GenerateAiPersonaInputChirho);
+            if (regenResultChirho.success && regenResultChirho.data) {
+                setPersonaChirho(regenResultChirho.data); // Update persona with new image
+                setDynamicPersonaImageChirho(regenResultChirho.data.personaImageChirho);
+                 // Add the meeting context as the first message if messages are empty or first one is not meeting context
+                if (restoredMessages.length === 0 || restoredMessages[0].text !== regenResultChirho.data.meetingContextChirho) {
+                     setMessagesChirho(prev => [{
+                        sender: "persona",
+                        text: regenResultChirho.data.meetingContextChirho,
+                        id: Date.now().toString() + "_continued_context",
+                        imageUrlChirho: regenResultChirho.data.personaImageChirho
+                    }, ...prev.filter(m => m.id !== Date.now().toString() + "_continued_context")]); // ensure no duplicates if already exists
+                } else {
+                    // If first message is already context, update its image
+                    setMessagesChirho(prev => prev.map((m, idx) => idx === 0 ? {...m, imageUrlChirho: regenResultChirho.data.personaImageChirho} : m));
+                }
+            } else {
+                toastChirho({ variant: "destructive", title: "Image Regen Failed", description: "Could not regenerate image for continued chat."});
+                setDynamicPersonaImageChirho(null); // Fallback
+            }
+        } catch (e) {
+             toastChirho({ variant: "destructive", title: "Image Regen Error", description: "Error regenerating image."});
+             setDynamicPersonaImageChirho(null);
+        }
         
         setDifficultyLevelChirho(conversationToContinue.difficultyLevelChirho);
         justContinuedConversationRef.current = true;
@@ -211,8 +278,9 @@ export default function AIPersonasPageChirho() {
         return; 
     }
 
-    if (personaChirho && messagesChirho.length > 1) { // Length > 1 to avoid archiving empty initial meeting context
-      archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false);
+    // Archive current conversation (if any) before loading a new one
+    if (personaChirho && messagesChirho.length > 1 && currentUserChirho) { 
+      await archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false);
     }
 
     setIsLoadingPersonaChirho(true);
@@ -228,7 +296,7 @@ export default function AIPersonasPageChirho() {
         setPersonaChirho(resultChirho.data);
         setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho);
         const initialMessageTextChirho = resultChirho.data.meetingContextChirho
-          ? `${resultChirho.data.meetingContextChirho} (You can start the conversation.)`
+          ? `${resultChirho.data.meetingContextChirho}` // Removed "(You can start the conversation.)" to make it a direct statement
           : "Hello! I'm ready to talk.";
         setMessagesChirho([{
           sender: "persona",
@@ -253,18 +321,21 @@ export default function AIPersonasPageChirho() {
         setPersonaChirho(null);
     }
     setIsLoadingPersonaChirho(false);
-  }, [toastChirho, archiveCurrentConversationChirho, personaChirho, messagesChirho, currentUserChirho]);
+  }, [toastChirho, archiveCurrentConversationChirho, currentUserChirho]); // Removed personaChirho, messagesChirho from deps of loadNewPersonaChirho as they caused issues
 
   useEffect(() => {
-    if (!currentUserChirho || loadingAuthChirho) return; // Don't load persona if not logged in or auth is loading
+    if (!currentUserChirho || loadingAuthChirho) return; 
 
     if (justContinuedConversationRef.current) {
       justContinuedConversationRef.current = false; 
       return;
     }
-    loadNewPersonaChirho(difficultyLevelChirho, false, null);
+    // Load new persona only if no current persona and no messages (fresh start for user)
+    if (!personaChirho && messagesChirho.length === 0) { 
+        loadNewPersonaChirho(difficultyLevelChirho, false, null);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho]); 
+  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho]); // personaChirho, messagesChirho removed
 
 
   useEffect(() => {
@@ -314,7 +385,9 @@ export default function AIPersonasPageChirho() {
 
 
     const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
-    setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newUserMessageChirho]);
+    const currentMessagesSnapshot = [...messagesChirho, newUserMessageChirho]; 
+    setMessagesChirho(currentMessagesSnapshot);
+
     const currentInputChirho = userInputChirho;
     setUserInputChirho("");
     setSuggestedAnswerChirho(null);
@@ -360,7 +433,8 @@ export default function AIPersonasPageChirho() {
           id: (Date.now() + 1).toString(),
           imageUrlChirho: imageForPersonaMessage 
         };
-        setMessagesChirho((prevMessagesChirho) => [...prevMessagesChirho, newPersonaMessageChirho]);
+        const finalMessagesSnapshot = [...currentMessagesSnapshot, newPersonaMessageChirho];
+        setMessagesChirho(finalMessagesSnapshot);
 
         if (personaResponseChirho.convincedChirho) {
           toastChirho({
@@ -368,7 +442,7 @@ export default function AIPersonasPageChirho() {
             description: `${personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : 'The person'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
-          archiveCurrentConversationChirho(personaChirho, [...messagesChirho, newUserMessageChirho, newPersonaMessageChirho], true);
+          await archiveCurrentConversationChirho(personaChirho, finalMessagesSnapshot, true);
           setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); 
         }
       } else {
@@ -378,9 +452,8 @@ export default function AIPersonasPageChirho() {
           description: resultChirho.error || "Could not get persona's response.",
         });
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-         // Rollback credit if AI fails to respond
-         if(currentUserChirho) {
-            const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1); // Assuming 1 credit per message
+         if(currentUserChirho) { 
+            const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
             }
@@ -393,8 +466,7 @@ export default function AIPersonasPageChirho() {
             description: "An unexpected error occurred while sending the message.",
         });
         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-        // Rollback credit on unexpected error
-         if(currentUserChirho) {
+         if(currentUserChirho) { 
             const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
@@ -406,22 +478,43 @@ export default function AIPersonasPageChirho() {
 
   const handleSuggestAnswerChirho = async () => {
     if (!personaChirho || messagesChirho.length === 0 || !currentUserChirho || !userProfileChirho) return;
+    
     const lastPersonaMessageChirho = messagesChirho.filter(mChirho => mChirho.sender === 'persona').pop();
-    if (!lastPersonaMessageChirho) return;
+    if (!lastPersonaMessageChirho) {
+        toastChirho({
+            variant: "destructive",
+            title: "Cannot Suggest",
+            description: "No persona message found to base a suggestion on.",
+        });
+        return;
+    }
+    if (!lastPersonaMessageChirho.text?.trim()) {
+        toastChirho({
+            variant: "destructive",
+            title: "Cannot Suggest",
+            description: "The last persona message is empty. Cannot base suggestion on an empty message.",
+        });
+        return;
+    }
+    
+    const actualPersonaName = (personaChirho.personaNameChirho && personaChirho.personaNameChirho.trim() !== "") 
+                              ? personaChirho.personaNameChirho 
+                              : "Character"; 
 
-    // Optional: Could also charge credits for suggestions
-    // if (userProfileChirho.credits <= 0) { /* ... handle out of credits ... */ }
-    // const creditDecrementResult = await decrementUserCreditsChirho(currentUserChirho.uid);
-    // if (!creditDecrementResult.success) { /* ... handle error ... */ }
-    // updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
+    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : "the person";
 
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
 
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
-      personaNameChirho: personaChirho.personaNameChirho, 
+      personaActualNameForContextChirho: actualPersonaName, 
+      personaDisplayNameForUserChirho: displayNameForSuggestion,
+      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : (personaChirho.personaNameKnownToUserChirho ? actualPersonaName : 'The Person')}: ${m.text}`).join('\n')
     };
+    
+    console.log("Requesting suggestion with input:", suggestionInputChirho);
+
 
     try {
       const resultChirho = await fetchSuggestedResponseChirho(suggestionInputChirho);
@@ -431,14 +524,15 @@ export default function AIPersonasPageChirho() {
         toastChirho({
           variant: "destructive",
           title: "Suggestion Failed",
-          description: resultChirho.error || "Could not fetch a suggestion.",
+          description: resultChirho.error || "Could not fetch a suggestion. Please try again.",
         });
       }
-    } catch (errorChirho) {
+    } catch (errorChirho: any) {
+      console.error("Error fetching suggested response:", errorChirho);
       toastChirho({
         variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while fetching the suggestion.",
+        title: "Suggestion Error",
+        description: errorChirho.message || "An unexpected error occurred while fetching the suggestion.",
       });
     }
     setIsFetchingSuggestionChirho(false);
@@ -453,8 +547,8 @@ export default function AIPersonasPageChirho() {
 
   const handleAddTestCredits = async () => {
     if (!currentUserChirho) return;
-    setIsSendingMessageChirho(true); // Reuse for general loading state
-    const result = await addTestCreditsChirho(currentUserChirho.uid, 1000); // Add 1000 test credits
+    setIsSendingMessageChirho(true); 
+    const result = await addTestCreditsChirho(currentUserChirho.uid, 1000); 
     if (result.success && result.newCredits !== undefined) {
       updateLocalUserProfileChirho({ credits: result.newCredits });
       toastChirho({
@@ -473,13 +567,14 @@ export default function AIPersonasPageChirho() {
   };
 
 
-  if (loadingAuthChirho) {
+  if (loadingAuthChirho && !currentUserChirho) { 
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
   if (!currentUserChirho || !userProfileChirho) {
-     // This should be handled by the redirect in useEffect, but as a fallback
-    return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p></div>;
+    // This check should ideally be handled by a higher-order component or router guard
+    // For now, just show loading or a redirect message if still not logged in
+    return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
 
 
@@ -517,7 +612,9 @@ export default function AIPersonasPageChirho() {
                   {!selectedArchivedConversationChirho ? (
                     <>
                       <ScrollArea className="flex-grow mt-4">
-                        {archivedConversationsChirho.length > 0 ? (
+                        {isLoadingHistoryChirho ? (
+                           <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                        ) : archivedConversationsChirho.length > 0 ? (
                           <div className="space-y-2">
                             {archivedConversationsChirho.map(chatChirho => (
                               <Button
@@ -538,15 +635,16 @@ export default function AIPersonasPageChirho() {
                         <div className="mt-4 pt-4 border-t">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" className="w-full">
-                                <Trash2 className="mr-2 h-4 w-4" /> Clear All History
+                              <Button variant="destructive" className="w-full" disabled={isLoadingHistoryChirho}>
+                                {isLoadingHistoryChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} 
+                                Clear All History
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete all your conversation history for this account.
+                                  This action cannot be undone. This will permanently delete all your conversation history for this account from the server.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -567,17 +665,10 @@ export default function AIPersonasPageChirho() {
                       </Button>
                       <Card className="mb-2 p-3">
                         <div className="flex items-center gap-3">
-                           {selectedArchivedConversationChirho.initialPersonaImageChirho && (
-                            <Image
-                                src={selectedArchivedConversationChirho.initialPersonaImageChirho}
-                                alt={`${selectedArchivedConversationChirho.personaNameChirho} initial`}
-                                width={40}
-                                height={40}
-                                className="rounded-full object-cover cursor-pointer hover:opacity-80"
-                                unoptimized={!!(selectedArchivedConversationChirho.initialPersonaImageChirho && selectedArchivedConversationChirho.initialPersonaImageChirho.startsWith('data:image'))}
-                                onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)}
-                             />
-                           )}
+                           {/* Archived conversations don't store initialPersonaImageChirho in Firestore for size. Use a placeholder or name initial. */}
+                           <AvatarIconChirho className="bg-primary text-primary-foreground">
+                              {selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5" />}
+                            </AvatarIconChirho>
                           <div>
                             <p className="font-semibold">{selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : "A Past Encounter"}</p>
                             <p className="text-xs text-muted-foreground">{selectedArchivedConversationChirho.meetingContextChirho}</p>
@@ -594,20 +685,16 @@ export default function AIPersonasPageChirho() {
                             >
                               {msgChirho.sender === "persona" && (
                                  <AvatarIconChirho 
-                                    className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
-                                    imageUrlChirho={msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho}
-                                    onClick={() => msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                                    title={msgChirho.imageUrlChirho ? "Click avatar to view image" : (selectedArchivedConversationChirho.initialPersonaImageChirho ? "Click avatar to view initial image" : "")}
+                                    className={`bg-accent text-accent-foreground`}
+                                    // No image popup for archived messages as imageUrlChirho is stripped from Firestore
                                 >
-                                  {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && <Bot className="h-5 w-5" />}
+                                   <Bot className="h-5 w-5" />
                                 </AvatarIconChirho>
                               )}
                                <div
                                 className={`max-w-[70%] rounded-lg p-3 shadow ${
                                   msgChirho.sender === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
-                                } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
-                                onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                                title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
+                                }`}
                               >
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                               </div>
@@ -893,3 +980,5 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     )}
   </div>
 );
+
+    
