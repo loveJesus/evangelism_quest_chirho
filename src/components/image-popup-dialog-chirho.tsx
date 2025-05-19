@@ -13,9 +13,8 @@ interface ImagePopupDialogPropsChirho {
 }
 
 export function ImagePopupDialogChirho({ isOpenChirho, onCloseChirho, imageUrlChirho }: ImagePopupDialogPropsChirho) {
-  if (!isOpenChirho || !imageUrlChirho) {
-    return null;
-  }
+  // The Dialog component itself handles visibility based on the `open` prop.
+  // We only need to conditionally render the image *inside* if imageUrlChirho is present.
 
   return (
     <Dialog open={isOpenChirho} onOpenChange={(open) => { if (!open) onCloseChirho(); }}>
@@ -23,9 +22,10 @@ export function ImagePopupDialogChirho({ isOpenChirho, onCloseChirho, imageUrlCh
         <DialogHeader>
           <DialogTitle>Persona Snapshot</DialogTitle>
         </DialogHeader>
-        {imageUrlChirho && (
+        {imageUrlChirho ? (
           <div className="relative w-full aspect-[4/3] my-4 rounded-lg overflow-hidden bg-muted">
             <Image
+              key={imageUrlChirho} // Add key to ensure Image component updates if URL changes
               src={imageUrlChirho}
               alt="Persona snapshot at the time of message"
               fill
@@ -33,6 +33,10 @@ export function ImagePopupDialogChirho({ isOpenChirho, onCloseChirho, imageUrlCh
               unoptimized={!!(typeof imageUrlChirho === 'string' && imageUrlChirho.startsWith('data:image'))}
               data-ai-hint="person portrait"
             />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-48 text-muted-foreground my-4">
+            Image not available.
           </div>
         )}
         <DialogFooter>
