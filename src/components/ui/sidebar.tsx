@@ -7,7 +7,7 @@ import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils-chirho.ts"
 import { Button, type ButtonProps } from "@/components/ui/button" // Ensure ButtonProps is imported if needed, or use React.ComponentProps<typeof Button>
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -262,7 +262,7 @@ Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
-  ButtonProps // Use ButtonProps which includes asChild and children
+  ButtonProps
 >(({ className, onClick, asChild, children, ...restButtonProps }, ref) => {
   const { toggleSidebarChirho } = useSidebarChirho();
 
@@ -277,22 +277,17 @@ const SidebarTrigger = React.forwardRef<
         onClick?.(event);
         toggleSidebarChirho();
       }}
-      asChild={asChild} // Pass down the asChild prop
-      {...restButtonProps} // Pass down other props
+      asChild={asChild}
+      {...restButtonProps}
     >
-      {/* 
-        If asChild is true, the 'children' prop (passed from the consumer of SidebarTrigger) 
-        will be rendered by the Slot component within Button.
-        If asChild is false, Button renders its direct children defined here.
-      */}
-      {asChild ? (
+      {asChild && React.isValidElement(children) ? (
         children
-      ) : (
+      ) : !asChild ? (
         <>
           <PanelLeft />
           <span className="sr-only">Toggle Sidebar</span>
         </>
-      )}
+      ) : null }
     </Button>
   );
 });
@@ -548,7 +543,7 @@ const sidebarMenuButtonVariantsChirho = cva(
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<typeof Button> & { // Use React.ComponentProps<typeof Button> which includes asChild, children
+  React.ComponentProps<typeof Button> & { 
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariantsChirho>
@@ -561,12 +556,12 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
-      children, // Explicitly get children
+      children, 
       ...props
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button" // This should use the Button component directly for consistency
+    const Comp = asChild ? Slot : "button"; 
     const { isMobileChirho, stateChirho } = useSidebarChirho()
 
     const buttonContent = (
