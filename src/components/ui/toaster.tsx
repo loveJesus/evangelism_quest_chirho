@@ -1,18 +1,18 @@
 
 "use client"
 
-import { useToastChirho } from "@/hooks/use-toast"
+import { useToastChirho } from "@/hooks/use-toast-chirho" // Updated import
 import {
-  Toast, // Assuming ShadCN component, not changing name
+  Toast, 
   ToastClose,
   ToastDescription,
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast" // Assuming ShadCN component, not changing name
+} from "@/components/ui/toast" 
 
-export function ToasterChirho() { // Renamed component
-  const { toastsChirho, dismissChirho } = useToastChirho(); // Renamed hook and destructured items
+export function ToasterChirho() { 
+  const { toastsChirho, dismissChirho } = useToastChirho(); 
 
   return (
     <ToastProvider>
