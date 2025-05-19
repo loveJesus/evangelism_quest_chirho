@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, enableNetwork } from "firebase/firestore";
+import { getStorage } from "firebase/storage"; // Import getStorage
 
 // Diagnostic logs: Check these in your browser console after restarting the dev server.
 console.log("--- Firebase Config Attempting to Load (firebase-config-chirho.ts) ---");
@@ -40,6 +41,7 @@ console.log('Firebase App Options (for Firestore):', appChirho.options);
 
 const authChirho = getAuth(appChirho);
 const dbChirho = getFirestore(appChirho);
+const storageChirho = getStorage(appChirho); // Initialize Firebase Storage
 
 try {
   enableNetwork(dbChirho);
@@ -48,4 +50,4 @@ try {
   console.error("Error calling enableNetwork(dbChirho) for Firestore:", e);
 }
 
-export { appChirho, authChirho, dbChirho };
+export { appChirho, authChirho, dbChirho, storageChirho }; // Export storageChirho
