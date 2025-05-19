@@ -13,9 +13,9 @@ import {
   fetchSuggestedResponseChirho, 
   decrementUserCreditsChirho, 
   addTestCreditsChirho,
-  fetchArchivedConversationsFromFirestoreChirho, // New Firestore action
-  archiveConversationToFirestoreChirho,      // New Firestore action
-  clearArchivedConversationsFromFirestoreChirho  // New Firestore action
+  fetchArchivedConversationsFromFirestoreChirho,
+  archiveConversationToFirestoreChirho,
+  clearArchivedConversationsFromFirestoreChirho
 } from "@/lib/actions-chirho";
 import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
 import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai-chirho/flows-chirho/ai-persona-convincing-chirho";
@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, Eye } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -61,8 +61,8 @@ export interface MessageChirho {
 }
 
 export interface ArchivedConversationChirho {
-  id: string; // Use a unique ID, e.g., timestamp as string or Firestore generated ID
-  timestamp: number; // Milliseconds since epoch
+  id: string;
+  timestamp: number;
   personaNameChirho: string;
   initialPersonaImageChirho: string; 
   meetingContextChirho: string;
@@ -74,7 +74,7 @@ export interface ArchivedConversationChirho {
 }
 
 
-const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; // This constant is now primarily enforced server-side
+const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
 
 export default function AIPersonasPageChirho() {
   const { currentUserChirho, userProfileChirho, loadingAuthChirho, updateLocalUserProfileChirho } = useAuthChirho();
@@ -106,7 +106,6 @@ export default function AIPersonasPageChirho() {
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const justContinuedConversationRef = useRef(false);
   
-  // Effect to load history from Firestore when user logs in
   useEffect(() => {
     if (currentUserChirho && !loadingAuthChirho) {
       setIsLoadingHistoryChirho(true);
@@ -125,21 +124,19 @@ export default function AIPersonasPageChirho() {
         })
         .finally(() => setIsLoadingHistoryChirho(false));
     } else if (!currentUserChirho && !loadingAuthChirho) {
-      setArchivedConversationsChirho([]); // Clear history if user logs out
+      setArchivedConversationsChirho([]);
     }
   }, [currentUserChirho, loadingAuthChirho, toastChirho]);
 
-  // Effect to reset persona/message state on logout or initial auth load
   useEffect(() => {
     if (!loadingAuthChirho) {
       if (!currentUserChirho) {
-        // User logged out, clear everything
         setPersonaChirho(null);
         setMessagesChirho([]);
         setDynamicPersonaImageChirho(null);
         setSuggestedAnswerChirho(null);
-        setDifficultyLevelChirho(1); // Reset difficulty
-        setIsLoadingPersonaChirho(true); // Prepare to load new persona if user logs back in
+        setDifficultyLevelChirho(1);
+        setIsLoadingPersonaChirho(true); 
       }
     }
   }, [currentUserChirho, loadingAuthChirho]);
@@ -149,7 +146,7 @@ export default function AIPersonasPageChirho() {
     if (!currentPersona || currentMessages.length === 0 || !currentUserChirho) return;
     
     const newArchiveEntry: ArchivedConversationChirho = {
-      id: Date.now().toString(), // Client-generated ID
+      id: Date.now().toString(),
       timestamp: Date.now(),
       personaNameChirho: currentPersona.personaNameChirho,
       initialPersonaImageChirho: currentPersona.personaImageChirho, 
@@ -157,13 +154,12 @@ export default function AIPersonasPageChirho() {
       personaDetailsChirho: currentPersona.personaDetailsChirho,
       personaNameKnownToUserChirho: currentPersona.personaNameKnownToUserChirho,
       difficultyLevelChirho: difficultyLevelChirho,
-      messagesChirho: [...currentMessages], // Make a copy
+      messagesChirho: [...currentMessages],
       convincedChirho: convinced,
     };
 
     const result = await archiveConversationToFirestoreChirho(currentUserChirho.uid, newArchiveEntry);
     if (result.success) {
-      // Refresh local history state optimistically or by re-fetching
       setArchivedConversationsChirho(prev => [newArchiveEntry, ...prev].sort((a,b) => b.timestamp - a.timestamp).slice(0, MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
       toastChirho({
         title: "Conversation Archived",
@@ -220,7 +216,7 @@ export default function AIPersonasPageChirho() {
         setDynamicPersonaImageChirho(lastPersonaMessageWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho);
         
         setDifficultyLevelChirho(conversationToContinue.difficultyLevelChirho);
-        justContinuedConversationRef.current = true; // Prevent immediate reload by other useEffect
+        justContinuedConversationRef.current = true;
 
         setUserInputChirho("");
         setSuggestedAnswerChirho(null);
@@ -240,7 +236,7 @@ export default function AIPersonasPageChirho() {
     }
 
     setIsLoadingPersonaChirho(true);
-    setMessagesChirho([]); // Clear messages for new persona
+    setMessagesChirho([]);
     setUserInputChirho("");
     setDynamicPersonaImageChirho(null);
     setSuggestedAnswerChirho(null);
@@ -286,7 +282,6 @@ export default function AIPersonasPageChirho() {
       justContinuedConversationRef.current = false; 
       return;
     }
-    // Only load if no persona and no messages (e.g. initial load or after reset by logout)
     if (!personaChirho && messagesChirho.length === 0) { 
         loadNewPersonaChirho(difficultyLevelChirho, false, null);
     }
@@ -341,7 +336,6 @@ export default function AIPersonasPageChirho() {
 
 
     const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
-    // Capture current messages before async operations for potential archiving
     const currentMessagesSnapshot = [...messagesChirho, newUserMessageChirho]; 
     setMessagesChirho(currentMessagesSnapshot);
 
@@ -390,7 +384,6 @@ export default function AIPersonasPageChirho() {
           id: (Date.now() + 1).toString(),
           imageUrlChirho: imageForPersonaMessage 
         };
-        // Update messages with the final AI response, including its associated image
         const finalMessagesSnapshot = [...currentMessagesSnapshot, newPersonaMessageChirho];
         setMessagesChirho(finalMessagesSnapshot);
 
@@ -400,7 +393,6 @@ export default function AIPersonasPageChirho() {
             description: `${personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : 'The person'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
-          // Archive the complete conversation including the final AI response
           await archiveCurrentConversationChirho(personaChirho, finalMessagesSnapshot, true);
           setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); 
         }
@@ -410,9 +402,8 @@ export default function AIPersonasPageChirho() {
           title: "Error Getting Response",
           description: resultChirho.error || "Could not get persona's response.",
         });
-         // Rollback only the user message if AI fails
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-         if(currentUserChirho) { // Rollback credit
+         if(currentUserChirho) { 
             const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
@@ -426,7 +417,7 @@ export default function AIPersonasPageChirho() {
             description: "An unexpected error occurred while sending the message.",
         });
         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-         if(currentUserChirho) { // Rollback credit
+         if(currentUserChirho) { 
             const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
@@ -444,9 +435,12 @@ export default function AIPersonasPageChirho() {
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
 
+    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : "the person";
+
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
-      personaNameChirho: personaChirho.personaNameChirho, 
+      personaActualNameForContextChirho: personaChirho.personaNameChirho, 
+      personaDisplayNameForUserChirho: displayNameForSuggestion,
     };
 
     try {
@@ -499,12 +493,11 @@ export default function AIPersonasPageChirho() {
   };
 
 
-  if (loadingAuthChirho && !currentUserChirho) { // Show full page loader only if auth is loading AND no user yet
+  if (loadingAuthChirho && !currentUserChirho) { 
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
   if (!currentUserChirho || !userProfileChirho) {
-    // This should be handled by the redirect in AuthContext, but as a fallback or for initial render
     return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p></div>;
   }
 
