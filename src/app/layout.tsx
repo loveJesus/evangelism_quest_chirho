@@ -1,4 +1,4 @@
-
+// For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -17,7 +17,7 @@ const geistMonoChirho = Geist_Mono({
 });
 
 export const metadataChirho: Metadata = {
-  title: 'FaithForward Chirho',
+  title: 'Faith Forward Chirho',
   description: 'Empowering your evangelism journey.',
 };
 

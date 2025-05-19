@@ -1,4 +1,4 @@
-
+// For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 
-const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
+const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho.tsx').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
 
 interface MessageChirho {
   sender: "user" | "persona";

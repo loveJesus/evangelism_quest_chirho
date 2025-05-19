@@ -1,4 +1,4 @@
-
+// For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use client";
 
 import type { ReactNode } from "react";
@@ -21,7 +21,7 @@ import { useCustomizationChirho } from "@/contexts/customization-context-chirho"
 
 const pageTitlesChirho: { [key: string]: string } = {
   "/": "AI Evangelism Game Chirho",
-  "/ai-personas-chirho": "AI Evangelism Game Chirho", // Updated path
+  "/ai-personas-chirho": "AI Evangelism Game Chirho", 
   "/contextual-guidance-chirho": "Contextual Guidance Chirho",
   "/daily-inspiration-chirho": "Daily Inspiration Chirho",
   "/settings-chirho": "Settings Chirho",
