@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, Eye } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -116,14 +116,18 @@ export default function AIPersonasPageChirho() {
             setArchivedConversationsChirho(result.data);
           } else {
             console.error("Failed to fetch history:", result.error);
-            // Optionally show a toast for history fetch failure
+            toastChirho({
+              variant: "destructive",
+              title: "History Load Failed",
+              description: result.error || "Could not retrieve your conversation history.",
+            });
           }
         })
         .finally(() => setIsLoadingHistoryChirho(false));
     } else if (!currentUserChirho && !loadingAuthChirho) {
       setArchivedConversationsChirho([]); // Clear history if user logs out
     }
-  }, [currentUserChirho, loadingAuthChirho]);
+  }, [currentUserChirho, loadingAuthChirho, toastChirho]);
 
   // Effect to reset persona/message state on logout or initial auth load
   useEffect(() => {
@@ -145,7 +149,7 @@ export default function AIPersonasPageChirho() {
     if (!currentPersona || currentMessages.length === 0 || !currentUserChirho) return;
     
     const newArchiveEntry: ArchivedConversationChirho = {
-      id: Date.now().toString(), // Client-generated ID, ensure uniqueness or let Firestore generate
+      id: Date.now().toString(), // Client-generated ID
       timestamp: Date.now(),
       personaNameChirho: currentPersona.personaNameChirho,
       initialPersonaImageChirho: currentPersona.personaImageChirho, 
@@ -282,11 +286,12 @@ export default function AIPersonasPageChirho() {
       justContinuedConversationRef.current = false; 
       return;
     }
-    if (!personaChirho && messagesChirho.length === 0) { // Only load if no persona and no messages (e.g. initial load or after reset)
+    // Only load if no persona and no messages (e.g. initial load or after reset by logout)
+    if (!personaChirho && messagesChirho.length === 0) { 
         loadNewPersonaChirho(difficultyLevelChirho, false, null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho, personaChirho, messagesChirho]); // Added personaChirho and messagesChirho
+  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho, personaChirho, messagesChirho]); 
 
 
   useEffect(() => {
@@ -336,7 +341,8 @@ export default function AIPersonasPageChirho() {
 
 
     const newUserMessageChirho: MessageChirho = { sender: "user", text: userInputChirho, id: Date.now().toString() };
-    const currentMessagesSnapshot = [...messagesChirho, newUserMessageChirho]; // Capture current messages before async operations
+    // Capture current messages before async operations for potential archiving
+    const currentMessagesSnapshot = [...messagesChirho, newUserMessageChirho]; 
     setMessagesChirho(currentMessagesSnapshot);
 
     const currentInputChirho = userInputChirho;
@@ -384,6 +390,7 @@ export default function AIPersonasPageChirho() {
           id: (Date.now() + 1).toString(),
           imageUrlChirho: imageForPersonaMessage 
         };
+        // Update messages with the final AI response, including its associated image
         const finalMessagesSnapshot = [...currentMessagesSnapshot, newPersonaMessageChirho];
         setMessagesChirho(finalMessagesSnapshot);
 
@@ -393,6 +400,7 @@ export default function AIPersonasPageChirho() {
             description: `${personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : 'The person'} has come to believe! A new, more challenging persona will now be generated.`,
             duration: 7000,
           });
+          // Archive the complete conversation including the final AI response
           await archiveCurrentConversationChirho(personaChirho, finalMessagesSnapshot, true);
           setDifficultyLevelChirho((prevDifficultyChirho) => Math.min(prevDifficultyChirho + 1, 10)); 
         }
@@ -402,8 +410,9 @@ export default function AIPersonasPageChirho() {
           title: "Error Getting Response",
           description: resultChirho.error || "Could not get persona's response.",
         });
+         // Rollback only the user message if AI fails
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-         if(currentUserChirho) {
+         if(currentUserChirho) { // Rollback credit
             const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
@@ -417,7 +426,7 @@ export default function AIPersonasPageChirho() {
             description: "An unexpected error occurred while sending the message.",
         });
         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
-         if(currentUserChirho) {
+         if(currentUserChirho) { // Rollback credit
             const creditRollback = await addTestCreditsChirho(currentUserChirho.uid, 1);
             if(creditRollback.success && creditRollback.newCredits !== undefined) {
                 updateLocalUserProfileChirho({credits: creditRollback.newCredits});
@@ -495,6 +504,7 @@ export default function AIPersonasPageChirho() {
   }
 
   if (!currentUserChirho || !userProfileChirho) {
+    // This should be handled by the redirect in AuthContext, but as a fallback or for initial render
     return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p></div>;
   }
 
@@ -912,3 +922,4 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     )}
   </div>
 );
+

@@ -9,23 +9,23 @@ import { suggestEvangelisticResponseChirho, type SuggestEvangelisticResponseInpu
 
 import { dbChirho } from '@/lib/firebase-config-chirho';
 import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
-import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; // Ensure this path is correct
-import type { ArchivedConversationChirho, MessageChirho } from '@/app/ai-personas-chirho/page-chirho'; // Adjust path as needed
+import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; 
+import type { ArchivedConversationChirho } from '@/app/ai-personas-chirho/page-chirho'; 
 
 const INITIAL_FREE_CREDITS_CHIRHO = 100;
-const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; // Max conversations to keep in Firestore per user
+const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; 
 
 export async function initializeUserChirho(userId: string, email: string | null, displayName?: string | null, photoURL?: string | null): Promise<{ success: boolean, error?: string }> {
   if (!userId) {
-    console.error("initializeUserChirho: userId is required.");
+    console.error("initializeUserChirho Action: userId is required.");
     return { success: false, error: "User ID is required." };
   }
-  console.log("initializeUserChirho: Processing user:", userId);
+  console.log("initializeUserChirho Action: Processing user:", userId);
   const userDocRef = doc(dbChirho, "users", userId);
   try {
-    console.log("initializeUserChirho: Attempting to get user document for:", userId);
+    console.log("initializeUserChirho Action: Attempting to get user document for:", userId);
     const userDocSnap = await getDoc(userDocRef);
-    console.log("initializeUserChirho: User document snapshot exists for", userId, ":", userDocSnap.exists());
+    console.log("initializeUserChirho Action: User document snapshot exists for", userId, ":", userDocSnap.exists());
 
     if (!userDocSnap.exists()) {
       const newUserProfile: UserProfileChirho = {
@@ -37,28 +37,33 @@ export async function initializeUserChirho(userId: string, email: string | null,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       };
-      console.log("initializeUserChirho: Attempting to set new user document for:", userId);
+      console.log("initializeUserChirho Action: Attempting to set new user document for:", userId);
       await setDoc(userDocRef, newUserProfile);
-      console.log("User initialized in Firestore:", userId);
+      console.log("initializeUserChirho Action: User initialized in Firestore:", userId);
     } else {
       const updates: { lastLogin: any; displayName?: string | null; photoURL?: string | null } = {
         lastLogin: serverTimestamp(),
       };
-      const existingData = userDocSnap.data() as UserProfileChirho; // Cast for type safety
+      const existingData = userDocSnap.data() as UserProfileChirho; 
       if (displayName && existingData.displayName !== displayName) {
         updates.displayName = displayName;
       }
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
-      console.log("initializeUserChirho: Attempting to update user document for:", userId, "with updates:", updates);
-      await updateDoc(userDocRef, updates);
-      console.log("User profile updated in Firestore:", userId);
+      if(Object.keys(updates).length > 1 || !existingData.lastLogin) { // only update if more than just lastLogin or if lastLogin was never set
+        console.log("initializeUserChirho Action: Attempting to update user document for:", userId, "with updates:", updates);
+        await updateDoc(userDocRef, updates);
+        console.log("initializeUserChirho Action: User profile updated in Firestore:", userId);
+      } else {
+        console.log("initializeUserChirho Action: No significant profile details changed for user:", userId, ". Only updating lastLogin.");
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+      }
     }
     return { success: true };
   } catch (error: any) {
-    console.error("Error in initializeUserChirho for user", userId, ":", error.code, error.message, error);
-    return { success: false, error: `Failed to initialize user profile: ${error.message}` };
+    console.error("initializeUserChirho Action: Firestore error for user", userId, ":", error.code, error.message, error);
+    return { success: false, error: `Failed to initialize user profile: ${error.message} (Code: ${error.code})` };
   }
 }
 
@@ -165,24 +170,28 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
   
   try {
-    // Add new conversation
-    const newConvDocRef = doc(userConversationsRef, conversationData.id); // Use conversation ID for doc ID
-    await setDoc(newConvDocRef, { ...conversationData, serverTimestamp: serverTimestamp() });
+    // Add new conversation with its client-generated ID.
+    // Add a serverTimestamp for reliable server-side ordering if needed later, though client timestamp is primary for now.
+    const newConvDocRef = doc(userConversationsRef, conversationData.id);
+    await setDoc(newConvDocRef, { ...conversationData, archivedAtServer: serverTimestamp() });
+    console.log(`Archived conversation ${conversationData.id} for user ${userId}`);
 
-    // Check if history exceeds limit and prune oldest if necessary
-    const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO + 5)); // Fetch a bit more to identify oldest
+    // Pruning logic: Keep only the MAX_ARCHIVED_CONVERSATIONS_CHIRHO newest ones
+    // Query for more than needed, ordered by client-generated timestamp (desc for newest first)
+    const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO + 5)); // Fetch a few extra
     const snapshot = await getDocs(q);
     
     if (snapshot.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
       const batch = writeBatch(dbChirho);
-      const sortedDocs = snapshot.docs.sort((a, b) => a.data().timestamp - b.data().timestamp); // Sort ascending by timestamp
-      const docsToDelete = sortedDocs.slice(0, sortedDocs.length - MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
+      // The snapshot is already ordered newest first. We need to delete the ones at the end of this list.
+      const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); // Get the oldest ones beyond the limit
       
       docsToDelete.forEach(docToDelete => {
         batch.delete(docToDelete.ref);
-        console.log(`Pruning conversation ${docToDelete.id} for user ${userId}`);
+        console.log(`Pruning old conversation ${docToDelete.id} for user ${userId}`);
       });
       await batch.commit();
+      console.log(`Pruning complete for user ${userId}. Deleted ${docsToDelete.length} conversations.`);
     }
     return { success: true };
   } catch (error: any) {
@@ -195,11 +204,13 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
   if (!userId) return { success: false, error: "User ID is required." };
   
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
+  // Fetch conversations ordered by client-generated timestamp, newest first
   const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
   
   try {
     const snapshot = await getDocs(q);
     const conversations = snapshot.docs.map(doc => doc.data() as ArchivedConversationChirho);
+    console.log(`Fetched ${conversations.length} archived conversations for user ${userId}`);
     return { success: true, data: conversations };
   } catch (error: any) {
     console.error("Error fetching archived conversations from Firestore:", error);
@@ -214,6 +225,7 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
   try {
     const snapshot = await getDocs(userConversationsRef);
     if (snapshot.empty) {
+      console.log(`No archived conversations to clear for user ${userId}`);
       return { success: true }; // Nothing to delete
     }
     const batch = writeBatch(dbChirho);
@@ -221,9 +233,11 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
       batch.delete(doc.ref);
     });
     await batch.commit();
+    console.log(`Cleared all ${snapshot.docs.length} archived conversations for user ${userId}`);
     return { success: true };
   } catch (error: any) {
     console.error("Error clearing archived conversations from Firestore:", error);
     return { success: false, error: error.message || "Failed to clear conversation history." };
   }
 }
+
