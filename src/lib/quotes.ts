@@ -17,44 +17,9 @@ export const quotesChirho: InspirationalQuoteChirho[] = [
     author: "Proverbs 3:5-6 (Bible)",
   },
   {
-    id: 3,
-    text: "The true soldier of Jesus Christ is not the one who shouts the loudest, nor the one who knows the most, but the one who is the most like his Master.",
-    author: "Charles Spurgeon",
-  },
-  {
-    id: 4,
-    text: "What you are is God's gift to you, what you become is your gift to God.",
-    author: "A.W. Tozer (Attributed)",
-  },
-  {
-    id: 5,
-    text: "The Bible is no mere book, but a Living Creature, with a power that conquers all who oppose it.",
-    author: "Napoleon Bonaparte (contextually relevant for its impact, though not a theologian in the same vein, often quoted in such lists)",
-  },
-  {
-    id: 6,
-    text: "To be right with God has often meant to be in trouble with men.",
-    author: "A.W. Tozer",
-  },
-  {
     id: 7,
     text: "I can do all things through him who strengthens me.",
     author: "Philippians 4:13 (Bible)",
-  },
-  {
-    id: 8,
-    text: "Faith does not eliminate questions. But faith knows where to take them.",
-    author: "Elisabeth Elliot (contemporary, sound teacher)",
-  },
-  {
-    id: 9,
-    text: "The Christian ideal has not been tried and found wanting. It has been found difficult; and left untried.",
-    author: "G.K. Chesterton",
-  },
-  {
-    id: 10,
-    text: "If I had a thousand pounds, I would give them all to have the Scriptures. If I had a thousand lives, I would give them all for the Gospel.",
-    author: "A.W. Pink (Paraphrased thoughts on the value of Scripture)",
   },
   {
     id: 11,
@@ -62,24 +27,48 @@ export const quotesChirho: InspirationalQuoteChirho[] = [
     author: "2 Corinthians 5:17 (Bible)",
   },
   {
-    id: 12,
-    text: "A man who is intimate with God is not intimidated by man.",
-    author: "Leonard Ravenhill (sound teacher)",
-  },
-  {
-    id: 13,
-    text: "The best use of life is love. The best expression of love is time. The best time to love is now.",
-    author: "Rick Warren (contemporary, sound teacher)",
-  },
-  {
     id: 14,
     text: "Do not be conformed to this world, but be transformed by the renewal of your mind, that by testing you may discern what is the will of God, what is good and acceptable and perfect.",
     author: "Romans 12:2 (Bible)",
   },
   {
-    id: 15,
-    text: "He is no fool who gives what he cannot keep to gain what he cannot lose.",
-    author: "Jim Elliot",
+    id: 16, // Example of adding another Bible verse
+    text: "For by grace you have been saved through faith. And this is not your own doing; it is the gift of God, not a result of works, so that no one may boast.",
+    author: "Ephesians 2:8-9 (Bible)",
+  },
+  {
+    id: 17,
+    text: "The steadfast love of the LORD never ceases; his mercies never come to an end; they are new every morning; great is your faithfulness.",
+    author: "Lamentations 3:22-23 (Bible)",
+  },
+  {
+    id: 18,
+    text: "And we know that for those who love God all things work together for good, for those who are called according to his purpose.",
+    author: "Romans 8:28 (Bible)",
+  },
+  {
+    id: 19,
+    text: "Jesus said to him, 'I am the way, and the truth, and the life. No one comes to the Father except through me.'",
+    author: "John 14:6 (Bible)",
+  },
+  {
+    id: 20,
+    text: "But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, self-control; against such things there is no law.",
+    author: "Galatians 5:22-23 (Bible)",
   }
 ];
 
+// Ensuring we have a good selection of Bible verses.
+// Additional verses can be added here following the same format.
+// For example:
+// {
+//   id: 21,
+//   text: "Your word is a lamp to my feet and a light to my path.",
+//   author: "Psalm 119:105 (Bible)",
+// },
+// {
+//   id: 22,
+//   text: "Be strong and courageous. Do not fear or be in dread of them, for it is the LORD your God who goes with you. He will not leave you or forsake you.",
+//   author: "Deuteronomy 31:6 (Bible)",
+// }
+// etc.

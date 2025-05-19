@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Eye } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -390,7 +390,12 @@ export default function AIPersonasPageChirho() {
                               className={`flex items-end gap-2 ${msgChirho.sender === "user" ? "justify-end" : "justify-start"}`}
                             >
                               {msgChirho.sender === "persona" && (
-                                 <AvatarIconChirho className="bg-accent text-accent-foreground" imageUrlChirho={msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho}>
+                                 <AvatarIconChirho 
+                                    className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
+                                    imageUrlChirho={msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho}
+                                    onClick={() => msgChirho.imageUrlChirho && handleArchivedMessageImagePopupChirho(msgChirho.imageUrlChirho)}
+                                    title={msgChirho.imageUrlChirho ? "Click to view image" : ""}
+                                >
                                   {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && <Bot className="h-5 w-5" />}
                                 </AvatarIconChirho>
                               )}
@@ -398,13 +403,10 @@ export default function AIPersonasPageChirho() {
                                 className={`max-w-[70%] rounded-lg p-3 shadow ${
                                   msgChirho.sender === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
                                 } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
-                                onClick={() => msgChirho.sender === "persona" && handleArchivedMessageImagePopupChirho(msgChirho.imageUrlChirho)}
+                                onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleArchivedMessageImagePopupChirho(msgChirho.imageUrlChirho)}
                                 title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click to view image" : ""}
                               >
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
-                                {msgChirho.sender === "persona" && msgChirho.imageUrlChirho && (
-                                  <Eye className="h-3 w-3 mt-1 text-muted-foreground inline-block ml-1" />
-                                )}
                               </div>
                               {msgChirho.sender === "user" && (
                                 <AvatarIconChirho className="bg-secondary text-secondary-foreground">
@@ -604,8 +606,8 @@ export default function AIPersonasPageChirho() {
 }
 
 // Avatar icon component - displays image if provided, otherwise children (e.g., Bot/User icon)
-const AvatarIconChirho = ({ children, className, imageUrlChirho }: { children?: React.ReactNode, className?: string, imageUrlChirho?: string | null }) => (
-  <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 overflow-hidden ${className}`}>
+const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title }: { children?: React.ReactNode, className?: string, imageUrlChirho?: string | null, onClick?: () => void, title?: string }) => (
+  <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 overflow-hidden ${className}`} onClick={onClick} title={title}>
     {imageUrlChirho && typeof imageUrlChirho === 'string' && imageUrlChirho.startsWith('data:image') ? (
       <Image src={imageUrlChirho} alt="Persona" width={32} height={32} className="object-cover w-full h-full" unoptimized />
     ) : imageUrlChirho && typeof imageUrlChirho === 'string' ? (
@@ -615,4 +617,5 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho }: { children?: 
     )}
   </div>
 );
+
 
