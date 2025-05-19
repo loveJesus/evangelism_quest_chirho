@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const UpdatePersonaVisualsInputSchema = z.object({
+const UpdatePersonaVisualsInputSchema = z.object({
   baseImageUri: z
     .string()
     .describe(
@@ -33,7 +33,7 @@ export type UpdatePersonaVisualsInput = z.infer<
   typeof UpdatePersonaVisualsInputSchema
 >;
 
-export const UpdatePersonaVisualsOutputSchema = z.object({
+const UpdatePersonaVisualsOutputSchema = z.object({
   updatedImageUri: z
     .string()
     .describe(
@@ -102,4 +102,3 @@ Generate the updated image.`,
     return {updatedImageUri: imageUrl};
   }
 );
-```
