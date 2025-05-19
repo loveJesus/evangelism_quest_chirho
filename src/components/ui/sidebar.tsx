@@ -6,9 +6,9 @@ import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobileChirho } from "@/hooks/use-mobile-chirho" // Updated import
-import { cn } from "@/lib/utils-chirho" // Updated import
-import { Button } from "@/components/ui/button"
+import { useIsMobileChirho } from "@/hooks/use-mobile-chirho"
+import { cn } from "@/lib/utils-chirho"
+import { Button, type ButtonProps } from "@/components/ui/button" // Ensure ButtonProps is imported if needed, or use React.ComponentProps<typeof Button>
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -262,9 +262,9 @@ Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
-  React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebarChirho } = useSidebarChirho()
+  ButtonProps // Use ButtonProps which includes asChild and children
+>(({ className, onClick, asChild, children, ...restButtonProps }, ref) => {
+  const { toggleSidebarChirho } = useSidebarChirho();
 
   return (
     <Button
@@ -274,16 +274,28 @@ const SidebarTrigger = React.forwardRef<
       size="icon"
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
-        onClick?.(event)
-        toggleSidebarChirho()
+        onClick?.(event);
+        toggleSidebarChirho();
       }}
-      {...props}
+      asChild={asChild} // Pass down the asChild prop
+      {...restButtonProps} // Pass down other props
     >
-      <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
+      {/* 
+        If asChild is true, the 'children' prop (passed from the consumer of SidebarTrigger) 
+        will be rendered by the Slot component within Button.
+        If asChild is false, Button renders its direct children defined here.
+      */}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          <PanelLeft />
+          <span className="sr-only">Toggle Sidebar</span>
+        </>
+      )}
     </Button>
-  )
-})
+  );
+});
 SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarRail = React.forwardRef<
@@ -536,8 +548,7 @@ const sidebarMenuButtonVariantsChirho = cva(
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<"button"> & {
-    asChild?: boolean
+  React.ComponentProps<typeof Button> & { // Use React.ComponentProps<typeof Button> which includes asChild, children
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariantsChirho>
@@ -550,26 +561,30 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      children, // Explicitly get children
       ...props
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
+    const Comp = asChild ? Slot : "button" // This should use the Button component directly for consistency
     const { isMobileChirho, stateChirho } = useSidebarChirho()
 
-    const button = (
-      <Comp
+    const buttonContent = (
+      <Button
         ref={ref}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariantsChirho({ variant, size }), className)}
+        asChild={asChild}
         {...props}
-      />
+      >
+        {children}
+      </Button>
     )
 
     if (!tooltip) {
-      return button
+      return buttonContent
     }
 
     if (typeof tooltip === "string") {
@@ -580,7 +595,7 @@ const SidebarMenuButton = React.forwardRef<
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
@@ -760,5 +775,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebarChirho as useSidebar,
+  useSidebarChirho, // Exported as useSidebarChirho
+  useSidebarChirho as useSidebar, // Keep original export name if other parts of ui rely on it
 }
