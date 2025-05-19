@@ -131,15 +131,17 @@ export default function AIPersonasPageChirho() {
   useEffect(() => {
     if (!loadingAuthChirho) {
       if (!currentUserChirho) {
+        // Reset state when user logs out or on initial load without a user
         setPersonaChirho(null);
         setMessagesChirho([]);
         setDynamicPersonaImageChirho(null);
         setSuggestedAnswerChirho(null);
         setDifficultyLevelChirho(1);
         setIsLoadingPersonaChirho(true); 
+        routerChirho.push('/login-chirho');
       }
     }
-  }, [currentUserChirho, loadingAuthChirho]);
+  }, [currentUserChirho, loadingAuthChirho, routerChirho]);
 
 
   const archiveCurrentConversationChirho = useCallback(async (currentPersona: GenerateAiPersonaOutputChirho, currentMessages: MessageChirho[], convinced: boolean) => {
@@ -286,7 +288,7 @@ export default function AIPersonasPageChirho() {
         loadNewPersonaChirho(difficultyLevelChirho, false, null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho, personaChirho, messagesChirho]); 
+  }, [difficultyLevelChirho, currentUserChirho, loadingAuthChirho]); 
 
 
   useEffect(() => {
@@ -429,8 +431,33 @@ export default function AIPersonasPageChirho() {
 
   const handleSuggestAnswerChirho = async () => {
     if (!personaChirho || messagesChirho.length === 0 || !currentUserChirho || !userProfileChirho) return;
+    
     const lastPersonaMessageChirho = messagesChirho.filter(mChirho => mChirho.sender === 'persona').pop();
-    if (!lastPersonaMessageChirho) return;
+    if (!lastPersonaMessageChirho) {
+        toastChirho({
+            variant: "destructive",
+            title: "Cannot Suggest",
+            description: "No persona message found to base a suggestion on.",
+        });
+        return;
+    }
+    if (!lastPersonaMessageChirho.text?.trim()) {
+        toastChirho({
+            variant: "destructive",
+            title: "Cannot Suggest",
+            description: "The last persona message is empty. Cannot base suggestion on an empty message.",
+        });
+        return;
+    }
+    if (!personaChirho.personaNameChirho?.trim()) {
+        toastChirho({
+            variant: "destructive",
+            title: "Cannot Suggest",
+            description: "Persona name is missing. Suggestion context might be incomplete.",
+        });
+        // Optionally, allow proceeding if only name is missing, but it's better for context
+        // return; 
+    }
 
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
@@ -439,9 +466,13 @@ export default function AIPersonasPageChirho() {
 
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
-      personaActualNameForContextChirho: personaChirho.personaNameChirho, 
+      personaActualNameForContextChirho: personaChirho.personaNameChirho || "Unknown Persona", 
       personaDisplayNameForUserChirho: displayNameForSuggestion,
+      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : (personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : 'The Person')}: ${m.text}`).join('\n')
     };
+    
+    console.log("Requesting suggestion with input:", suggestionInputChirho);
+
 
     try {
       const resultChirho = await fetchSuggestedResponseChirho(suggestionInputChirho);
@@ -451,14 +482,15 @@ export default function AIPersonasPageChirho() {
         toastChirho({
           variant: "destructive",
           title: "Suggestion Failed",
-          description: resultChirho.error || "Could not fetch a suggestion.",
+          description: resultChirho.error || "Could not fetch a suggestion. Please try again.",
         });
       }
-    } catch (errorChirho) {
+    } catch (errorChirho: any) {
+      console.error("Error fetching suggested response:", errorChirho);
       toastChirho({
         variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while fetching the suggestion.",
+        title: "Suggestion Error",
+        description: errorChirho.message || "An unexpected error occurred while fetching the suggestion.",
       });
     }
     setIsFetchingSuggestionChirho(false);
