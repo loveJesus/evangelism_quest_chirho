@@ -3,9 +3,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { generateNewPersona, sendMessageToPersona } from "@/lib/actions";
+import { generateNewPersona, sendMessageToPersona, updatePersonaImage } from "@/lib/actions";
 import type { GenerateAiPersonaOutput, GenerateAiPersonaInput } from "@/ai/flows/generate-ai-persona";
 import type { AIPersonaConvincingOutput, AIPersonaConvincingInput } from "@/ai/flows/ai-persona-convincing";
+import type { UpdatePersonaVisualsInput, UpdatePersonaVisualsOutput } from "@/ai/flows/update-persona-visuals";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +23,12 @@ interface Message {
 
 export default function AIPersonasPage() {
   const [persona, setPersona] = useState<GenerateAiPersonaOutput | null>(null);
+  const [dynamicPersonaImage, setDynamicPersonaImage] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isLoadingPersona, setIsLoadingPersona] = useState(true);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isUpdatingImage, setIsUpdatingImage] = useState(false);
   const [difficultyLevel, setDifficultyLevel] = useState(1);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -33,15 +36,15 @@ export default function AIPersonasPage() {
   const loadNewPersona = useCallback(async (difficulty: number) => {
     setIsLoadingPersona(true);
     setMessages([]);
-    setUserInput(""); // Clear user input when new persona loads
-    // General description for persona generation, details will be AI-generated
+    setUserInput("");
+    setDynamicPersonaImage(null);
     const personaThemeDescription = `A person at difficulty level ${difficulty}. They might have some challenging questions or life situations. Their story should be unique.`;
     
     try {
       const result = await generateNewPersona({ personaDescription: personaThemeDescription } as GenerateAiPersonaInput);
       if (result.success && result.data) {
         setPersona(result.data);
-        // Initial message from persona can use meetingContext or a generic greeting
+        setDynamicPersonaImage(result.data.personaImage);
         const initialMessageText = result.data.meetingContext 
           ? `${result.data.meetingContext} (You can start the conversation.)`
           : "Hello! I'm ready to talk.";
@@ -79,26 +82,47 @@ export default function AIPersonasPage() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!userInput.trim() || !persona) return;
+    if (!userInput.trim() || !persona || !dynamicPersonaImage) return;
 
     const newUserMessage: Message = { sender: "user", text: userInput, id: Date.now().toString() };
     setMessages((prev) => [...prev, newUserMessage]);
-    const currentInput = userInput; // Capture userInput before clearing
+    const currentInput = userInput; 
     setUserInput("");
     setIsSendingMessage(true);
 
-    const input: AIPersonaConvincingInput = {
+    const convincingInput: AIPersonaConvincingInput = {
       difficultyLevel,
-      personaDescription: persona.personaDetails, // Pass the full hidden backstory
+      personaDescription: persona.personaDetails, 
       message: currentInput,
     };
 
     try {
-      const result = await sendMessageToPersona(input);
+      const result = await sendMessageToPersona(convincingInput);
       if (result.success && result.data) {
         const personaResponse = result.data as AIPersonaConvincingOutput;
         const newPersonaMessage: Message = { sender: "persona", text: personaResponse.personaResponse, id: (Date.now() + 1).toString() };
         setMessages((prev) => [...prev, newPersonaMessage]);
+
+        if (personaResponse.visualContextForNextImage && dynamicPersonaImage) { // ensure dynamicPersonaImage is not null
+          setIsUpdatingImage(true);
+          const imageUpdateInput: UpdatePersonaVisualsInput = {
+            baseImageUri: dynamicPersonaImage, 
+            personaName: persona.personaName,
+            originalMeetingContext: persona.meetingContext,
+            newVisualPrompt: personaResponse.visualContextForNextImage,
+          };
+          const imageResult = await updatePersonaImage(imageUpdateInput);
+          if (imageResult.success && imageResult.data) {
+            setDynamicPersonaImage(imageResult.data.updatedImageUri);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Image Update Failed",
+              description: imageResult.error || "Could not update the persona's image.",
+            });
+          }
+          setIsUpdatingImage(false);
+        }
 
         if (personaResponse.convinced) {
           toast({
@@ -107,13 +131,6 @@ export default function AIPersonasPage() {
             duration: 7000,
           });
           setDifficultyLevel((prev) => prev + 1);
-          // loadNewPersona will be called by useEffect due to difficultyLevel change
-        } else if (personaResponse.nextQuestion && personaResponse.nextQuestion.trim() !== "") {
-           // Optionally, display nextQuestion as a separate message or integrate it.
-           // For now, it's part of the persona's response or a follow-up.
-           // If it needs to be a distinct message:
-           // const nextQuestionMessage: Message = { sender: "persona", text: `They seem to be wondering: "${personaResponse.nextQuestion}"`, id: (Date.now() + 2).toString() };
-           // setMessages((prev) => [...prev, nextQuestionMessage]);
         }
       } else {
         toast({
@@ -121,7 +138,7 @@ export default function AIPersonasPage() {
           title: "Error Getting Response",
           description: result.error || "Could not get persona's response.",
         });
-         setMessages((prev) => prev.filter(m => m.id !== newUserMessage.id)); // Remove user message if send failed
+         setMessages((prev) => prev.filter(m => m.id !== newUserMessage.id)); 
       }
     } catch (error) {
         toast({
@@ -140,7 +157,7 @@ export default function AIPersonasPage() {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             {isLoadingPersona ? "Loading Persona..." : `AI Persona: ${persona?.personaName || "Details"}`}
-            <Button variant="outline" size="icon" onClick={() => loadNewPersona(difficultyLevel)} disabled={isLoadingPersona || isSendingMessage}>
+            <Button variant="outline" size="icon" onClick={() => loadNewPersona(difficultyLevel)} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage}>
               {isLoadingPersona ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               <span className="sr-only">New Persona</span>
             </Button>
@@ -157,17 +174,25 @@ export default function AIPersonasPage() {
               <div className="h-4 w-full bg-muted rounded animate-pulse" />
               <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
             </div>
-          ) : persona ? (
+          ) : persona && dynamicPersonaImage ? (
             <>
               <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden shadow-md">
-                <Image
-                  src={persona.personaImage}
-                  alt={`AI Persona: ${persona.personaName}`}
-                  layout="fill"
-                  objectFit="cover"
-                  data-ai-hint="portrait person"
-                  unoptimized={persona.personaImage.startsWith('data:image')} // Optimization for data URIs
-                />
+                {dynamicPersonaImage && (
+                  <Image
+                    src={dynamicPersonaImage}
+                    alt={`AI Persona: ${persona.personaName}`}
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint="portrait person"
+                    unoptimized={dynamicPersonaImage.startsWith('data:image')}
+                    key={dynamicPersonaImage} // Force re-render on image change
+                  />
+                )}
+                {isUpdatingImage && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  </div>
+                )}
               </div>
               <div className="mt-4 space-y-2">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -178,8 +203,6 @@ export default function AIPersonasPage() {
                   {persona.meetingContext}
                 </p>
               </div>
-              {/* Full backstory (persona.personaDetails) is intentionally not displayed here. 
-                  It's used by the AI for context during conversation. */}
             </>
           ) : (
             <Alert variant="destructive">
@@ -205,8 +228,8 @@ export default function AIPersonasPage() {
                   }`}
                 >
                   {msg.sender === "persona" && (
-                    <AvatarIcon className="bg-accent text-accent-foreground">
-                      <Bot className="h-5 w-5" />
+                    <AvatarIcon className="bg-accent text-accent-foreground" imageUrl={dynamicPersonaImage}>
+                      {!dynamicPersonaImage && <Bot className="h-5 w-5" />}
                     </AvatarIcon>
                   )}
                   <div
@@ -225,10 +248,10 @@ export default function AIPersonasPage() {
                   )}
                 </div>
               ))}
-              {isSendingMessage && messages[messages.length-1]?.sender === 'user' && (
+              {(isSendingMessage || isUpdatingImage) && messages[messages.length-1]?.sender === 'user' && (
                  <div className="flex items-end gap-2 justify-start">
-                    <AvatarIcon className="bg-accent text-accent-foreground">
-                      <Bot className="h-5 w-5" />
+                    <AvatarIcon className="bg-accent text-accent-foreground" imageUrl={dynamicPersonaImage}>
+                        {!dynamicPersonaImage && <Bot className="h-5 w-5" />}
                     </AvatarIcon>
                     <div className="max-w-[70%] rounded-lg p-3 shadow bg-card border">
                         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -251,10 +274,10 @@ export default function AIPersonasPage() {
                     handleSendMessage();
                   }
                 }}
-                disabled={isLoadingPersona || isSendingMessage || !persona}
+                disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || !persona}
               />
-              <Button onClick={handleSendMessage} disabled={isLoadingPersona || isSendingMessage || !userInput.trim() || !persona} className="self-end">
-                {isSendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button onClick={handleSendMessage} disabled={isLoadingPersona || isSendingMessage || isUpdatingImage || !userInput.trim() || !persona} className="self-end">
+                {(isSendingMessage || isUpdatingImage) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span className="sr-only">Send</span>
               </Button>
             </div>
@@ -265,9 +288,12 @@ export default function AIPersonasPage() {
   );
 }
 
-const AvatarIcon = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${className}`}>
-    {children}
+const AvatarIcon = ({ children, className, imageUrl }: { children?: React.ReactNode, className?: string, imageUrl?: string | null }) => (
+  <div className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 overflow-hidden ${className}`}>
+    {imageUrl ? (
+      <Image src={imageUrl} alt="Persona" width={32} height={32} className="object-cover w-full h-full" unoptimized={imageUrl.startsWith('data:image')} />
+    ) : (
+      children
+    )}
   </div>
 );
-

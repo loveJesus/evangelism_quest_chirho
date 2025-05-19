@@ -30,7 +30,8 @@ const AIPersonaConvincingOutputSchema = z.object({
     .string()
     .describe('The AI persona’s natural, conversational response to the user\'s message.'),
   convinced: z.boolean().describe('Whether the AI persona was convinced by the message to believe in Jesus Christ for salvation.'),
-  nextQuestion: z.string().optional().nullable().describe('A natural follow-up question or point of doubt if not convinced, or null/empty if convinced or no specific question.')
+  nextQuestion: z.string().optional().nullable().describe('A natural follow-up question or point of doubt if not convinced, or null/empty if convinced or no specific question.'),
+  visualContextForNextImage: z.string().optional().nullable().describe('A short description of the persona\'s current expression, pose, and any minor relevant changes in the environment for the next image. e.g., "Caleb smiles warmly, holding a coffee cup", "Eliza looks pensive, glancing out the library window". This will be used to generate a new image. If no significant visual change, this can be null or empty.')
 });
 export type AIPersonaConvincingOutput = z.infer<typeof AIPersonaConvincingOutputSchema>;
 
@@ -55,8 +56,9 @@ Based on your persona and the user's message:
 1.  Craft a "personaResponse" that is a direct, natural, and conversational reply. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
 2.  Determine if you are "convinced" (i.e., you have come to believe in Jesus Christ for salvation). This should be a significant moment and typically only occur after your main doubts and questions (appropriate for your difficulty level) have been addressed over several interactions. It should be rare, especially at higher difficulty levels.
 3.  If not convinced, formulate a "nextQuestion" which should be a genuine question, doubt, or point of hesitation that naturally follows from your "personaResponse" or reflects your current main obstacle to belief. This helps guide the conversation. If convinced, "nextQuestion" can be null or an empty string.
+4.  Provide a "visualContextForNextImage": a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. This will be used to generate a new image of you. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
 
-Output your entire response as a single, valid JSON object with the following keys: "personaResponse", "convinced", "nextQuestion".
+Output your entire response as a single, valid JSON object with the following keys: "personaResponse", "convinced", "nextQuestion", "visualContextForNextImage".
 
 Example (not convinced, difficulty 3):
 User message: "Hi Eliza, I wanted to share something that gives me hope."
@@ -64,16 +66,8 @@ Your persona (Eliza, struggling with recent loss):
 {
   "personaResponse": "Oh, hello. Hope... that's something I haven't felt much of lately. What did you want to share?",
   "convinced": false,
-  "nextQuestion": "What kind of hope are you talking about?"
-}
-
-Example (convinced, after much conversation):
-User message: "So, do you feel like you understand God's love for you now?"
-Your persona (David, initially very skeptical):
-{
-  "personaResponse": "You know... after everything we've talked about, and how you've patiently answered my questions... I think I do. It's a lot to take in, but... yes, I believe I want to accept this.",
-  "convinced": true,
-  "nextQuestion": null
+  "nextQuestion": "What kind of hope are you talking about?",
+  "visualContextForNextImage": "looking a bit sad but curious"
 }
 
 IMPORTANT:
@@ -92,15 +86,14 @@ const aiPersonaConvincingFlow = ai.defineFlow(
   async input => {
     const {output} = await aiPersonaConvincingPrompt(input);
     if (!output) {
-        // Handle cases where the prompt might return undefined or an empty/invalid structure
         console.error("AI Persona Convincing Flow received undefined output from prompt for input:", input);
         return {
             personaResponse: "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?",
             convinced: false,
-            nextQuestion: "Could you rephrase your last message?"
+            nextQuestion: "Could you rephrase your last message?",
+            visualContextForNextImage: null,
         };
     }
     return output;
   }
 );
-

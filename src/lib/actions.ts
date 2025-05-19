@@ -4,6 +4,8 @@
 import { generateAiPersona as genPersona, GenerateAiPersonaInput } from "@/ai/flows/generate-ai-persona";
 import { aiPersonaConvincing as convincePersona, AIPersonaConvincingInput } from "@/ai/flows/ai-persona-convincing";
 import { contextualGuidance as getGuidance, ContextualGuidanceInput } from "@/ai/flows/contextual-guidance";
+import { updatePersonaVisuals as updateVisuals, UpdatePersonaVisualsInput } from "@/ai/flows/update-persona-visuals";
+
 
 export async function generateNewPersona(input: GenerateAiPersonaInput) {
   try {
@@ -32,5 +34,15 @@ export async function fetchContextualGuidance(input: ContextualGuidanceInput) {
   } catch (error) {
     console.error("Error fetching contextual guidance:", error);
     return { success: false, error: (error as Error).message || "Failed to fetch guidance." };
+  }
+}
+
+export async function updatePersonaImage(input: UpdatePersonaVisualsInput) {
+  try {
+    const result = await updateVisuals(input);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Error updating persona image:", error);
+    return { success: false, error: (error as Error).message || "Failed to update persona image." };
   }
 }
