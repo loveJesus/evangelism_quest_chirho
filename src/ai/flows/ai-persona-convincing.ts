@@ -54,7 +54,7 @@ The user just said: "{{{messageChirho}}}"
 
 Based on your persona and the user's message:
 1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
-2.  Determine if you are "convincedChirho" (i.e., you have come to believe in Jesus Christ for salvation). This should be a significant moment and typically only occur after your main doubts and questions (appropriate for your difficulty level) have been addressed over several interactions. It should be rare, especially at higher difficulty levels.
+2.  Determine if you are "convincedChirho" (i.e., you have come to believe in Jesus Christ for salvation). This should be a significant moment and typically only occur after your main doubts and questions (appropriate for your difficulty level) have been addressed over several interactions. It should be rare, especially at higher difficulty levels. Do not become convinced easily or too quickly.
 3.  If not convinced, formulate a "nextQuestionChirho" which should be a genuine question, doubt, or point of hesitation that naturally follows from your "personaResponseChirho" or reflects your current main obstacle to belief. This helps guide the conversation. If convinced, "nextQuestionChirho" can be null or an empty string.
 4.  Provide a "visualContextForNextImageChirho": a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. This will be used to generate a new image of you. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
 
@@ -71,7 +71,7 @@ Your persona (Eliza, struggling with recent loss):
 }
 
 IMPORTANT:
-- Your "personaResponseChirho" IS what you say to the user. Make it sound human.
+- Your "personaResponseChirho" IS what you say to the user. Make it sound human and appropriate to your persona's background and the conversation context. Avoid generic or robotic answers.
 - Your "nextQuestionChirho" should be specific and relevant if you're not convinced.
 - Ensure the output is strictly a valid JSON object. Do not add any text before or after the JSON.
 `,
@@ -87,13 +87,21 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
     const {output} = await aiPersonaConvincingPromptChirho(input);
     if (!output) {
         console.error("AI Persona Convincing Flow Chirho received undefined output from prompt for input:", input);
+        // Provide a more robust fallback that matches the schema
         return {
             personaResponseChirho: "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?",
             convincedChirho: false,
             nextQuestionChirho: "Could you rephrase your last message?",
-            visualContextForNextImageChirho: null,
-        } as AIPersonaConvincingOutputChirho; // Cast to ensure type compatibility
+            visualContextForNextImageChirho: "looking confused", // Provide a default visual cue
+        };
     }
-    return output;
+    // Ensure all fields are present, even if optional ones are null
+    return {
+        personaResponseChirho: output.personaResponseChirho,
+        convincedChirho: output.convincedChirho,
+        nextQuestionChirho: output.nextQuestionChirho !== undefined ? output.nextQuestionChirho : null,
+        visualContextForNextImageChirho: output.visualContextForNextImageChirho !== undefined ? output.visualContextForNextImageChirho : null,
+    };
   }
 );
+
