@@ -13,7 +13,12 @@ import type { UserProfileChirho } from '@/contexts/auth-context-chirho';
 
 const INITIAL_FREE_CREDITS_CHIRHO = 100;
 
-export async function initializeUserChirho(userId: string, email: string | null, displayName?: string | null): Promise<void> {
+export async function initializeUserChirho(userId: string, email: string | null, displayName?: string | null, photoURL?: string | null): Promise<void> {
+  if (!userId) {
+    console.error("initializeUserChirho: userId is required.");
+    // Optionally throw an error or return a status
+    return;
+  }
   const userDocRef = doc(dbChirho, "users", userId);
   try {
     const userDocSnap = await getDoc(userDocRef);
@@ -22,6 +27,7 @@ export async function initializeUserChirho(userId: string, email: string | null,
         uid: userId,
         email: email,
         displayName: displayName || email?.split('@')[0] || "User",
+        photoURL: photoURL || null, // Store photoURL if available
         credits: INITIAL_FREE_CREDITS_CHIRHO,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
@@ -29,15 +35,29 @@ export async function initializeUserChirho(userId: string, email: string | null,
       await setDoc(userDocRef, newUserProfile);
       console.log("User initialized in Firestore:", userId);
     } else {
-      // Optionally update last login or display name if it changed
-       await updateDoc(userDocRef, { 
-         lastLogin: serverTimestamp(),
-         ...(displayName && {displayName}) 
-       });
+      // User exists, update lastLogin and potentially displayName/photoURL if changed
+      const updates: { lastLogin: any; displayName?: string | null; photoURL?: string | null } = {
+        lastLogin: serverTimestamp(),
+      };
+      const existingData = userDocSnap.data();
+      if (displayName && existingData.displayName !== displayName) {
+        updates.displayName = displayName;
+      }
+      if (photoURL && existingData.photoURL !== photoURL) {
+        updates.photoURL = photoURL;
+      }
+      if (Object.keys(updates).length > 1 || !existingData.lastLogin) { // update if more than just lastLogin changed, or if lastLogin was never set
+         await updateDoc(userDocRef, updates);
+         console.log("User profile updated in Firestore:", userId, updates);
+      } else {
+         await updateDoc(userDocRef, { lastLogin: serverTimestamp() }); // Just update lastLogin
+      }
     }
-  } catch (error) {
-    console.error("Error initializing user in Firestore:", error);
+  } catch (error: any) {
+    console.error("Error initializing/updating user in Firestore:", userId, error.code, error.message, error);
     // Depending on policy, you might want to throw error or handle silently
+    // For now, let the AuthProvider handle generic error toasts if this fails and profile isn't loadable
+    throw error; // Re-throw to be caught by AuthProvider if needed
   }
 }
 
@@ -70,8 +90,6 @@ export async function addTestCreditsChirho(userId: string, amount: number): Prom
   try {
     const userDocSnap = await getDoc(userDocRef);
     if (!userDocSnap.exists()) {
-      // This case should ideally not happen if user is logged in and initialized.
-      // Consider initializing user here or returning a specific error.
       return { success: false, error: "User profile not found. Cannot add credits." };
     }
     await updateDoc(userDocRef, {
