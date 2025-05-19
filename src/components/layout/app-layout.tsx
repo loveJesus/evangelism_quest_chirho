@@ -20,8 +20,8 @@ import { usePathname } from "next/navigation";
 import { useCustomizationChirho } from "@/contexts/customization-context"; 
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "AI Personas Chirho",
-  "/ai-personas": "AI Personas Chirho",
+  "/": "Evangelism Simulator Chirho",
+  "/ai-personas": "Evangelism Simulator Chirho",
   "/contextual-guidance": "Contextual Guidance Chirho",
   "/daily-inspiration": "Daily Inspiration Chirho",
   "/settings": "Settings Chirho",
@@ -73,3 +73,4 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+

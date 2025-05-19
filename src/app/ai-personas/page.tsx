@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Eye } from "lucide-react"; // Added Eye
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -90,7 +90,7 @@ export default function AIPersonasPageChirho() {
       meetingContextChirho: currentPersona.meetingContextChirho,
       personaDetailsChirho: currentPersona.personaDetailsChirho,
       difficultyLevelChirho: difficultyLevelChirho,
-      messagesChirho: [...currentMessages], // Ensure all messages, including their specific image URLs, are archived
+      messagesChirho: [...currentMessages],
       convincedChirho: convinced,
     };
 
@@ -129,7 +129,7 @@ export default function AIPersonasPageChirho() {
         setDynamicPersonaImageChirho(lastPersonaMessageWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho);
         
         setDifficultyLevelChirho(conversationToContinue.difficultyLevelChirho);
-        justContinuedConversationRef.current = true; // Set flag to prevent immediate reload by useEffect
+        justContinuedConversationRef.current = true;
 
         setUserInputChirho("");
         setSuggestedAnswerChirho(null);
@@ -167,7 +167,7 @@ export default function AIPersonasPageChirho() {
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: resultChirho.data.personaImageChirho // Initial image for first message
+          imageUrlChirho: resultChirho.data.personaImageChirho
         }]);
       } else {
         toastChirho({
@@ -193,11 +193,9 @@ export default function AIPersonasPageChirho() {
       justContinuedConversationRef.current = false; 
       return;
     }
-    // Default behavior: load a new persona if difficulty changes (and not just after continuing)
-    // This will also handle the initial load.
     loadNewPersonaChirho(difficultyLevelChirho, false, null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyLevelChirho]); // loadNewPersonaChirho is stable via useCallback, so not needed here if its own deps are correct.
+  }, [difficultyLevelChirho]);
 
 
   useEffect(() => {
@@ -426,24 +424,13 @@ export default function AIPersonasPageChirho() {
                                 </AvatarIconChirho>
                               )}
                                <div
-                                className={`max-w-[70%] rounded-lg p-3 shadow relative ${
+                                className={`max-w-[70%] rounded-lg p-3 shadow ${
                                   msgChirho.sender === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
                                 } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
                                 onClick={() => msgChirho.sender === "persona" && msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
                                 title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
                               >
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
-                                {msgChirho.sender === "persona" && msgChirho.imageUrlChirho && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-1 right-1 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                                        onClick={(e) => { e.stopPropagation(); handleImagePopupChirho(msgChirho.imageUrlChirho); }}
-                                        title="View image"
-                                    >
-                                        <Eye className="h-3 w-3" />
-                                    </Button>
-                                )}
                               </div>
                               {msgChirho.sender === "user" && (
                                 <AvatarIconChirho className="bg-secondary text-secondary-foreground">
@@ -558,7 +545,7 @@ export default function AIPersonasPageChirho() {
                     </AvatarIconChirho>
                   )}
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 shadow relative ${
+                    className={`max-w-[70%] rounded-lg p-3 shadow ${
                       msgChirho.sender === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border"
@@ -567,17 +554,6 @@ export default function AIPersonasPageChirho() {
                      title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
-                     {msgChirho.sender === "persona" && msgChirho.imageUrlChirho && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-1 right-1 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => { e.stopPropagation(); handleImagePopupChirho(msgChirho.imageUrlChirho); }}
-                            title="View image"
-                        >
-                            <Eye className="h-3 w-3" />
-                        </Button>
-                    )}
                   </div>
                   {msgChirho.sender === "user" && (
                      <AvatarIconChirho className="bg-secondary text-secondary-foreground">

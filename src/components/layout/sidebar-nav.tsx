@@ -19,7 +19,7 @@ interface NavItemChirho {
 }
 
 const navItemsChirho: NavItemChirho[] = [
-  { href: "/ai-personas", label: "AI Personas", icon: Users },
+  { href: "/ai-personas", label: "Evangelism Simulator", icon: Users },
   { href: "/contextual-guidance", label: "Contextual Guidance", icon: Lightbulb },
   { href: "/daily-inspiration", label: "Daily Inspiration", icon: Sun },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -52,3 +52,4 @@ export function SidebarNavChirho() {
     </SidebarMenu>
   );
 }
+
