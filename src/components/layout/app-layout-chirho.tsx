@@ -11,20 +11,20 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar"; 
-import { SidebarNavChirho } from "./sidebar-nav-chirho"; // Updated import
+import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
 import { Church, PanelLeft } from "lucide-react";
-import { useIsMobileChirho } from "@/hooks/use-mobile-chirho"; // Updated import
+import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCustomizationChirho } from "@/contexts/customization-context-chirho"; // Updated import
+import { useCustomizationChirho } from "@/contexts/customization-context-chirho";
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "AI Evangelism Game Chirho", // Updated title
-  "/ai-personas": "AI Evangelism Game Chirho", // Updated title
-  "/contextual-guidance": "Contextual Guidance Chirho",
-  "/daily-inspiration": "Daily Inspiration Chirho",
-  "/settings": "Settings Chirho",
+  "/": "AI Evangelism Game Chirho",
+  "/ai-personas-chirho": "AI Evangelism Game Chirho", // Updated path
+  "/contextual-guidance-chirho": "Contextual Guidance Chirho",
+  "/daily-inspiration-chirho": "Daily Inspiration Chirho",
+  "/settings-chirho": "Settings Chirho",
 };
 
 export function AppLayoutChirho({ children }: { children: ReactNode }) {
@@ -73,4 +73,3 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
-

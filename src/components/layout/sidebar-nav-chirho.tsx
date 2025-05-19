@@ -3,13 +3,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Lightbulb, Sun, Settings, Icon, Gamepad2 } from "lucide-react"; // Added Gamepad2
+import { Lightbulb, Sun, Settings, Icon, Gamepad2 } from "lucide-react"; 
 import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"; 
-import { cn } from "@/lib/utils-chirho"; // Updated import
+import { cn } from "@/lib/utils-chirho"; 
 
 interface NavItemChirho {
   href: string;
@@ -19,10 +19,10 @@ interface NavItemChirho {
 }
 
 const navItemsChirho: NavItemChirho[] = [
-  { href: "/ai-personas", label: "AI Evangelism Game", icon: Gamepad2 }, // Updated label and icon
-  { href: "/contextual-guidance", label: "Contextual Guidance", icon: Lightbulb },
-  { href: "/daily-inspiration", label: "Daily Inspiration", icon: Sun },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/ai-personas-chirho", label: "AI Evangelism Game", icon: Gamepad2 }, 
+  { href: "/contextual-guidance-chirho", label: "Contextual Guidance", icon: Lightbulb },
+  { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun },
+  { href: "/settings-chirho", label: "Settings", icon: Settings },
 ];
 
 export function SidebarNavChirho() {
@@ -38,7 +38,7 @@ export function SidebarNavChirho() {
                 "w-full justify-start",
                  itemChirho.soon && "cursor-not-allowed opacity-50"
               )}
-              isActive={pathnameChirho === itemChirho.href || (itemChirho.href === "/ai-personas" && pathnameChirho === "/")}
+              isActive={pathnameChirho === itemChirho.href || (itemChirho.href === "/ai-personas-chirho" && pathnameChirho === "/")}
               tooltip={itemChirho.label}
               disabled={itemChirho.soon}
               aria-disabled={itemChirho.soon}
@@ -52,4 +52,3 @@ export function SidebarNavChirho() {
     </SidebarMenu>
   );
 }
-
