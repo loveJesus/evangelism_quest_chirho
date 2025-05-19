@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2 } from "lucide-react"; // Added Trash2
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2 } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -136,7 +136,7 @@ export default function AIPersonasPageChirho() {
     try {
       localStorage.removeItem(LOCAL_STORAGE_HISTORY_KEY_CHIRHO);
       setArchivedConversationsChirho([]);
-      setSelectedArchivedConversationChirho(null); // Clear selected if any
+      setSelectedArchivedConversationChirho(null); 
       toastChirho({
         title: "History Cleared",
         description: "All conversation history has been removed.",
@@ -195,13 +195,13 @@ export default function AIPersonasPageChirho() {
     setUserInputChirho("");
     setDynamicPersonaImageChirho(null);
     setSuggestedAnswerChirho(null);
-    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique, with varied professions, names (common, uncommon, diverse cultural backgrounds; AVOID REPEATING names like Caleb, Kai, Zephyr, Zephyrine), and backgrounds. Determine if their name is known based on context.`;
+    const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique, with varied professions, names (common, uncommon, diverse cultural backgrounds; AVOID REPEATING names like Caleb, Kai, Zephyr, Zephyrine), and backgrounds. Determine if their name is known based on context. Include sex and age.`;
     
     try {
       const resultChirho = await generateNewPersonaChirho({ personaDescriptionChirho: personaThemeDescriptionChirho } as GenerateAiPersonaInputChirho);
       if (resultChirho.success && resultChirho.data) {
         setPersonaChirho(resultChirho.data);
-        setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho);
+        setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho); // Initial image for card
         const initialMessageTextChirho = resultChirho.data.meetingContextChirho
           ? `${resultChirho.data.meetingContextChirho} (You can start the conversation.)`
           : "Hello! I'm ready to talk.";
@@ -209,7 +209,7 @@ export default function AIPersonasPageChirho() {
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: resultChirho.data.personaImageChirho
+          imageUrlChirho: resultChirho.data.personaImageChirho // Same initial image for the first bubble
         }]);
       } else {
         toastChirho({
@@ -284,6 +284,7 @@ export default function AIPersonasPageChirho() {
         let imageForPersonaMessage = currentDynamicImageForResponse;
 
         if (personaResponseChirho.visualContextForNextImageChirho && currentDynamicImageForResponse) {
+          console.log("Attempting to update persona image with visual context:", personaResponseChirho.visualContextForNextImageChirho);
           setIsUpdatingImageChirho(true);
           const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
             baseImageUriChirho: currentDynamicImageForResponse, 
@@ -491,7 +492,7 @@ export default function AIPersonasPageChirho() {
                                     className={`bg-accent text-accent-foreground ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
                                     imageUrlChirho={msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho}
                                     onClick={() => msgChirho.imageUrlChirho && handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                                    title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
+                                    title={msgChirho.imageUrlChirho ? "Click avatar to view image" : (selectedArchivedConversationChirho.initialPersonaImageChirho ? "Click avatar to view initial image" : "")}
                                 >
                                   {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && <Bot className="h-5 w-5" />}
                                 </AvatarIconChirho>
@@ -732,4 +733,3 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     )}
   </div>
 );
-
