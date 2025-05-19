@@ -31,10 +31,10 @@ import Image from "next/image";
 
 const pageTitlesChirho: { [key: string]: string } = {
   "/": "AI Evangelism Game Chirho",
-  "/ai-personas-chirho": "AI Evangelism Game Chirho", 
-  "/contextual-guidance-chirho": "Contextual Guidance Chirho",
-  "/daily-inspiration-chirho": "Daily Inspiration Chirho",
-  "/settings-chirho": "Settings Chirho",
+  "/ai-personas-chirho": "Evangelism Quest", 
+  "/contextual-guidance-chirho": "Contextual Guidance ☧",
+  "/daily-inspiration-chirho": "Daily Inspiration ☧",
+  "/settings-chirho": "Settings ☧",
   "/login-chirho": "Login / Signup",
 };
 

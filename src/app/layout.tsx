@@ -18,7 +18,7 @@ const geistMonoChirho = Geist_Mono({
 });
 
 export const metadataChirho: Metadata = {
-  title: 'Faith Forward Chirho',
+  title: 'Evangelism Quest',
   description: 'Empowering your evangelism journey.',
 };
 

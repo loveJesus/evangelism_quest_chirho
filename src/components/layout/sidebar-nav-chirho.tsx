@@ -21,7 +21,7 @@ interface NavItemChirho {
 }
 
 const navItemsChirho: NavItemChirho[] = [
-  { href: "/ai-personas-chirho", label: "AI Evangelism Game", icon: Gamepad2, authRequired: true }, 
+  { href: "/ai-personas-chirho", label: "Evangelism Quest", icon: Gamepad2, authRequired: true }, 
   { href: "/contextual-guidance-chirho", label: "Contextual Guidance", icon: Lightbulb, authRequired: true },
   { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun, authRequired: false }, // Inspiration can be public
   { href: "/settings-chirho", label: "Settings", icon: Settings, authRequired: true },
