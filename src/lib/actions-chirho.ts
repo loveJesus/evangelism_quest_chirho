@@ -1,3 +1,4 @@
+
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use server";
 
@@ -10,7 +11,7 @@ import { suggestEvangelisticResponseChirho, type SuggestEvangelisticResponseInpu
 import { dbChirho } from '@/lib/firebase-config-chirho';
 import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; 
-import type { ArchivedConversationChirho } from '@/app/ai-personas-chirho/page-chirho'; 
+import type { ArchivedConversationChirho } from '@/app/ai-personas-chirho/page'; 
 
 const INITIAL_FREE_CREDITS_CHIRHO = 100;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; 
@@ -63,6 +64,7 @@ export async function initializeUserChirho(userId: string, email: string | null,
     return { success: true };
   } catch (error: any) {
     console.error("initializeUserChirho Action: Firestore error for user", userId, ":", error.code, error.message, error);
+    // Re-throw or return a structured error to be caught by the caller
     return { success: false, error: `Failed to initialize user profile: ${error.message} (Code: ${error.code})` };
   }
 }
@@ -153,7 +155,7 @@ export async function updatePersonaImageChirho(input: UpdatePersonaVisualsInputC
 }
 
 export async function fetchSuggestedResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<{ success: boolean; data?: SuggestEvangelisticResponseOutputChirho; error?: string; }> {
-  console.log("Server action fetchSuggestedResponseChirho received input:", input); // Log the input to the server action
+  console.log("Server action fetchSuggestedResponseChirho received input:", input);
   try {
     const resultChirho = await suggestEvangelisticResponseChirho(input);
     return { success: true, data: resultChirho };
@@ -167,37 +169,46 @@ export async function fetchSuggestedResponseChirho(input: SuggestEvangelisticRes
 export async function archiveConversationToFirestoreChirho(userId: string, conversationData: ArchivedConversationChirho): Promise<{ success: boolean; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required." };
   if (!conversationData) return { success: false, error: "Conversation data is required." };
+  console.log(`[Firestore Action] Attempting to archive conversation ${conversationData.id} for user ${userId}`);
 
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
   
   try {
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
+    // Add server timestamp for server-side ordering if needed, but client timestamp is primary for now
     await setDoc(newConvDocRef, { ...conversationData, archivedAtServer: serverTimestamp() });
-    console.log(`Archived conversation ${conversationData.id} for user ${userId}`);
+    console.log(`[Firestore Action] Successfully archived conversation ${conversationData.id} for user ${userId}`);
 
-    const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO + 5)); 
+    // Pruning logic: Keep only MAX_ARCHIVED_CONVERSATIONS_CHIRHO
+    // Query for conversations ordered by timestamp (client-side), descending to get newest first
+    const q = query(userConversationsRef, orderBy("timestamp", "desc")); 
     const snapshot = await getDocs(q);
     
     if (snapshot.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
+      console.log(`[Firestore Action] Pruning. Found ${snapshot.docs.length} conversations, limit is ${MAX_ARCHIVED_CONVERSATIONS_CHIRHO}.`);
       const batch = writeBatch(dbChirho);
+      // The snapshot is ordered newest first, so docs to delete are at the end of this sorted array
       const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); 
       
       docsToDelete.forEach(docToDelete => {
         batch.delete(docToDelete.ref);
-        console.log(`Pruning old conversation ${docToDelete.id} for user ${userId}`);
+        console.log(`[Firestore Action] Marking for deletion: old conversation ${docToDelete.id} (timestamp: ${docToDelete.data().timestamp}) for user ${userId}`);
       });
       await batch.commit();
-      console.log(`Pruning complete for user ${userId}. Deleted ${docsToDelete.length} conversations.`);
+      console.log(`[Firestore Action] Pruning complete for user ${userId}. Deleted ${docsToDelete.length} conversations.`);
+    } else {
+      console.log(`[Firestore Action] No pruning needed for user ${userId}. Conversation count: ${snapshot.docs.length}`);
     }
     return { success: true };
   } catch (error: any) {
-    console.error("Error archiving conversation to Firestore:", error);
+    console.error("[Firestore Action] Error archiving conversation to Firestore:", error);
     return { success: false, error: error.message || "Failed to archive conversation." };
   }
 }
 
 export async function fetchArchivedConversationsFromFirestoreChirho(userId: string): Promise<{ success: boolean; data?: ArchivedConversationChirho[]; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required." };
+  console.log(`[Firestore Action] Attempting to fetch archived conversations for user ${userId}`);
   
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
   const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
@@ -205,22 +216,23 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
   try {
     const snapshot = await getDocs(q);
     const conversations = snapshot.docs.map(doc => doc.data() as ArchivedConversationChirho);
-    console.log(`Fetched ${conversations.length} archived conversations for user ${userId}`);
+    console.log(`[Firestore Action] Fetched ${conversations.length} archived conversations for user ${userId}`);
     return { success: true, data: conversations };
   } catch (error: any) {
-    console.error("Error fetching archived conversations from Firestore:", error);
+    console.error("[Firestore Action] Error fetching archived conversations from Firestore:", error);
     return { success: false, error: error.message || "Failed to fetch conversation history." };
   }
 }
 
 export async function clearArchivedConversationsFromFirestoreChirho(userId: string): Promise<{ success: boolean; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required." };
+  console.log(`[Firestore Action] Attempting to clear all archived conversations for user ${userId}`);
   
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
   try {
     const snapshot = await getDocs(userConversationsRef);
     if (snapshot.empty) {
-      console.log(`No archived conversations to clear for user ${userId}`);
+      console.log(`[Firestore Action] No archived conversations to clear for user ${userId}`);
       return { success: true }; 
     }
     const batch = writeBatch(dbChirho);
@@ -228,10 +240,12 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
       batch.delete(doc.ref);
     });
     await batch.commit();
-    console.log(`Cleared all ${snapshot.docs.length} archived conversations for user ${userId}`);
+    console.log(`[Firestore Action] Cleared all ${snapshot.docs.length} archived conversations for user ${userId}`);
     return { success: true };
   } catch (error: any) {
-    console.error("Error clearing archived conversations from Firestore:", error);
+    console.error("[Firestore Action] Error clearing archived conversations from Firestore:", error);
     return { success: false, error: error.message || "Failed to clear conversation history." };
   }
 }
+
+    

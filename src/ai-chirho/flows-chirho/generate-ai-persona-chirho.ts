@@ -1,3 +1,4 @@
+
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 'use server';
 /**
@@ -103,7 +104,6 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       }
        if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(sex|gender)\s*:\s*(male|female|non-binary)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/age\s*:\s*.*?\d/i)) {
         console.warn("Generated personaDetailsChirho might be missing explicit sex or age information based on simple check. Full details:", parsedPersonaDataChirho.personaDetailsChirho);
-        // Not throwing an error, but logging a warning if basic pattern for sex/age isn't found. More robust parsing might be needed if issues persist.
       }
     } catch (e) {
       console.error("Failed to parse persona data JSON:", personaDataResultChirho.text, e);
@@ -115,7 +115,7 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       };
     }
 
-    const imagePromptChirho = `Generate a realistic portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
+    const imagePromptChirho = `Generate a 512x512 portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
 Their general disposition, sex, and age can be inferred from: ${parsedPersonaDataChirho.personaDetailsChirho.substring(0, 350)}...
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
 The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure diverse appearances.`;
@@ -149,3 +149,5 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
     };
   }
 );
+
+    
