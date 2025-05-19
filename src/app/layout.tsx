@@ -17,12 +17,12 @@ const geistMonoChirho = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadataChirho: Metadata = {
-  title: 'Evangelism Quest',
+export const metadata: Metadata = { // Renamed metadataChirho to metadata for Next.js convention
+  title: 'Faith Forward ☧',
   description: 'Empowering your evangelism journey.',
 };
 
-export default function RootLayoutChirho({
+export default function RootLayout({ // Renamed RootLayoutChirho to RootLayout for Next.js convention
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -30,7 +30,7 @@ export default function RootLayoutChirho({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSansChirho.variable} ${geistMonoChirho.variable} antialiased`}>
-        <AuthProviderChirho> {/* Wrap with AuthProviderChirho */}
+        <AuthProviderChirho> {/* AuthProviderChirho wraps CustomizationProviderChirho */}
           <CustomizationProviderChirho>
             <AppLayoutChirho>{children}</AppLayoutChirho>
             <ToasterChirho />

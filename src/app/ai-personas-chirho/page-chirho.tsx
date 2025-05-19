@@ -449,26 +449,21 @@ export default function AIPersonasPageChirho() {
         });
         return;
     }
-    if (!personaChirho.personaNameChirho?.trim()) {
-        toastChirho({
-            variant: "destructive",
-            title: "Cannot Suggest",
-            description: "Persona name is missing. Suggestion context might be incomplete.",
-        });
-        // Optionally, allow proceeding if only name is missing, but it's better for context
-        // return; 
-    }
+    
+    const actualPersonaName = (personaChirho.personaNameChirho && personaChirho.personaNameChirho.trim() !== "") 
+                              ? personaChirho.personaNameChirho 
+                              : "Character"; // Using a clear, non-empty placeholder
+
+    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : "the person";
 
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
 
-    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : "the person";
-
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
-      personaActualNameForContextChirho: personaChirho.personaNameChirho || "Unknown Persona", 
+      personaActualNameForContextChirho: actualPersonaName, 
       personaDisplayNameForUserChirho: displayNameForSuggestion,
-      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : (personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : 'The Person')}: ${m.text}`).join('\n')
+      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : (personaChirho.personaNameKnownToUserChirho ? actualPersonaName : 'The Person')}: ${m.text}`).join('\n')
     };
     
     console.log("Requesting suggestion with input:", suggestionInputChirho);
@@ -947,4 +942,5 @@ const AvatarIconChirho = ({ children, className, imageUrlChirho, onClick, title 
     )}
   </div>
 );
+
 

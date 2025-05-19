@@ -30,7 +30,7 @@ import {
 import Image from "next/image";
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "AI Evangelism Game Chirho",
+  "/": "Evangelism Quest",
   "/ai-personas-chirho": "Evangelism Quest", 
   "/contextual-guidance-chirho": "Contextual Guidance ☧",
   "/daily-inspiration-chirho": "Daily Inspiration ☧",
@@ -42,9 +42,9 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
   const isMobileChirho = useIsMobileChirho();
   const pathnameChirho = usePathname();
   const { effectiveThemeChirho } = useCustomizationChirho(); 
-  const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho } = useAuthChirho();
+  const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho(); // Added routerChirho from context
 
-  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "FaithForward Chirho";
+  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Faith Forward ☧";
 
   // Hide sidebar and header for login page
   if (pathnameChirho === '/login-chirho') {
@@ -61,7 +61,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
             <Church className="h-6 w-6" />
-            <span className="group-data-[collapsible=icon]:hidden">FaithForward Chirho</span>
+            <span className="group-data-[collapsible=icon]:hidden">Faith Forward ☧</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>

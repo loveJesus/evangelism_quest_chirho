@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"; 
-import { cn } from "@/lib/utils"; 
+import { cn } from "@/lib/utils-chirho.ts"; 
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
 
 interface NavItemChirho {
@@ -17,13 +17,13 @@ interface NavItemChirho {
   label: string;
   icon: Icon; 
   soon?: boolean;
-  authRequired?: boolean; // New property
+  authRequired?: boolean;
 }
 
 const navItemsChirho: NavItemChirho[] = [
   { href: "/ai-personas-chirho", label: "Evangelism Quest", icon: Gamepad2, authRequired: true }, 
   { href: "/contextual-guidance-chirho", label: "Contextual Guidance", icon: Lightbulb, authRequired: true },
-  { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun, authRequired: false }, // Inspiration can be public
+  { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun, authRequired: false },
   { href: "/settings-chirho", label: "Settings", icon: Settings, authRequired: true },
 ];
 
@@ -35,7 +35,7 @@ export function SidebarNavChirho() {
     <SidebarMenu>
       {navItemsChirho.map((itemChirho) => {
         if (itemChirho.authRequired && !currentUserChirho && !loadingAuthChirho) {
-          return null; // Don't render auth-required items if not logged in and auth not loading
+          return null; 
         }
         return (
           <SidebarMenuItem key={itemChirho.href}>
