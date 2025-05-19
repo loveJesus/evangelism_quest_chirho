@@ -94,7 +94,6 @@ export const AuthProviderChirho = ({ children }: { children: ReactNode }) => {
   };
 
   const logInWithGoogleChirho = async () => {
-    setLoadingAuthChirho(true);
     try {
       const provider = new GoogleAuthProvider();
       // Diagnostic log for Google Sign-In
@@ -102,17 +101,37 @@ export const AuthProviderChirho = ({ children }: { children: ReactNode }) => {
       if (!authChirho.app.options.apiKey || !authChirho.app.options.authDomain || !authChirho.app.options.projectId) {
         console.error("CRITICAL: authChirho instance is missing key configuration for Google Sign-In!", authChirho.app.options);
         toastChirho({ variant: "destructive", title: "Google Sign-In Config Error", description: "Internal configuration error for Google Sign-In. Please contact support." });
-        setLoadingAuthChirho(false);
         return;
       }
+      
+      setLoadingAuthChirho(true); // Set loading right before the popup attempt
       await signInWithPopup(authChirho, provider);
-      // onAuthStateChanged will handle profile creation/fetching and toasts
+      // onAuthStateChanged will handle success and setting loading to false.
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
-      toastChirho({ variant: "destructive", title: "Login Failed", description: error.message || "Could not sign in with Google." });
-      setLoadingAuthChirho(false); // Ensure loading is set to false on error
+      if (error.code === 'auth/popup-blocked' || 
+          (error.message && error.message.toLowerCase().includes('popup was blocked')) ||
+          (error.message && error.message.toLowerCase().includes('blocked by the browser'))) {
+        toastChirho({
+          variant: "destructive",
+          title: "Popup Blocked",
+          description: "Your browser blocked the Google Sign-In popup. Please check your browser settings to allow popups from this site or disable popup blockers and try again.",
+          duration: 9000,
+        });
+      } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+         toastChirho({
+          variant: "default", 
+          title: "Sign-In Cancelled",
+          description: "The Google Sign-In popup was closed before completion.",
+          duration: 5000,
+        });
+      } else {
+        toastChirho({ variant: "destructive", title: "Login Failed", description: error.message || "Could not sign in with Google." });
+      }
+      setLoadingAuthChirho(false); // Ensure loading is set to false on any error during the popup attempt phase
     }
-    // setLoadingAuthChirho(false) will be handled by onAuthStateChanged if successful
+    // Note: setLoadingAuthChirho(false) on successful sign-in or if onAuthStateChanged handles other non-error cancellations
+    // is managed by the onAuthStateChanged listener.
   };
 
   const logInWithEmailChirho = async (email: string, pass: string) => {
@@ -130,12 +149,8 @@ export const AuthProviderChirho = ({ children }: { children: ReactNode }) => {
   const signUpWithEmailChirho = async (email: string, pass: string) => {
     setLoadingAuthChirho(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(authChirho, email, pass);
-      // initializeUserActionChirho will be called by onAuthStateChanged if profile doesn't exist
-      // No need to call it explicitly here as onAuthStateChanged will also fetch/create profile.
-      // This avoids potential race conditions or double-creations.
-      // onAuthStateChanged will eventually set loadingAuthChirho to false
-      // toastChirho({ title: "Signup Successful", description: "Welcome! Your account is ready." }); // This will be handled by onAuthStateChanged logic
+      await createUserWithEmailAndPassword(authChirho, email, pass);
+      // onAuthStateChanged will handle new user creation and profile initialization.
     } catch (error: any) {
       console.error("Email Sign-Up Error:", error);
       toastChirho({ variant: "destructive", title: "Signup Failed", description: error.message || "Could not create account." });
@@ -144,21 +159,18 @@ export const AuthProviderChirho = ({ children }: { children: ReactNode }) => {
   };
 
   const logOutChirho = async () => {
-    setLoadingAuthChirho(true);
+    setLoadingAuthChirho(true); // Set loading true at the start of logout
     try {
       await firebaseSignOut(authChirho);
-      // onAuthStateChanged will set currentUserChirho and userProfileChirho to null
+      // onAuthStateChanged will set currentUserChirho and userProfileChirho to null, and setLoadingAuthChirho(false)
       routerChirho.push('/login-chirho');
       toastChirho({ title: "Logged Out", description: "You have been successfully logged out." });
     } catch (error: any) {
       console.error("Logout Error:", error);
       toastChirho({ variant: "destructive", title: "Logout Failed", description: error.message });
-    } finally {
-        // onAuthStateChanged will set loadingAuthChirho to false eventually,
-        // but we can set it here too if logout is quick and onAuthStateChanged hasn't fired yet.
-        // However, it's safer to let onAuthStateChanged manage the final loading state.
-        // If immediate UI feedback is needed before onAuthStateChanged, then consider setting it here.
+      setLoadingAuthChirho(false); // Ensure loading is false if logout errors out before onAuthStateChanged handles it
     }
+    // No finally block to set loading false, as onAuthStateChanged is the primary driver for this after sign out.
   };
   
   const updateLocalUserProfileChirho = (profileUpdate: Partial<UserProfileChirho>) => {
