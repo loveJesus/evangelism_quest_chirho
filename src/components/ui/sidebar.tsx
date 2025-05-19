@@ -7,7 +7,7 @@ import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho"
-import { cn } from "@/lib/utils-chirho"
+import { cn } from "@/lib/utils"
 import { Button, type ButtonProps } from "@/components/ui/button" // Ensure ButtonProps is imported if needed, or use React.ComponentProps<typeof Button>
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"

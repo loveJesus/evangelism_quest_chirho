@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"; 
-import { cn } from "@/lib/utils-chirho"; 
+import { cn } from "@/lib/utils"; 
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
 
 interface NavItemChirho {
