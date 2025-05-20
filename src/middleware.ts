@@ -10,7 +10,7 @@ function getLocale(request: NextRequest): string {
   const negotiatorHeaders: Record<string, string> = {};
   request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
 
-  // @ts-ignore languages are readonly
+  // @ts-ignore languages are readonly (this is a known workaround for Negotiator)
   const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
 
   try {
@@ -18,7 +18,7 @@ function getLocale(request: NextRequest): string {
   } catch (e) {
     // Handle "No locale data has been provided for this object yet."
     // This can happen if intl-localematcher is not properly initialized or languages array is empty/invalid.
-    console.warn("Error matching locale, defaulting to:", defaultLocale, e);
+    console.warn("Error matching locale in middleware, defaulting to:", defaultLocale, e);
     return defaultLocale;
   }
 }
@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
 
   // Check if there is any supported locale in the pathname
   const pathnameIsMissingLocale = locales.every(
-    (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+    (locale) => !pathname.startsWith(\`/\${locale}/\`) && pathname !== \`/\${locale}\`
   );
 
   // Redirect if there is no locale
@@ -36,10 +36,10 @@ export function middleware(request: NextRequest) {
     const locale = getLocale(request);
 
     // e.g. incoming request is /products
-    // The new URL is now /en-US/products
+    // The new URL is now /en/products or /es/products
     return NextResponse.redirect(
       new URL(
-        `/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`,
+        \`/\${locale}\${pathname.startsWith('/') ? '' : '/'}\${pathname}\`,
         request.url
       )
     );
@@ -49,6 +49,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring `/_next/` and `/api/`
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // Matcher ignoring \`/_next/\` and \`/api/\` and static assets like favicon.ico
+  matcher: ['/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js).*)'],
 };
