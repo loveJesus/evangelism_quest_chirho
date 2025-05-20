@@ -2,19 +2,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Archived Conversations subcollection
-      match /archivedConversations/{conversationId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      // Rule for the active conversation document
+      // The document ID is 'current_active_conversation_v1'
+      match /activeConversationData/{docId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId && docId == 'current_active_conversation_v1';
       }
 
-      // Active Conversation data subcollection (using a specific document ID "current")
-      // The "activeConversationData" is a collection, and "current" is the document ID.
-      match /activeConversationData/current {
-         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      // Rule for the archivedConversations subcollection
+      match /archivedConversations/{conversationId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
   }

@@ -5,11 +5,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { authChirho } from '@/lib/firebase-config-chirho';
-import { 
-  initializeUserChirho as initializeUserActionChirho, 
+import {
+  initializeUserChirho as initializeUserActionChirho,
   fetchUserProfileFromServerChirho,
-  clearActiveConversationFromFirestoreChirho 
-} from '@/lib/actions-chirho'; 
+  clearActiveConversationFromFirestoreChirho
+} from '@/lib/actions-chirho';
 import { useRouter } from 'next/navigation';
 import { useToastChirho } from '@/hooks/use-toast-chirho';
 import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
@@ -21,8 +21,8 @@ export interface UserProfileChirho {
   displayName?: string | null;
   photoURL?: string | null;
   credits: number;
-  createdAt: any; 
-  lastLogin?: any; 
+  createdAt: any;
+  lastLogin?: any;
 }
 
 interface AuthContextTypeChirho {
@@ -33,17 +33,17 @@ interface AuthContextTypeChirho {
   logInWithEmailChirho: (email: string, pass: string) => Promise<void>;
   signUpWithEmailChirho: (email: string, pass: string) => Promise<void>;
   logOutChirho: () => Promise<void>;
-  fetchUserProfileChirho: (userId: string) => Promise<UserProfileChirho | null>; 
+  fetchUserProfileChirho: (userId: string) => Promise<UserProfileChirho | null>;
   updateLocalUserProfileChirho: (profile: Partial<UserProfileChirho>) => void;
-  routerChirho: ReturnType<typeof useRouter> | null; 
-  currentLangChirho: string; 
+  routerChirho: ReturnType<typeof useRouter> | null;
+  currentLangChirho: string;
 }
 
 const AuthContextChirho = createContext<AuthContextTypeChirho | undefined>(undefined);
 
 interface AuthProviderPropsChirho {
   children: ReactNode;
-  lang: string; 
+  lang: string;
   dictionary: DictionaryChirho['authContext'];
 }
 
@@ -56,7 +56,7 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
   const [currentLangChirho, setCurrentLangChirho] = useState(lang);
 
   useEffect(() => {
-    setCurrentLangChirho(lang); 
+    setCurrentLangChirho(lang);
   }, [lang]);
 
   useEffect(() => {
@@ -66,19 +66,15 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
         setCurrentUserChirho(user);
         try {
           console.log("[AuthContext] User authenticated, initializing/updating profile:", user.uid);
-          // Attempt to initialize user. This creates profile if new, or updates lastLogin.
-          // It now returns the profile data directly.
           const initResult = await initializeUserActionChirho(user.uid, user.email, user.displayName, user.photoURL);
-          
+
           if (initResult.success && initResult.profile) {
             setUserProfileChirho(initResult.profile);
             console.log("[AuthContext] User profile initialized/updated and set:", initResult.profile);
           } else {
-             // If initResult.profile is undefined but success is true, it's an unexpected state.
-             // Or if initResult.success is false.
-             console.error("[AuthContext] Failed to initialize or fetch user profile after auth:", initResult.error || "Profile data missing in init result.");
-             toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: initResult.error || dictionary.toastProfileSetupErrorDescription });
-             setUserProfileChirho(null); // Ensure profile is null if setup fails
+            console.error("[AuthContext] Failed to initialize or fetch user profile after auth:", initResult.error || "Profile data missing in init result.");
+            toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: initResult.error || dictionary.toastProfileSetupErrorDescription });
+            setUserProfileChirho(null);
           }
         } catch (error: any) {
           console.error("[AuthContext] Error during post-auth user processing:", error);
@@ -86,31 +82,39 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
           setUserProfileChirho(null);
         }
       } else {
+        const uidToClear = currentUserChirho?.uid; // Capture UID before currentUserChirho is nulled
         setCurrentUserChirho(null);
         setUserProfileChirho(null);
+        if (uidToClear) { // If there was a logged-in user, try to clear their active session
+          console.log("[AuthContext] User logged out. Clearing active session for UID:", uidToClear);
+          clearActiveConversationFromFirestoreChirho(uidToClear).then(result => {
+            if (!result.success) {
+              console.warn("[AuthContext] Failed to clear active conversation on logout for user:", uidToClear, "Error:", result.error);
+            } else {
+              console.log("[AuthContext] Active conversation cleared on logout for user:", uidToClear);
+            }
+          });
+        }
         console.log("[AuthContext] No user authenticated.");
       }
       setLoadingAuthChirho(false);
     });
     return () => unsubscribeChirho();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toastChirho, dictionary]); 
+  }, [toastChirho, dictionary]); // Removed currentUserChirho from dep array to avoid re-triggering clear on its own change
 
   const fetchUserProfileChirho = async (userId: string): Promise<UserProfileChirho | null> => {
-     // This function is now less critical as initializeUserChirho returns the profile
-     // but kept for potential direct use if needed.
      const result = await fetchUserProfileFromServerChirho(userId);
      if (result.success && result.data) {
        return result.data;
      } else {
        console.error(`[AuthContext] fetchUserProfileChirho (direct call): Error fetching profile for 'users/${userId}':`, result.error);
-       // Avoid toasting here if called from onAuthStateChanged, as that has its own toasts.
        return null;
      }
   };
 
   const logInWithGoogleChirho = async () => {
-    setLoadingAuthChirho(true);
+    setLoadingAuthChirho(true); // Ensure loading state is true during the process
     try {
       const provider = new GoogleAuthProvider();
       console.log("[AuthContext] Attempting Google Sign-In. Firebase App Options for authChirho instance:", authChirho.app.options);
@@ -121,10 +125,10 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
         return;
       }
       await signInWithPopup(authChirho, provider);
-      // onAuthStateChanged will handle profile loading and redirect
+      // onAuthStateChanged will handle profile loading and navigation
     } catch (error: any) {
       console.error("[AuthContext] Google Sign-In Error:", error);
-      if (error.code === 'auth/popup-blocked' || 
+      if (error.code === 'auth/popup-blocked' ||
           (error.message && error.message.toLowerCase().includes('popup was blocked')) ||
           (error.message && error.message.toLowerCase().includes('blocked by the browser'))) {
         toastChirho({
@@ -135,7 +139,7 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
         });
       } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
          toastChirho({
-          variant: "default", 
+          variant: "default",
           title: dictionary.toastSignInCancelledTitle,
           description: dictionary.toastSignInCancelledDescription,
           duration: 5000,
@@ -146,8 +150,9 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
       else {
         toastChirho({ variant: "destructive", title: dictionary.toastLoginFailedTitle, description: error.message || dictionary.toastLoginFailedDescriptionGoogle });
       }
-      setLoadingAuthChirho(false); 
+      setLoadingAuthChirho(false);
     }
+    // Do not set loadingAuthChirho to false here if successful, onAuthStateChanged will handle it.
   };
 
   const logInWithEmailChirho = async (email: string, pass: string) => {
@@ -174,20 +179,13 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
 
   const logOutChirho = async () => {
     if (!currentUserChirho) return;
-    const uidToClear = currentUserChirho.uid; // Capture UID before user becomes null
+    const uidToClear = currentUserChirho.uid;
     try {
       await firebaseSignOut(authChirho);
-      // User state will be set to null by onAuthStateChanged
-      // Clear active conversation data for the logged-out user
-      const clearResult = await clearActiveConversationFromFirestoreChirho(uidToClear);
-      if (!clearResult.success) {
-        console.warn("[AuthContext] Failed to clear active conversation on logout for user:", uidToClear, "Error:", clearResult.error);
-      } else {
-        console.log("[AuthContext] Active conversation cleared on logout for user:", uidToClear);
-      }
-
+      // Note: onAuthStateChanged will handle setting currentUserChirho and userProfileChirho to null
+      // and also call clearActiveConversationFromFirestoreChirho.
       if (routerChirho) {
-          routerChirho.push(`/${currentLangChirho}/login-chirho`); 
+          routerChirho.push(`/${currentLangChirho}/login-chirho`);
       }
       toastChirho({ title: dictionary.toastLoggedOutTitle, description: dictionary.toastLoggedOutDescription });
     } catch (error: any) {
@@ -195,7 +193,7 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
       toastChirho({ variant: "destructive", title: dictionary.toastLogoutFailedTitle, description: error.message });
     }
   };
-  
+
   const updateLocalUserProfileChirho = (profileUpdate: Partial<UserProfileChirho>) => {
     setUserProfileChirho(prev => prev ? { ...prev, ...profileUpdate } : null);
   };
