@@ -11,7 +11,6 @@ import {
   updatePersonaImageChirho as updatePersonaImageActionChirho, 
   fetchSuggestedResponseChirho, 
   decrementUserCreditsChirho, 
-  addTestCreditsChirho,
   fetchArchivedConversationsFromFirestoreChirho,
   archiveConversationToFirestoreChirho,
   clearArchivedConversationsFromFirestoreChirho,
@@ -146,8 +145,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   }, [currentUserChirho, loadingAuthChirho]);
 
   const saveCurrentActiveConversation = useCallback(async (currentPersona: GenerateAiPersonaOutputChirho | null = personaChirho, currentMessages: MessageChirho[] = messagesChirho, currentDynamicImage: string | null = dynamicPersonaImageChirho) => {
-    if (!currentUserChirho || !currentPersona || currentMessages.length === 0) {
-      console.log("[AIPersonasPage] Skipping saveCurrentActiveConversation - no user, persona, or messages.");
+    if (!currentUserChirho || !currentPersona ) { // Removed messages.length check to save even empty new personas
+      console.log("[AIPersonasPage] Skipping saveCurrentActiveConversation - no user or persona.");
       return;
     }
     const activeData: ActiveConversationDataChirho = {
@@ -430,6 +429,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
 
         let imageForPersonaMessage = currentDynamicImageForResponse; 
         if (aiResponseData.visualContextForNextImageChirho && currentDynamicImageForResponse) {
+          console.log("Attempting to update persona image with visual context:", aiResponseData.visualContextForNextImageChirho);
           setIsUpdatingImageChirho(true);
           const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
             baseImageUriChirho: currentDynamicImageForResponse, 
@@ -514,7 +514,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       languageChirho: currentConversationLanguageChirho,
     };
     
-    console.log("[AIPersonasPage] Requesting suggestion with input:", suggestionInputChirho);
+    console.log("Requesting suggestion with input:", suggestionInputChirho);
 
     try {
       const resultChirho = await fetchSuggestedResponseChirho(suggestionInputChirho);
@@ -558,27 +558,6 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       setIsImagePopupOpenChirho(true);
     }
   };
-
-  const handleAddTestCredits = async () => {
-    if (!currentUserChirho) return;
-    setIsSendingMessageChirho(true); 
-    const result = await addTestCreditsChirho(currentUserChirho.uid, 1000); 
-    if (result.success && result.newCredits !== undefined) {
-      updateLocalUserProfileChirho({ credits: result.newCredits });
-      toastChirho({
-        title: dictionary.creditsDialog?.toastCreditsAddedTitle || "Credits Added",
-        description: dictionary.creditsDialog?.toastCreditsAddedDescription || "1000 test credits have been added.",
-      });
-      setIsBuyCreditsDialogOpenChirho(false);
-    } else {
-      toastChirho({
-        variant: "destructive",
-        title: dictionary.creditsDialog?.toastErrorAddingCreditsTitle || "Error Adding Credits",
-        description: result.error || dictionary.creditsDialog?.toastErrorAddingCreditsDescription || "Failed to add test credits.",
-      });
-    }
-    setIsSendingMessageChirho(false);
-  };
   
   if (loadingAuthChirho) { 
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>; 
@@ -603,7 +582,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       ? (dictionary.generatingPersonaMessage || "Generating new encounter...")
       : personaChirho 
         ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))
-        : dictionary.errorGeneratingPersonaTitle; // Show error if not loading and no persona
+        : dictionary.errorGeneratingPersonaTitle; 
 
   const chatWithNameForHeader = personaChirho 
     ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.chatWithTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.thePerson))
@@ -633,7 +612,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
                   <DialogHeader>
                     <DialogTitle>
-                      {selectedArchivedConversationChirho ? (dictionary.historyDialogTitleSelected).replace("{nameOrTitle}", selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || dictionary.thePerson)) : dictionary.historyDialogTitle}
+                      {selectedArchivedConversationChirho ? (dictionary.historyDialogTitleSelected).replace("{nameOrTitle}", selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle)) : dictionary.historyDialogTitle}
                     </DialogTitle>
                     <DialogDescription>
                       {selectedArchivedConversationChirho ? (dictionary.historyDialogDescriptionSelected).replace("{date}", new Date(selectedArchivedConversationChirho.timestamp).toLocaleString()) : dictionary.historyDialogDescription}
@@ -861,13 +840,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                           <CardDescription>{dictionary.creditsDialog?.standardPackageDescription || "100 credits for $5.00. (Actual payment not implemented)"}</CardDescription>
                           <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsDialog?.buyNowButtonDisabled || "Buy Now (Disabled)"}</Button>
                         </Card>
-                        <Card className="p-4 hover:shadow-lg transition-shadow">
-                        <CardTitle className="text-lg">{dictionary.creditsDialog?.testPackageTitle || "Test Package"}</CardTitle>
-                        <CardDescription>{dictionary.creditsDialog?.testPackageDescription || "Add 1000 credits for testing purposes."}</CardDescription>
-                        <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
-                            {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (dictionary.creditsDialog?.testPackageButton || "Get 1000 Test Credits")}
-                        </Button>
-                        </Card>
+                        {/* Test Credits Option Removed Here */}
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>

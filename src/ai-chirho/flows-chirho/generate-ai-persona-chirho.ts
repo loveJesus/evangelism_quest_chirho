@@ -24,7 +24,7 @@ export type GenerateAiPersonaInputChirho = z.infer<typeof GenerateAiPersonaInput
 
 const GenerateAiPersonaOutputSchemaChirho = z.object({
   personaNameChirho: z.string().describe('The first name of the AI persona. Should be diverse and not repetitive. MUST be in the language specified by the input languageChirho.'),
-  personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex and approximate age/age range. MUST be in the language specified by the input languageChirho.'),
+  personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex (explicitly as "male" or "female", or equivalent in the specified language, e.g., "a man", "a woman") and approximate age/age range. MUST be in the language specified by the input languageChirho.'),
   meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known, leave personaNameChirho out if not known. MUST be in the language specified by the input languageChirho.'),
   encounterTitleChirho: z.string().describe('A short, engaging title for the encounter (max 5-7 words), suitable for display if the persona name is not immediately known. e.g., "The Distressed Artist", "Park Bench Contemplation", "Barista\'s Questions". This is different from the full meetingContextChirho. MUST be in the language specified by the input languageChirho.'),
   personaImageChirho: z
@@ -61,7 +61,8 @@ Your primary goal is to create a NEW and UNIQUE character each time.
     *   **CRITICAL: DO NOT REPEAT names like Caleb, Kai, Zephyr, Zephyrine, or any other names you might have used in recent generations. Always try for something fresh unless specifically hinted.**
 2.  **Persona Details ("personaDetailsChirho")**:
     *   Craft a detailed backstory (a few paragraphs) strictly in the language: ${languageNameChirho}. This backstory is for the AI to understand its role and should allow for discovery through conversation.
-    *   It MUST explicitly state the persona's **sex** (e.g., "a man" or "a woman" or equivalent in ${languageNameChirho}) and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in ${languageNameChirho}).
+    *   It MUST explicitly state the persona's **sex** using terms equivalent to "a man" or "a woman" in the specified language ${languageNameChirho} (e.g., for English: "a man", "a woman"; for Español: "un hombre", "una mujer"). Ensure you vary between generating male and female personas.
+    *   It MUST explicitly state an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in ${languageNameChirho}).
     *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in ${languageNameChirho}.
     *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of ${languageNameChirho}.
 3.  **Meeting Context ("meetingContextChirho")**:
@@ -115,9 +116,9 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       if (!parsedPersonaDataChirho.personaNameChirho || !parsedPersonaDataChirho.personaDetailsChirho || !parsedPersonaDataChirho.meetingContextChirho || !parsedPersonaDataChirho.encounterTitleChirho || typeof parsedPersonaDataChirho.personaNameKnownToUserChirho !== 'boolean') {
         throw new Error("Parsed JSON is missing required fields (name, details, context, title, or nameKnown) or personaNameKnownToUserChirho is not a boolean.");
       }
-       // Looser check for sex/age in details as AI might phrase it differently
-       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(sex|gender|sexo|género|man|woman|male|female|hombre|mujer|masculino|femenino)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad|\d+\s*years old|\d+\s*años)/i)) {
-        console.warn("Generated personaDetailsChirho might be missing explicit sex or age information, or it's phrased unexpectedly. Details:", parsedPersonaDataChirho.personaDetailsChirho.substring(0,100) + "...");
+       // Check for sex/age in details
+       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(man|woman|male|female|hombre|mujer|masculino|femenino)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad|\d+\s*years old|\d+\s*años)/i)) {
+        console.warn("Generated personaDetailsChirho might be missing explicit sex (man/woman) or age information, or it's phrased unexpectedly. Details:", parsedPersonaDataChirho.personaDetailsChirho.substring(0,100) + "...");
       }
     } catch (e: any) {
       console.error("Failed to parse persona data JSON:", personaDataResultChirho.text, e);
@@ -143,7 +144,7 @@ Ensure the output is a single, valid JSON object and nothing else.`;
 Their general disposition, sex, and age can be inferred from: ${parsedPersonaDataChirho.personaDetailsChirho.substring(0, 350)}...
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
 The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation.
-The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances. Photorealistic style.`;
+The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances (male and female). Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
@@ -176,4 +177,3 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
     };
   }
 );
-
