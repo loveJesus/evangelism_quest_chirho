@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link'; // Added Link
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react'; 
+import { Loader2, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 
 // Schema for login
 const loginSchemaChirho = z.object({
@@ -32,7 +33,7 @@ const signupSchemaChirho = z.object({
 });
 type SignupFormValuesChirho = z.infer<typeof signupSchemaChirho>;
 
-export default function LoginPage() { // Renamed component
+export default function LoginPage() { 
   const { currentUserChirho, logInWithGoogleChirho, logInWithEmailChirho, signUpWithEmailChirho, loadingAuthChirho } = useAuthChirho();
   const routerChirho = useRouter();
   const [isSubmittingChirho, setIsSubmittingChirho] = useState(false);
@@ -90,9 +91,15 @@ export default function LoginPage() { // Renamed component
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome to Evangelism Quest ☧</CardTitle>
+      <Card className="w-full max-w-md shadow-xl relative">
+         <Link href="/" passHref legacyBehavior>
+            <Button variant="ghost" size="sm" className="absolute top-4 left-4 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+        <CardHeader className="text-center pt-16"> {/* Added padding-top to make space for back button */}
+          <CardTitle className="text-2xl">Welcome to Faith Forward ☧</CardTitle>
           <CardDescription>Sign in or create an account to continue</CardDescription>
         </CardHeader>
         <CardContent>

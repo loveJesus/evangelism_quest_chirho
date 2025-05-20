@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gamepad2, Users, Lightbulb, LogIn, Loader2 } from "lucide-react"; // Added Loader2
+import { Gamepad2, Users, Lightbulb, LogIn, Loader2 } from "lucide-react"; 
 import Link from 'next/link';
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
 
@@ -34,9 +34,9 @@ export default function LandingPageChirho() {
         <Card className="w-full max-w-3xl shadow-xl bg-card/90 backdrop-blur-sm border-primary/20">
           <CardHeader>
             <div className="flex justify-center mb-6">
-              {/* Simple Christian Cross SVG */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary))" strokeWidth="0.5" stroke="hsl(var(--primary))" >
-                <path d="M12.5 3C12.5 2.44772 12.0523 2 11.5 2C10.9477 2 10.5 2.44772 10.5 3V10H4C3.44772 10 3 10.4477 3 11C3 11.5523 3.44772 12 4 12H10.5V21C10.5 21.5523 10.9477 22 11.5 22C12.0523 22 12.5 21.5523 12.5 21V12H20C20.5523 12 21 11.5523 21 11C21 10.4477 20.5523 10 20 10H12.5V3Z"/>
+              {/* Updated Christian Cross SVG */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary))">
+                <path d="M10.5 2V8H4V12H10.5V22H13.5V12H20V8H13.5V2H10.5Z"/>
               </svg>
             </div>
             <CardTitle className="text-4xl md:text-5xl font-bold text-foreground">
