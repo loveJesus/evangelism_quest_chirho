@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar"; 
 import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
-import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2, Gamepad2 } from "lucide-react";
+import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react"; // Added Church
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,15 +30,14 @@ import {
 import Image from "next/image";
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "Welcome - Evangelism Quest ☧", // Updated title for landing page
-  "/ai-personas-chirho": "Evangelism Quest ☧",
+  "/": "Welcome - Faith Forward ☧", 
+  "/ai-personas-chirho": "Evangelism Quest",
   "/contextual-guidance-chirho": "Contextual Guidance ☧",
   "/daily-inspiration-chirho": "Daily Inspiration ☧",
   "/settings-chirho": "Settings ☧",
-  "/login-chirho": "Login / Signup ☧",
+  "/login-chirho": "Login / Signup - Faith Forward ☧",
 };
 
-// Root path '/' is now public. Only /ai-personas-chirho and other specific feature pages are protected.
 const PROTECTED_ROUTES_CHIRHO = ["/ai-personas-chirho", "/contextual-guidance-chirho", "/settings-chirho"];
 
 
@@ -49,6 +48,11 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
   const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
 
   const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Faith Forward ☧";
+
+  // Bypass layout entirely for login page and landing page
+  if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
+    return <>{children}</>;
+  }
 
   if (loadingAuthChirho) {
     return (
@@ -61,14 +65,6 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
     );
   }
 
-  // Login page bypasses the main layout entirely
-  if (pathnameChirho === '/login-chirho') {
-    return <>{children}</>;
-  }
-
-  // If the user is not authenticated and on a protected route (excluding the new public landing page)
-  // The child page (e.g., AIPersonasPageChirho) will handle its own "Redirecting..." message and actual redirect.
-  // The AppLayout will render the children hidden to allow their useEffects to run for redirection.
   if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
     return (
         <>
@@ -78,13 +74,12 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
               <p className="text-lg">Redirecting to login...</p>
             </div>
           </div>
-          {/* Render children hidden so its useEffect for redirection can run */}
+          {/* Render children hidden so its useEffect for redirection can run, e.g., from AIPersonasPageChirho */}
           <div style={{ display: 'none' }}>{children}</div> 
         </>
     );
   }
   
-  // Render full layout for authenticated users OR for public pages (like the new landing page)
   return (
     <SidebarProvider defaultOpen={!isMobileChirho} open={!isMobileChirho}>
       <Sidebar
@@ -94,7 +89,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
       >
         <SidebarHeader className="p-4 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-cross"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/></svg>
+            <Church className="h-6 w-6" /> {/* Changed icon to Church */}
             <span className="group-data-[collapsible=icon]:hidden">Faith Forward ☧</span>
           </Link>
         </SidebarHeader>
@@ -143,6 +138,9 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                       {currentUserChirho.email}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                     <DropdownMenuItem onClick={() => routerChirho && routerChirho.push('/ai-personas-chirho')}>
+                      Evangelism Quest
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => routerChirho && routerChirho.push('/settings-chirho')}>
                       Settings
                     </DropdownMenuItem>
@@ -158,7 +156,6 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                 </DropdownMenu>
               </>
             ) : (
-              // Show login button if no user and not on login page
               pathnameChirho !== '/login-chirho' && (
                  <Button asChild variant="outline" size="sm">
                    <Link href="/login-chirho">Login / Signup</Link>
