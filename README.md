@@ -25,6 +25,7 @@ Welcome to Evangelism Quest, an interactive application designed to help users p
 *   **User Authentication:** Secure login and signup using Firebase Authentication (Email/Password & Google Sign-In).
 *   **Credit System:** A simulated credit system for managing message interactions (with a placeholder for future monetization).
 *   **Customizable Appearance:** Light/dark mode and font size adjustments.
+*   **Bilingual Support:** UI and select AI features available in English and Spanish.
 
 ## Getting Started
 
@@ -105,10 +106,10 @@ Welcome to Evangelism Quest, an interactive application designed to help users p
 ## Project Structure (Key Directories)
 
 *   `src/app/`: Contains all the pages and layouts for the Next.js App Router.
-    *   `src/app/(app-routes)/`: Routes that use the main application layout.
-    *   `src/app/api/`: API routes (if any).
-    *   `src/app/login-chirho/`: Login page.
-    *   `src/app/landing-page-chirho.tsx`: The main landing page component.
+    *   `src/app/[lang]/`: Locale-specific routes.
+        *   `src/app/[lang]/ai-personas-chirho/`: AI Evangelism Game page.
+        *   `src/app/[lang]/login-chirho/`: Login page.
+    *   `src/app/landing-page-chirho.tsx`: The main landing page component (rendered by `src/app/[lang]/page.tsx`).
 *   `src/ai-chirho/`: Contains all Genkit related code.
     *   `src/ai-chirho/flows-chirho/`: Specific AI flows (persona generation, chat, suggestions).
     *   `src/ai-chirho/genkit-chirho.ts`: Genkit initialization.
@@ -119,6 +120,7 @@ Welcome to Evangelism Quest, an interactive application designed to help users p
 *   `src/contexts/`: React Context providers (Authentication, Customization).
 *   `src/hooks/`: Custom React hooks.
 *   `src/lib/`: Utility functions, Firebase configuration, server actions.
+*   `src/dictionaries/`: Translation files for i18n.
 *   `public/`: Static assets.
 
 ## Contributing

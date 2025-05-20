@@ -78,7 +78,7 @@ Generate the updated image.`,
     ];
 
     const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp',
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: imageGenPromptChirho,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],

@@ -12,7 +12,7 @@ const inter = Inter({
 export async function generateMetadata(): Promise<Metadata> {
   // Minimal metadata for the root layout, as [lang]/layout.tsx will handle locale-specific metadata
   return {
-    title: 'Evangelism Quest ☧', // Default title
+    title: 'Evangelism Quest ☧', // Updated Default title
     description: 'Empowering your evangelism journey.',
   };
 }

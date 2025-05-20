@@ -146,7 +146,7 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
 The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances. Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp',
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: imagePromptChirho,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
