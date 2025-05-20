@@ -4,27 +4,27 @@ import { AppLayoutChirho } from '@/components/layout/app-layout-chirho';
 import { ToasterChirho } from '@/components/ui/toaster';
 import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
 import { AuthProviderChirho } from '@/contexts/auth-context-chirho';
-import { getDictionaryChirho, DictionaryChirho } from '@/lib/get-dictionary-chirho';
+import { getDictionaryChirho } from '@/lib/get-dictionary-chirho';
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
 import { defaultLocale } from '@/middleware';
 
-// This function can be exported on its own or used in generateMetadata
-// This metadata will be for the [lang] segment, potentially overriding or merging with root.
 export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
   const lang = params.lang || defaultLocale;
-  let appName = "Faith Forward ☧"; // Default
-  let description = "Empowering your evangelism journey."; // Default
+  let appName = "Faith Forward ☧"; 
+  let description = "Empowering your evangelism journey."; 
 
   try {
-    const dictionary = await getDictionaryChirho(lang);
+    const dictionary: DictionaryChirho = await getDictionaryChirho(lang); // Add type for dictionary
     appName = dictionary.appLayout?.appName || appName;
-    // You could add a lang-specific description from the dictionary if needed
-    // description = dictionary.appLayout?.description || description; 
   } catch (error) {
     console.warn(`Could not load dictionary for lang '${lang}' in [lang] layout metadata:`, error);
   }
   
   return {
-    title: `${appName} (${lang.toUpperCase()})`, // Example: Faith Forward ☧ (EN)
+    title: {
+      default: appName,
+      template: `%s | ${appName}`,
+    },
     description: description,
   };
 }
@@ -37,13 +37,10 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { lang: string };
 }) {
-  const dictionary = await getDictionaryChirho(params.lang);
+  const dictionary: DictionaryChirho = await getDictionaryChirho(params.lang); // Add type for dictionary
 
   return (
-    // The lang attribute is set in the root src/app/layout.tsx
-    // The html and body tags are also in the root layout.
-    // This component's output will be placed inside the root body.
-    <AuthProviderChirho lang={params.lang}>
+    <AuthProviderChirho lang={params.lang} dictionary={dictionary.authContext}>
       <CustomizationProviderChirho>
         <AppLayoutChirho lang={params.lang} dictionary={dictionary.siteNav} appName={dictionary.appLayout.appName}>
           {children}

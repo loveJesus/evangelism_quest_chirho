@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/sidebar"; 
 import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
-import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react";
+import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2, Gamepad2 } from "lucide-react";
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // From next/navigation for App Router
+import { usePathname } from "next/navigation"; 
 import { useCustomizationChirho } from "@/contexts/customization-context-chirho";
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
 import {
@@ -28,12 +28,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import type { DictionaryChirho } from "@/lib/get-dictionary-chirho";
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
 
 interface AppLayoutPropsChirho {
   children: ReactNode;
   lang: string;
-  dictionary: DictionaryChirho['siteNav']; // Expecting siteNav part of the dictionary
+  dictionary: DictionaryChirho['siteNav']; 
   appName: string;
 }
 
@@ -41,22 +41,20 @@ const PROTECTED_ROUTES_CHIRHO = ["/ai-personas-chirho", "/contextual-guidance-ch
 
 export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayoutPropsChirho) {
   const isMobileChirho = useIsMobileChirho();
-  const pathnameWithLocale = usePathname(); // e.g., /en/some-page
-  const pathnameChirho = pathnameWithLocale.replace(`/${lang}`, "") || "/"; // Get path without locale prefix
+  const pathnameWithLocale = usePathname(); 
+  const pathnameChirho = pathnameWithLocale.replace(`/${lang}`, "") || "/"; 
   
   const { effectiveThemeChirho } = useCustomizationChirho(); 
   const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
 
-  let currentPageTitleChirho = appName; // Default to app name
+  let currentPageTitleChirho = appName; 
   if (pathnameChirho === "/ai-personas-chirho") currentPageTitleChirho = dictionary.evangelismQuest;
   else if (pathnameChirho === "/contextual-guidance-chirho") currentPageTitleChirho = dictionary.contextualGuidance;
   else if (pathnameChirho === "/daily-inspiration-chirho") currentPageTitleChirho = dictionary.dailyInspiration;
   else if (pathnameChirho === "/settings-chirho") currentPageTitleChirho = dictionary.settings;
-  else if (pathnameChirho === "/") currentPageTitleChirho = dictionary.home; // For landing page
+  else if (pathnameChirho === "/") currentPageTitleChirho = dictionary.home; 
 
-  // Bypass layout entirely for login page and landing page if landing page has its own full layout
   if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
-     // The root page (landing) now renders its own full layout
     return <>{children}</>;
   }
 
@@ -65,16 +63,21 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
       <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-lg">Loading Application...</p>
+          <p className="text-lg">{dictionary.loading}</p>
         </div>
       </div>
     );
   }
   
-  // For protected routes, if user is not logged in, let the page handle the redirect message.
-  // The page will return null or a minimal redirecting message, allowing its useEffect for redirection to run.
   if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
-    return <div style={{ display: 'none' }}>{children}</div>; // Render children hidden so their redirect logic can run
+    // The page component (e.g., AIPersonasPageChirho) will handle the actual redirect
+    // and can show its own "Redirecting..." message. This layout just renders its children.
+    // If children are null due to page's early return, nothing from children is shown.
+    return (
+      <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50" style={{ display: 'none' }}>
+         {children}
+      </div>
+    );
   }
   
   return (
@@ -129,7 +132,7 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>{dictionary.userMenuLabel || "My Account"}</DropdownMenuLabel>
                     <DropdownMenuItem disabled className="text-xs">
                       {currentUserChirho.email}
                     </DropdownMenuItem>
@@ -141,7 +144,7 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
                       {dictionary.settings}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => alert("Manage Subscription - Placeholder. This would lead to your payment provider's customer portal or a custom subscription management page.")}>
-                      Manage Subscription
+                      {dictionary.userMenuManageSubscription || "Manage Subscription"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logOutChirho}>
@@ -152,7 +155,7 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
                 </DropdownMenu>
               </>
             ) : (
-              pathnameChirho !== '/login-chirho' && ( // No login button if already on login page
+              pathnameChirho !== '/login-chirho' && ( 
                  <Button asChild variant="outline" size="sm">
                    <Link href={`/${lang}/login-chirho`}>{dictionary.loginSignup}</Link>
                  </Button>

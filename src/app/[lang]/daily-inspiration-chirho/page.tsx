@@ -1,77 +1,13 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes-chirho"; 
-import { Sun, CalendarDays, Loader2 } from "lucide-react";
-import { getDictionaryChirho, DictionaryChirho } from '@/lib/get-dictionary-chirho';
+import { getDictionaryChirho } from '@/lib/get-dictionary-chirho';
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import DailyInspirationClientPageChirho from './client-page-chirho';
 
 interface DailyInspirationPagePropsChirho {
   params: { lang: string };
 }
 
-export default function DailyInspirationPageChirho({ params: { lang } }: DailyInspirationPagePropsChirho) {
-  const [dailyQuoteChirho, setDailyQuoteChirho] = useState<InspirationalQuoteChirho | null>(null);
-  const [currentDateChirho, setCurrentDateChirho] = useState<string>("");
-  const [dictionary, setDictionary] = useState<DictionaryChirho['dailyInspirationPage'] | null>(null);
-
-  useEffect(() => {
-    const fetchDict = async () => {
-      const d = await getDictionaryChirho(lang);
-      setDictionary(d.dailyInspirationPage);
-    };
-    fetchDict();
-  }, [lang]);
-
-  useEffect(() => {
-    const todayChirho = new Date();
-    const dayOfYearChirho = Math.floor((todayChirho.getTime() - new Date(todayChirho.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    setDailyQuoteChirho(quotesChirho[dayOfYearChirho % quotesChirho.length]);
-    
-    // Format date based on locale, defaulting to undefined for system default
-    const localeForDate = lang === defaultLocale ? undefined : lang;
-    setCurrentDateChirho(todayChirho.toLocaleDateString(localeForDate, {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    }));
-  }, [lang]); // Add lang to dependency array for date formatting
-
-  if (!dailyQuoteChirho || !dictionary) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p>{dictionary?.loading || "Loading inspiration..."}</p>
-        <Loader2 className="ml-2 h-5 w-5 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-xl bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Sun className="h-12 w-12 text-accent" />
-          </div>
-          <CardTitle className="text-3xl font-bold">{dictionary.title}</CardTitle>
-          <CardDescription className="flex items-center justify-center gap-2">
-            <CalendarDays className="h-4 w-4 text-muted-foreground"/> {currentDateChirho}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center p-8">
-          <blockquote className="text-2xl italic font-serif text-foreground mb-4">
-            "{dailyQuoteChirho.text}"
-          </blockquote>
-          <p className="text-lg text-muted-foreground">&mdash; {dailyQuoteChirho.author}</p>
-        </CardContent>
-        <CardFooter className="text-center block">
-          <p className="text-sm text-muted-foreground">
-            {dictionary.reflectMessage}
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
-  );
+export default async function DailyInspirationPageChirho({ params: { lang } }: DailyInspirationPagePropsChirho) {
+  const dictionary = await getDictionaryChirho(lang);
+  return <DailyInspirationClientPageChirho dictionary={dictionary.dailyInspirationPage} lang={lang} />;
 }
-
-// Need to import defaultLocale if used directly in this file
-import { defaultLocale } from '@/middleware';

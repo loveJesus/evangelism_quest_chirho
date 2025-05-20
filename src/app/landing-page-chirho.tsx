@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Gamepad2, Users, Lightbulb, LogIn, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
-import type { DictionaryChirho } from '@/lib/get-dictionary-chirho'; // For type safety
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
 
 interface LandingPagePropsChirho {
   lang: string;
   dictionary: DictionaryChirho['landingPage'];
 }
 
-export function LandingPageChirho({ lang, dictionary }: LandingPagePropsChirho) {
+export default function LandingPageChirho({ lang, dictionary }: LandingPagePropsChirho) {
   const { currentUserChirho, loadingAuthChirho } = useAuthChirho();
 
   return (
@@ -40,7 +40,7 @@ export function LandingPageChirho({ lang, dictionary }: LandingPagePropsChirho) 
         <Card className="w-full max-w-3xl shadow-xl bg-card/90 backdrop-blur-sm border-primary/20">
           <CardHeader>
             <div className="flex justify-center mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary))">
+               <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary))">
                 <path d="M10.5 2V8H4V12H10.5V22H13.5V12H20V8H13.5V2H10.5Z"/>
               </svg>
             </div>

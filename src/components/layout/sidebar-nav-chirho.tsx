@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // From next/navigation for App Router
+import { usePathname } from "next/navigation"; 
 import { Lightbulb, Sun, Settings, Icon, Gamepad2, LogIn, LogOut, Loader2, Home } from "lucide-react"; 
 import {
   SidebarMenu,
@@ -11,11 +11,11 @@ import {
 } from "@/components/ui/sidebar"; 
 import { cn } from "@/lib/utils-chirho.ts"; 
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
-import type { DictionaryChirho } from "@/lib/get-dictionary-chirho";
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
 
 interface NavItemChirho {
-  hrefKey: keyof Omit<DictionaryChirho['siteNav'], 'loading'>; // Use keys from dictionary for href labels
-  path: string; // The actual path segment without locale
+  hrefKey: keyof Omit<DictionaryChirho['siteNav'], 'loading' | 'userMenuLabel' | 'userMenuManageSubscription'>; // Adjusted to available keys
+  path: string; 
   icon: Icon; 
   soon?: boolean;
   authRequired?: boolean; 
@@ -46,7 +46,7 @@ export function SidebarNavChirho({ lang, dictionary }: SidebarNavPropsChirho) {
           return null; 
         }
         const label = dictionary[itemChirho.hrefKey];
-        const href = `/${lang}${itemChirho.path === "/" && lang === "en" ? "" : itemChirho.path}`; // Handle root path slightly differently for default lang if desired, or always prefix
+        const href = `/${lang}${itemChirho.path === "/" ? "" : itemChirho.path}`; // Simplified href
 
         return (
           <SidebarMenuItem key={itemChirho.path}>
