@@ -47,42 +47,43 @@ const generateAiPersonaFlowChirho = ai.defineFlow(
     outputSchema: GenerateAiPersonaOutputSchemaChirho,
   },
   async (input: GenerateAiPersonaInputChirho) => {
-    const personaDataPromptChirho = `You are an AI that generates diverse and unique characters for evangelism simulations in the specified language.
-Language for all generated text: {{{languageChirho}}}
+    const personaDataPromptChirho = `You are an AI that generates diverse and unique characters for evangelism simulations.
+CRITICAL LANGUAGE INSTRUCTION: ALL text fields in your JSON output (personaNameChirho, personaDetailsChirho, meetingContextChirho, encounterTitleChirho) MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text must be in English. If {{{languageChirho}}} is 'es', all text must be in Spanish. No other language is acceptable for these text fields.
+
 Based on the following input hint: "${input.personaDescriptionChirho}".
 
 Your primary goal is to create a NEW and UNIQUE character each time.
 1.  **Persona Name ("personaNameChirho")**:
     *   Generate a unique first name appropriate for the specified language ({{{languageChirho}}}).
-    *   Ensure a WIDE VARIETY of names: common, uncommon, diverse cultural backgrounds relevant to the language.
+    *   Ensure a WIDE VARIETY of names: common, uncommon, diverse cultural backgrounds relevant to the language {{{languageChirho}}}.
     *   **CRITICAL: DO NOT REPEAT names like Caleb, Kai, Zephyr, Zephyrine, or any other names you might have used in recent generations. Always try for something fresh unless specifically hinted.**
 2.  **Persona Details ("personaDetailsChirho")**:
-    *   Craft a detailed backstory (a few paragraphs) in the specified language ({{{languageChirho}}}). This backstory is for the AI to understand its role and should allow for discovery through conversation.
+    *   Craft a detailed backstory (a few paragraphs) strictly in the language: {{{languageChirho}}}. This backstory is for the AI to understand its role and should allow for discovery through conversation.
     *   It MUST explicitly state the persona's **sex** (e.g., "a man" or "a woman" or equivalent in {{{languageChirho}}}) and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in {{{languageChirho}}}).
     *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in {{{languageChirho}}}.
-    *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context.
+    *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of {{{languageChirho}}}.
 3.  **Meeting Context ("meetingContextChirho")**:
-    *   Create a brief, imaginative meeting context (1-4 engaging sentences) in {{{languageChirho}}}, describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
+    *   Create a brief, imaginative meeting context (1-4 engaging sentences) strictly in {{{languageChirho}}}, describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
     *   This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character.
-    *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings.
+    *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings relevant to {{{languageChirho}}}.
     *   If the person's name is known, explain why it is known (in {{{languageChirho}}}). If it is an encounter with a stranger, do not mention the individual's name.
 4.  **Encounter Title ("encounterTitleChirho")**:
-    *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words) in {{{languageChirho}}}. 
+    *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words) strictly in {{{languageChirho}}}. 
     *   This title will be displayed to the user if the persona's name isn't immediately known.
-    *   Examples (in English, adapt for other languages): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
+    *   Examples (for English, adapt for {{{languageChirho}}}): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
     *   Make it descriptive of the situation or the persona's initial presentation.
 5.  **Name Known to User ("personaNameKnownToUserChirho")**:
     *   Based on the "meetingContextChirho", determine if the persona's name would be immediately known to the user.
     *   If the context implies the name is known (e.g., coworker, introduced by a friend, wearing a nametag like "Barista named Leo"), set to \`true\`.
     *   If it's a chance encounter with a stranger (e.g., "a person on a park bench", "someone who dropped their keys"), set to \`false\`.
 
-Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho".
+Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho". All string values in the JSON MUST be in the language specified by {{{languageChirho}}}.
 
-Example (ensure to vary ALL details, especially names, from this example):
+Example (The language of this example's text fields should be overridden by {{{languageChirho}}} in your actual output. Ensure to vary ALL details, especially names, from this example):
 {
-  "personaNameChirho": "Soren",
-  "personaDetailsChirho": "Soren is a man in his early 50s, a former architect turned urban farmer after a midlife crisis prompted him to seek a simpler, more grounded life. Born in a small Danish immigrant community in the Midwest, he carries a quiet pride in his heritage but feels disconnected from the religious traditions of his upbringing, favoring a pragmatic, self-reliant worldview. Recently, a blight destroyed half his crop, leaving him frustrated and introspective, wondering if there's a deeper meaning to his struggles. His sex is male, age early 50s. Soren is reserved but warm once trust is earned, with a sharp wit and a curiosity about others' beliefs, though he’s skeptical of anything that feels dogmatic.",
-  "meetingContextChirho": "At a local farmers' market, you notice a man with weathered hands and a thoughtful gaze arranging baskets of vibrant vegetables. He catches your eye and offers a small, knowing smile, as if inviting a conversation about more than just produce.",
+  "personaNameChirho": "Soren", 
+  "personaDetailsChirho": "Soren is a man in his early 50s...",
+  "meetingContextChirho": "At a local farmers' market...",
   "encounterTitleChirho": "The Thoughtful Farmer",
   "personaNameKnownToUserChirho": false
 }
@@ -112,16 +113,26 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       if (!parsedPersonaDataChirho.personaNameChirho || !parsedPersonaDataChirho.personaDetailsChirho || !parsedPersonaDataChirho.meetingContextChirho || !parsedPersonaDataChirho.encounterTitleChirho || typeof parsedPersonaDataChirho.personaNameKnownToUserChirho !== 'boolean') {
         throw new Error("Parsed JSON is missing required fields (name, details, context, title, or nameKnown) or personaNameKnownToUserChirho is not a boolean.");
       }
-       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(sex|gender|sexo|género)\s*:\s*(male|female|non-binary|hombre|mujer|no binario)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad)\s*:\s*.*?\d/i)) {
-        console.warn("Generated personaDetailsChirho might be missing explicit sex or age information. Full details:", parsedPersonaDataChirho.personaDetailsChirho);
+       // Looser check for sex/age in details as AI might phrase it differently
+       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(sex|gender|sexo|género|man|woman|male|female|hombre|mujer|masculino|femenino)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad|\d+\s*years old|\d+\s*años)/i)) {
+        console.warn("Generated personaDetailsChirho might be missing explicit sex or age information, or it's phrased unexpectedly. Details:", parsedPersonaDataChirho.personaDetailsChirho.substring(0,100) + "...");
       }
     } catch (e: any) {
       console.error("Failed to parse persona data JSON:", personaDataResultChirho.text, e);
+      const fallbackName = input.languageChirho === 'es' ? "Jordan (Alternativo) Chirho" : "Jordan (Fallback) Chirho";
+      const fallbackDetails = input.languageChirho === 'es' 
+        ? "Jordan Chirho es una persona reflexiva, de sexo femenino, de unos 30 años, que se enfrenta a algunas de las preguntas comunes de la vida. Está abierta a la discusión pero requiere un compromiso sincero. Esta es una persona alternativa debido a un error de generación: " + e.message
+        : "Jordan Chirho is a thoughtful individual, female, in their early 30s, encountering some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error: " + e.message;
+      const fallbackContext = input.languageChirho === 'es'
+        ? "Te has encontrado con Jordan Chirho por casualidad hoy. ¿Quizás un saludo amistoso sería apropiado?"
+        : "You've encountered Jordan Chirho by chance today. Perhaps a friendly greeting is in order?";
+      const fallbackTitle = input.languageChirho === 'es' ? "Un Encuentro Casual" : "A Chance Encounter";
+
       parsedPersonaDataChirho = {
-        personaNameChirho: "Jordan (Fallback) Chirho",
-        personaDetailsChirho: "Jordan Chirho is a thoughtful individual, female, in their early 30s, encountering some of life's common questions. They are open to discussion but require sincere engagement. This is a fallback persona due to a generation error: " + e.message,
-        meetingContextChirho: "You've encountered Jordan Chirho by chance today. Perhaps a friendly greeting is in order?",
-        encounterTitleChirho: "A Chance Encounter",
+        personaNameChirho: fallbackName,
+        personaDetailsChirho: fallbackDetails,
+        meetingContextChirho: fallbackContext,
+        encounterTitleChirho: fallbackTitle,
         personaNameKnownToUserChirho: false,
       };
     }
@@ -148,7 +159,6 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
     const imageUrlChirho = imageResultChirho.media?.url;
     if (!imageUrlChirho) {
         console.error("Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
-        // Using a simple placeholder for safety if image generation fails
         const placeholderDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
         return {
           ...parsedPersonaDataChirho,

@@ -25,7 +25,7 @@ const SuggestEvangelisticResponseOutputSchemaChirho = z.object({
 });
 export type SuggestEvangelisticResponseOutputChirho = z.infer<typeof SuggestEvangelisticResponseOutputSchemaChirho>;
 
-export async function suggestEvangelisticResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<SuggestEvangelisticResponseOutputChirho> {
+export async function suggestEvangelisticResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<SuggestEvangelisticResponseOutputSchemaChirho> {
   return suggestEvangelisticResponseFlowChirho(input);
 }
 
@@ -34,8 +34,9 @@ const promptChirho = ai.definePrompt({
   input: {schema: SuggestEvangelisticResponseInputSchemaChirho},
   output: {schema: SuggestEvangelisticResponseOutputSchemaChirho},
   prompt: `You are an expert evangelism coach, modeling your response style after Ray Comfort of Living Waters.
+CRITICAL LANGUAGE INSTRUCTION: Your "suggestedResponseChirho" MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text must be in English. If {{{languageChirho}}} is 'es', all text must be in Spanish.
+
 Your goal is to help the user effectively share their faith. The user is interacting with an AI persona.
-The response should be in the language: {{{languageChirho}}}.
 
 For your internal context, the AI persona's actual name is {{{personaActualNameForContextChirho}}}.
 However, the user currently knows this persona as: "{{{personaDisplayNameForUserChirho}}}".
@@ -44,11 +45,11 @@ It is CRITICAL that your suggested response for the user ONLY refers to the pers
 The persona (referred to as "{{{personaDisplayNameForUserChirho}}}") just said: "{{{personaLastResponseChirho}}}"
 
 {{#if conversationHistoryChirho}}
-Here's a brief summary of the conversation so far (also in {{{languageChirho}}}):
+Here's a brief summary of the conversation so far (this summary is also in {{{languageChirho}}}):
 {{{conversationHistoryChirho}}}
 {{/if}}
 
-Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}, in {{{languageChirho}}}.
+Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}, strictly in the language: {{{languageChirho}}}.
 Your suggestion should:
 1.  Be conversational and natural, yet direct and purposeful.
 2.  Reflect a Bible-believing, evangelical Christian perspective. This includes belief in the authority of Scripture and the necessity of salvation through Jesus Christ.
@@ -66,7 +67,6 @@ Your Suggested Response for User: "That's a really deep question, Eliza. Before 
 Example of a possible interaction (if user knows persona as "la persona", language 'es'):
 Declaración de la Persona: "Creo que soy una buena persona, hago lo mejor que puedo."
 Tu Respuesta Sugerida para el Usuario: "Aprecio tu sinceridad. A la mayoría nos gusta pensar que somos buenos. ¿Podría preguntarte si siempre has guardado todos los Diez Mandamientos? Por ejemplo, ¿alguna vez has mirado con lujuria, que Jesús dijo que es como adulterio en el corazón, o te has enojado sin causa, lo cual Él comparó con el asesinato?"
-
 
 Provide ONLY the "suggestedResponseChirho" text.
 Format your entire response as a single, valid JSON object with the key "suggestedResponseChirho".
