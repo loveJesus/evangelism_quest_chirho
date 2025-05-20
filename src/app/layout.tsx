@@ -1,44 +1,60 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 import type { Metadata, Viewport } from 'next';
-import { Geist_Sans as GeistSans, Geist_Mono as GeistMono } from 'next/font/google'; // Corrected import for Geist Sans
+import { Inter } from 'next/font/google'; // Ensure Inter is imported
 import './globals.css';
+import { AuthProviderChirho } from '@/contexts/auth-context-chirho';
+import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
+import { ToasterChirho } from '@/components/ui/toaster';
+import { getDictionaryChirho } from '@/lib/get-dictionary-chirho'; // For metadata
+import { defaultLocale } from '@/middleware'; // For metadata
 
-const geistSansChirho = GeistSans({ // Use the corrected import
-  variable: '--font-geist-sans',
+const inter = Inter({ // Initialize Inter
   subsets: ['latin'],
+  variable: '--font-sans', // Define a CSS variable for Inter
 });
 
-const geistMonoChirho = GeistMono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+// Updated metadata function to use a default title and description if dictionary fails or for simplicity
+export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
+  const lang = params.lang || defaultLocale;
+  let appName = "Faith Forward ☧"; // Default app name
 
-// Note: Metadata and Viewport in the root layout are often static.
-// Dynamic metadata based on locale would typically be in [lang]/layout.tsx
-export const metadata: Metadata = {
-  title: 'Faith Forward ☧', // Updated
-  description: 'Empowering your evangelism journey.',
-};
+  try {
+    const dictionary = await getDictionaryChirho(lang);
+    appName = dictionary.appLayout?.appName || appName; // Use dictionary appName if available
+  } catch (error) {
+    console.warn(`Could not load dictionary for lang '${lang}' in root metadata:`, error);
+  }
+
+  return {
+    title: `${appName} (${lang.toUpperCase()})`,
+    description: 'Empowering your evangelism journey.',
+  };
+}
+
 
 export const viewport: Viewport = {
-  themeColor: [ // Example theme color, adjust as needed
-    { media: '(prefers-color-scheme: light)', color: 'hsl(216 25% 95%)' },
-    { media: '(prefers-color-scheme: dark)', color: 'hsl(240 10% 3.9%)' },
+  themeColor: [ 
+    { media: '(prefers-color-scheme: light)', color: 'hsl(var(--background))' },
+    { media: '(prefers-color-scheme: dark)', color: 'hsl(var(--background))' },
   ],
 }
 
 export default function RootLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params?: { lang: string }; 
 }) {
+  const lang = params?.lang || defaultLocale;
+
   return (
-    // The [lang] segment in the URL will determine the actual lang attribute.
-    // The middleware handles redirecting to a locale-prefixed path.
-    // This html tag doesn't need a lang prop directly if children (i.e., [lang]/layout.tsx) handle it.
-    <html lang="en" suppressHydrationWarning> 
-      <body className={`${geistSansChirho.variable} ${geistMonoChirho.variable} antialiased`}>
+    <html lang={lang} suppressHydrationWarning> 
+      <body className={`${inter.variable} antialiased bg-background text-foreground`}> {/* Use Inter variable and ensure base styles */}
+        {/* AuthProviderChirho is now in src/app/[lang]/layout.tsx */}
         {children}
+        {/* Toaster can be here if not dependent on lang-specific context provided by AuthProvider/CustomizationProvider */}
+        {/* Or move Toaster to src/app/[lang]/layout.tsx if it needs those contexts */}
       </body>
     </html>
   );

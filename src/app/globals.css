@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif; /* Use --font-sans from layout */
 }
 
 @layer base {
@@ -94,7 +94,7 @@ body {
     font-size: calc(16px * var(--font-scale-factor, 1));
   }
   body {
-    @apply bg-background text-foreground;
+    /* @apply bg-background text-foreground; */ /* This is now set on the body tag in layout.tsx */
     min-height: 100vh;
   }
 }

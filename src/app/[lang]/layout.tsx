@@ -5,15 +5,27 @@ import { ToasterChirho } from '@/components/ui/toaster';
 import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
 import { AuthProviderChirho } from '@/contexts/auth-context-chirho';
 import { getDictionaryChirho, DictionaryChirho } from '@/lib/get-dictionary-chirho';
-import { defaultLocale } from '@/middleware'; // To provide a default lang for metadata
+import { defaultLocale } from '@/middleware';
 
 // This function can be exported on its own or used in generateMetadata
+// This metadata will be for the [lang] segment, potentially overriding or merging with root.
 export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
   const lang = params.lang || defaultLocale;
-  // For simplicity, using a static title. You could fetch translations here if needed.
+  let appName = "Faith Forward ☧"; // Default
+  let description = "Empowering your evangelism journey."; // Default
+
+  try {
+    const dictionary = await getDictionaryChirho(lang);
+    appName = dictionary.appLayout?.appName || appName;
+    // You could add a lang-specific description from the dictionary if needed
+    // description = dictionary.appLayout?.description || description; 
+  } catch (error) {
+    console.warn(`Could not load dictionary for lang '${lang}' in [lang] layout metadata:`, error);
+  }
+  
   return {
-    title: `Faith Forward ☧ (${lang.toUpperCase()})`,
-    description: 'Empowering your evangelism journey.',
+    title: `${appName} (${lang.toUpperCase()})`, // Example: Faith Forward ☧ (EN)
+    description: description,
   };
 }
 
@@ -28,8 +40,9 @@ export default async function LocaleLayout({
   const dictionary = await getDictionaryChirho(params.lang);
 
   return (
-    // The lang attribute is set here based on the URL parameter
-    // The html and body tags are in the root src/app/layout.tsx
+    // The lang attribute is set in the root src/app/layout.tsx
+    // The html and body tags are also in the root layout.
+    // This component's output will be placed inside the root body.
     <AuthProviderChirho lang={params.lang}>
       <CustomizationProviderChirho>
         <AppLayoutChirho lang={params.lang} dictionary={dictionary.siteNav} appName={dictionary.appLayout.appName}>
