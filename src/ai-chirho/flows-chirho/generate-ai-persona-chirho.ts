@@ -18,7 +18,7 @@ const GenerateAiPersonaInputSchemaChirho = z.object({
       'A person with a unique life story, who may have difficult questions before they come to believe.'
     )
     .describe('A general description or theme for the desired persona (e.g., struggling with loss, curious skeptic, specific profession).'),
-  languageChirho: z.string().optional().default('en').describe('The language for the persona generation (e.g., "en" for English, "es" for Spanish).'),
+  languageChirho: z.string().optional().default('en').describe('The language code for the persona generation (e.g., "en" for English, "es" for Spanish).'),
 });
 export type GenerateAiPersonaInputChirho = z.infer<typeof GenerateAiPersonaInputSchemaChirho>;
 
@@ -47,39 +47,41 @@ const generateAiPersonaFlowChirho = ai.defineFlow(
     outputSchema: GenerateAiPersonaOutputSchemaChirho,
   },
   async (input: GenerateAiPersonaInputChirho) => {
+    const languageNameChirho = input.languageChirho === 'es' ? 'Español' : 'English';
+
     const personaDataPromptChirho = `You are an AI that generates diverse and unique characters for evangelism simulations.
-CRITICAL LANGUAGE INSTRUCTION: ALL text fields in your JSON output (personaNameChirho, personaDetailsChirho, meetingContextChirho, encounterTitleChirho) MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text for these fields must be in English. If {{{languageChirho}}} is 'es', all text for these fields must be in Spanish. No other language is acceptable for these text fields.
+CRITICAL LANGUAGE INSTRUCTION: ALL text fields in your JSON output (personaNameChirho, personaDetailsChirho, meetingContextChirho, encounterTitleChirho) MUST be strictly in the language: ${languageNameChirho}. No other language is acceptable for these text fields.
 
 Based on the following input hint: "${input.personaDescriptionChirho}".
 
 Your primary goal is to create a NEW and UNIQUE character each time.
 1.  **Persona Name ("personaNameChirho")**:
-    *   Generate a unique first name appropriate for the specified language ({{{languageChirho}}}).
-    *   Ensure a WIDE VARIETY of names: common, uncommon, diverse cultural backgrounds relevant to the language {{{languageChirho}}}.
+    *   Generate a unique first name appropriate for the specified language (${languageNameChirho}).
+    *   Ensure a WIDE VARIETY of names: common, uncommon, diverse cultural backgrounds relevant to the language ${languageNameChirho}.
     *   **CRITICAL: DO NOT REPEAT names like Caleb, Kai, Zephyr, Zephyrine, or any other names you might have used in recent generations. Always try for something fresh unless specifically hinted.**
 2.  **Persona Details ("personaDetailsChirho")**:
-    *   Craft a detailed backstory (a few paragraphs) strictly in the language: {{{languageChirho}}}. This backstory is for the AI to understand its role and should allow for discovery through conversation.
-    *   It MUST explicitly state the persona's **sex** (e.g., "a man" or "a woman" or equivalent in {{{languageChirho}}}) and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in {{{languageChirho}}}).
-    *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in {{{languageChirho}}}.
-    *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of {{{languageChirho}}}.
+    *   Craft a detailed backstory (a few paragraphs) strictly in the language: ${languageNameChirho}. This backstory is for the AI to understand its role and should allow for discovery through conversation.
+    *   It MUST explicitly state the persona's **sex** (e.g., "a man" or "a woman" or equivalent in ${languageNameChirho}) and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in ${languageNameChirho}).
+    *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in ${languageNameChirho}.
+    *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of ${languageNameChirho}.
 3.  **Meeting Context ("meetingContextChirho")**:
-    *   Create a brief, imaginative meeting context (1-4 engaging sentences) strictly in {{{languageChirho}}}, describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
+    *   Create a brief, imaginative meeting context (1-4 engaging sentences) strictly in ${languageNameChirho}, describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
     *   This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character.
-    *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings relevant to {{{languageChirho}}}.
-    *   If the person's name is known, explain why it is known (in {{{languageChirho}}}). If it is an encounter with a stranger, do not mention the individual's name.
+    *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings relevant to ${languageNameChirho}.
+    *   If the person's name is known, explain why it is known (in ${languageNameChirho}). If it is an encounter with a stranger, do not mention the individual's name.
 4.  **Encounter Title ("encounterTitleChirho")**:
-    *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words) strictly in {{{languageChirho}}}. 
+    *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words) strictly in ${languageNameChirho}. 
     *   This title will be displayed to the user if the persona's name isn't immediately known.
-    *   Examples (The language of these example titles should be overridden by {{{languageChirho}}} in your actual output): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
+    *   Examples (The language of these example titles should be overridden by ${languageNameChirho} in your actual output): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
     *   Make it descriptive of the situation or the persona's initial presentation.
 5.  **Name Known to User ("personaNameKnownToUserChirho")**:
     *   Based on the "meetingContextChirho", determine if the persona's name would be immediately known to the user.
     *   If the context implies the name is known (e.g., coworker, introduced by a friend, wearing a nametag like "Barista named Leo"), set to \`true\`.
     *   If it's a chance encounter with a stranger (e.g., "a person on a park bench", "someone who dropped their keys"), set to \`false\`.
 
-Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho". All string values in the JSON MUST be in the language specified by {{{languageChirho}}}.
+Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho". All string values in the JSON MUST be in the language: ${languageNameChirho}.
 
-Example (The language of this example's text fields MUST be overridden by {{{languageChirho}}} in your actual output. Ensure to vary ALL details, especially names, from this example):
+Example (The language of this example's text fields MUST be overridden by ${languageNameChirho} in your actual output. Ensure to vary ALL details, especially names, from this example):
 {
   "personaNameChirho": "Soren", 
   "personaDetailsChirho": "Soren is a man in his early 50s...",
@@ -140,7 +142,8 @@ Ensure the output is a single, valid JSON object and nothing else.`;
     const imagePromptChirho = `Generate a 512x512 photorealistic portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
 Their general disposition, sex, and age can be inferred from: ${parsedPersonaDataChirho.personaDetailsChirho.substring(0, 350)}...
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
-The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure varied appearances. Photorealistic style.`;
+The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation.
+The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances. Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
@@ -159,6 +162,7 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
     const imageUrlChirho = imageResultChirho.media?.url;
     if (!imageUrlChirho) {
         console.error("Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
+        // Fallback data URI for a 1x1 transparent PNG
         const placeholderDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
         return {
           ...parsedPersonaDataChirho,
@@ -172,3 +176,4 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
     };
   }
 );
+

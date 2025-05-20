@@ -11,30 +11,36 @@
 import {ai} from '@/ai-chirho/genkit-chirho'; 
 import {z} from 'genkit';
 
-const SuggestEvangelisticResponseInputSchemaChirho = z.object({
+const SuggestEvangelisticResponseFlowInputSchemaChirho = z.object({
   personaLastResponseChirho: z.string().describe("The last statement or question from the AI persona you are talking to."),
   personaActualNameForContextChirho: z.string().describe("The actual name of the AI persona. The AI coach uses this name internally for contextual understanding of who the user is interacting with."),
   personaDisplayNameForUserChirho: z.string().describe("The name or generic term (e.g., 'the person', 'them') that the user currently knows the AI persona by. This is what should be used in the suggested response if addressing the persona directly."),
   conversationHistoryChirho: z.string().optional().describe("A brief summary of the conversation so far, if available. This helps provide context for the suggestion."),
-  languageChirho: z.string().optional().default('en').describe('The language for the suggested response (e.g., "en", "es").'),
+  languageChirho: z.string().optional().default('en').describe('The language code for the suggested response (e.g., "en", "es").'),
 });
-export type SuggestEvangelisticResponseInputChirho = z.infer<typeof SuggestEvangelisticResponseInputSchemaChirho>;
+export type SuggestEvangelisticResponseInputChirho = z.infer<typeof SuggestEvangelisticResponseFlowInputSchemaChirho>;
+
+// Extended input schema for the prompt, including derived languageNameChirho
+const SuggestEvangelisticResponsePromptInputSchemaChirho = SuggestEvangelisticResponseFlowInputSchemaChirho.extend({
+    languageNameChirho: z.string().describe("The full name of the language (e.g., 'English', 'Español') for prompt instructions.")
+});
+
 
 const SuggestEvangelisticResponseOutputSchemaChirho = z.object({
   suggestedResponseChirho: z.string().describe("The suggested evangelistic response for the user."),
 });
 export type SuggestEvangelisticResponseOutputChirho = z.infer<typeof SuggestEvangelisticResponseOutputSchemaChirho>;
 
-export async function suggestEvangelisticResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<SuggestEvangelisticResponseOutputSchemaChirho> {
+export async function suggestEvangelisticResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<SuggestEvangelisticResponseOutputChirho> {
   return suggestEvangelisticResponseFlowChirho(input);
 }
 
 const promptChirho = ai.definePrompt({
   name: 'suggestEvangelisticResponsePromptChirho',
-  input: {schema: SuggestEvangelisticResponseInputSchemaChirho},
+  input: {schema: SuggestEvangelisticResponsePromptInputSchemaChirho}, // Uses extended schema
   output: {schema: SuggestEvangelisticResponseOutputSchemaChirho},
   prompt: `You are an expert evangelism coach, modeling your response style after Ray Comfort of Living Waters.
-CRITICAL LANGUAGE INSTRUCTION: Your "suggestedResponseChirho" MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text must be in English. If {{{languageChirho}}} is 'es', all text must be in Spanish.
+CRITICAL LANGUAGE INSTRUCTION: Your "suggestedResponseChirho" MUST be strictly in the language: {{{languageNameChirho}}}.
 
 Your goal is to help the user effectively share their faith. The user is interacting with an AI persona.
 
@@ -45,11 +51,11 @@ It is CRITICAL that your suggested response for the user ONLY refers to the pers
 The persona (referred to as "{{{personaDisplayNameForUserChirho}}}") just said: "{{{personaLastResponseChirho}}}"
 
 {{#if conversationHistoryChirho}}
-Here's a brief summary of the conversation so far (this summary is also in {{{languageChirho}}}):
+Here's a brief summary of the conversation so far (this summary is also in {{{languageNameChirho}}}):
 {{{conversationHistoryChirho}}}
 {{/if}}
 
-Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}, strictly in the language: {{{languageChirho}}}.
+Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}, strictly in the language: {{{languageNameChirho}}}.
 Your suggestion should:
 1.  Be conversational and natural, yet direct and purposeful.
 2.  Reflect a Bible-believing, evangelical Christian perspective. This includes belief in the authority of Scripture and the necessity of salvation through Jesus Christ.
@@ -60,11 +66,11 @@ Your suggestion should:
 7.  Be sensitive: "Law to the proud, grace to the humble." If {{{personaDisplayNameForUserChirho}}} seems resistant or self-righteous, gently use the Law to show their need for a Savior. If they seem open or broken, extend grace and hope.
 8.  Be concise and focused on one or two key points.
 
-Example of a possible interaction (if user knows persona as "Eliza", language 'en'):
+Example of a possible interaction (if user knows persona as "Eliza", languageChirho 'en', languageNameChirho 'English' as input):
 Persona Question: "Why does a good God allow so much suffering?"
 Your Suggested Response for User: "That's a really deep question, Eliza. Before we explore that, have you ever considered what the Bible says about why we experience good things in life, despite our own imperfections? For example, have you ever told a lie, stolen anything (even small), or used God's name in vain?"
 
-Example of a possible interaction (if user knows persona as "la persona", language 'es'):
+Example of a possible interaction (if user knows persona as "la persona", languageChirho 'es', languageNameChirho 'Español' as input):
 Declaración de la Persona: "Creo que soy una buena persona, hago lo mejor que puedo."
 Tu Respuesta Sugerida para el Usuario: "Aprecio tu sinceridad. A la mayoría nos gusta pensar que somos buenos. ¿Podría preguntarte si siempre has guardado todos los Diez Mandamientos? Por ejemplo, ¿alguna vez has mirado con lujuria, que Jesús dijo que es como adulterio en el corazón, o te has enojado sin causa, lo cual Él comparó con el asesinato?"
 
@@ -84,14 +90,17 @@ Format your entire response as a single, valid JSON object with the key "suggest
 const suggestEvangelisticResponseFlowChirho = ai.defineFlow(
   {
     name: 'suggestEvangelisticResponseFlowChirho',
-    inputSchema: SuggestEvangelisticResponseInputSchemaChirho,
+    inputSchema: SuggestEvangelisticResponseFlowInputSchemaChirho, // Flow uses the base schema
     outputSchema: SuggestEvangelisticResponseOutputSchemaChirho,
   },
   async (input: SuggestEvangelisticResponseInputChirho) => {
-    console.log("[Genkit Flow] suggestEvangelisticResponseFlowChirho received input:", input);
-    const {output} = await promptChirho(input);
+    const languageNameChirho = input.languageChirho === 'es' ? 'Español' : 'English';
+    const promptInput = { ...input, languageNameChirho }; // Augment input for the prompt
+
+    console.log("[Genkit Flow] suggestEvangelisticResponseFlowChirho received input:", promptInput);
+    const {output} = await promptChirho(promptInput);
     if (!output) {
-      console.error("Suggest Evangelistic Response Flow Chirho received undefined output from prompt for input:", input);
+      console.error("Suggest Evangelistic Response Flow Chirho received undefined output from prompt for input:", promptInput);
       const fallbackSuggestion = input.languageChirho === 'es'
         ? "Estoy teniendo un poco de dificultad para pensar en una sugerencia ahora mismo. Quizás intenta responder basándote en lo último que dijeron, y haz una pregunta amable que invite a la reflexión."
         : "I'm having a bit of trouble thinking of a suggestion right now. Perhaps try to respond based on what they last said, and ask a gentle, thought-provoking question?";

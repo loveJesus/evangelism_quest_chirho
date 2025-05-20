@@ -1,4 +1,3 @@
-
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 'use server';
 /**
@@ -16,7 +15,7 @@ const UpdatePersonaVisualsInputSchemaChirho = z.object({
   baseImageUriChirho: z
     .string()
     .describe(
-      'Data URI of the base image of the persona to ensure visual consistency. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
+      'Data URI of the base image of the persona to ensure visual consistency. Expected format: \'data:<mimetype>;base64,<encoded_data>\', or a public HTTPS URL.'
     ),
   personaNameChirho: z.string().describe('Name of the persona.'),
   originalMeetingContextChirho: z
@@ -47,7 +46,7 @@ export type UpdatePersonaVisualsOutputChirho = z.infer<
 
 export async function updatePersonaVisualsChirho(
   input: UpdatePersonaVisualsInputChirho
-): Promise<UpdatePersonaVisualsOutputChirho> {
+): Promise<UpdatePersonaVisualsOutputSchemaChirho> {
   return updatePersonaVisualsFlowChirho(input);
 }
 
@@ -64,12 +63,13 @@ const updatePersonaVisualsFlowChirho = ai.defineFlow(
     newVisualPromptChirho,
   }) => {
     const imageGenPromptChirho = [
-      {media: {url: baseImageUriChirho}},
+      {media: {url: baseImageUriChirho}}, // Gemini might be able to fetch public URLs
       {
         text: `You are an image generation AI. You have been given a base image of a character named ${personaNameChirho}. Their original meeting context was: "${originalMeetingContextChirho}".
-Your task is to generate a *new*  image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
+Your task is to generate a *new* 512x512 image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
 The new image should only reflect changes in their expression, pose, or minor environmental details as described in the 'new visual prompt' below.
 Do NOT change the character into someone else. Do NOT drastically change the setting. Focus on their expression and pose. Help the changes keep the conversation engaging (in a pure, non-sensual) way.
+Ensure the updated image remains modest, appropriate for all audiences, photorealistic, and strictly avoids any revealing attire, cleavage, or suggestive elements.
 
 New Visual Prompt (expression, pose, minor changes): "${newVisualPromptChirho}"
 
@@ -103,5 +103,3 @@ Generate the updated image.`,
     return {updatedImageUriChirho: imageUrlChirho};
   }
 );
-
-    

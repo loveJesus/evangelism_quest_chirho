@@ -12,7 +12,8 @@
 import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
 
-const AIPersonaConvincingInputSchemaChirho = z.object({
+// Base input schema for the flow function
+const AIPersonaConvincingFlowInputSchemaChirho = z.object({
   difficultyLevelChirho: z
     .number()
     .describe(
@@ -22,9 +23,16 @@ const AIPersonaConvincingInputSchemaChirho = z.object({
     .string()
     .describe('A detailed description of the AI persona, including their name (which the AI uses internally), background, beliefs, and emotional state.'),
   messageChirho: z.string().describe('The evangelistic message or conversational input from the user to be presented to the AI persona.'),
-  languageChirho: z.string().optional().default('en').describe('The language for the persona\'s response (e.g., "en", "es").'),
+  languageChirho: z.string().optional().default('en').describe('The language code for the persona\'s response (e.g., "en", "es").'),
 });
-export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingInputSchemaChirho>;
+export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingFlowInputSchemaChirho>;
+
+
+// Extended input schema for the prompt, including derived languageNameChirho
+const AIPersonaConvincingPromptInputSchemaChirho = AIPersonaConvincingFlowInputSchemaChirho.extend({
+    languageNameChirho: z.string().describe("The full name of the language (e.g., 'English', 'Español') for prompt instructions.")
+});
+
 
 const AIPersonaConvincingOutputSchemaChirho = z.object({
   personaResponseChirho: z
@@ -43,12 +51,12 @@ export async function aiPersonaConvincingChirho(input: AIPersonaConvincingInputC
 
 const aiPersonaConvincingPromptChirho = ai.definePrompt({
   name: 'aiPersonaConvincingPromptChirho',
-  input: {schema: AIPersonaConvincingInputSchemaChirho},
+  input: {schema: AIPersonaConvincingPromptInputSchemaChirho}, // Uses extended schema
   output: {schema: AIPersonaConvincingOutputSchemaChirho},
   prompt: `You are an AI simulating a person for a conversation.
-CRITICAL LANGUAGE INSTRUCTION: All text for "personaResponseChirho" and "nextQuestionChirho" MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text for these fields must be in English. If {{{languageChirho}}} is 'es', all text for these fields must be in Spanish.
-The "visualContextForNextImageChirho" field, however, MUST always be in English, regardless of the value of {{{languageChirho}}}.
-You MUST set "outputLanguageChirho" to be exactly the same as the input value of {{{languageChirho}}}.
+CRITICAL LANGUAGE INSTRUCTION: All text for "personaResponseChirho" and "nextQuestionChirho" MUST be strictly in the language: {{{languageNameChirho}}}.
+The "visualContextForNextImageChirho" field, however, MUST always be in English, regardless of the value of {{{languageNameChirho}}}.
+You MUST set "outputLanguageChirho" to be exactly the same as the input language code: {{{languageChirho}}}.
 
 Your persona details (including your name, backstory, current emotional state, and potential beliefs/hesitations) are:
 {{{personaDescriptionChirho}}}
@@ -59,15 +67,15 @@ The current difficulty level of this simulation is {{{difficultyLevelChirho}}} (
 The user just said: "{{{messageChirho}}}"
 
 Based on your persona and the user's message:
-1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
+1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageNameChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
 2.  Determine if you are "convincedChirho". This should be a significant moment and typically only occur after your main doubts (appropriate for your difficulty level) have been addressed. It should be rare.
-3.  If not convinced, formulate a "nextQuestionChirho" strictly in the language: {{{languageChirho}}}. This should be a genuine question or doubt that naturally follows. If convinced, "nextQuestionChirho" can be null.
+3.  If not convinced, formulate a "nextQuestionChirho" strictly in the language: {{{languageNameChirho}}}. This should be a genuine question or doubt that naturally follows. If convinced, "nextQuestionChirho" can be null.
 4.  Provide a "visualContextForNextImageChirho" strictly in English: a brief description (max 15 words) of your current expression or pose. Example: "smiling warmly", "looking thoughtful", "glancing upwards". If no specific visual change, this can be null.
 5.  Set "outputLanguageChirho" to the input language code: {{{languageChirho}}}.
 
 Output your entire response as a single, valid JSON object. Ensure text fields are in the correct language as specified above.
 
-Example (not convinced, difficulty 3, language 'en' as input):
+Example (not convinced, difficulty 3, languageChirho 'en', languageNameChirho 'English' as input):
 User message: "Hi Eliza, I wanted to share something that gives me hope."
 Your persona (Eliza, struggling with recent loss):
 {
@@ -78,7 +86,7 @@ Your persona (Eliza, struggling with recent loss):
   "outputLanguageChirho": "en" 
 }
 
-Example (not convinced, difficulty 5, language 'es' as input):
+Example (not convinced, difficulty 5, languageChirho 'es', languageNameChirho 'Español' as input):
 User message: "Hola Carlos, ¿cómo estás hoy?"
 Your persona (Carlos, un filósofo escéptico):
 {
@@ -90,8 +98,8 @@ Your persona (Carlos, un filósofo escéptico):
 }
 
 IMPORTANT:
-- Your "personaResponseChirho" is what you say to the user. Make it sound human, in {{{languageChirho}}}.
-- "nextQuestionChirho" should be specific and relevant if not convinced, in {{{languageChirho}}}.
+- Your "personaResponseChirho" is what you say to the user. Make it sound human, in {{{languageNameChirho}}}.
+- "nextQuestionChirho" should be specific and relevant if not convinced, in {{{languageNameChirho}}}.
 - Ensure the output is strictly a valid JSON object. No text before or after.
 `,
 });
@@ -99,13 +107,16 @@ IMPORTANT:
 const aiPersonaConvincingFlowChirho = ai.defineFlow(
   {
     name: 'aiPersonaConvincingFlowChirho',
-    inputSchema: AIPersonaConvincingInputSchemaChirho,
+    inputSchema: AIPersonaConvincingFlowInputSchemaChirho, // Flow uses the base schema
     outputSchema: AIPersonaConvincingOutputSchemaChirho,
   },
   async (input: AIPersonaConvincingInputChirho) => {
-    const {output} = await aiPersonaConvincingPromptChirho(input);
+    const languageNameChirho = input.languageChirho === 'es' ? 'Español' : 'English';
+    const promptInput = { ...input, languageNameChirho }; // Augment input for the prompt
+
+    const {output} = await aiPersonaConvincingPromptChirho(promptInput);
     if (!output) {
-        console.error("AI Persona Convincing Flow Chirho received undefined output from prompt for input:", input);
+        console.error("AI Persona Convincing Flow Chirho received undefined output from prompt for input:", promptInput);
         const fallbackResponse = input.languageChirho === 'es' 
             ? "Lo siento, estoy teniendo un pequeño problema para formular una respuesta en este momento. ¿Podrías intentar decirlo de otra manera?"
             : "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?";
