@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
 
   // Check if there is any supported locale in the pathname
   const pathnameIsMissingLocale = locales.every(
-    (locale) => !pathname.startsWith(\`/\${locale}/\`) && pathname !== \`/\${locale}\`
+    (locale) => !pathname.startsWith('/' + locale + '/') && pathname !== '/' + locale
   );
 
   // Redirect if there is no locale
@@ -49,6 +49,18 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring \`/_next/\` and \`/api/\` and static assets like favicon.ico
-  matcher: ['/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js).*)'],
+  // Matcher ignoring paths starting with:
+  // - api (API routes)
+  // - _next/static (static files)
+  // - _next/image (image optimization files)
+  // - assets (your static assets folder)
+  // - favicon.ico (favicon file)
+  // - sw.js (service worker file)
+  // - manifest.json (PWA manifest)
+  // - robots.txt (robots file)
+  // - sitemap.xml (sitemap file)
+  // - any file with an extension (e.g., .png, .jpg, .svg)
+  matcher: [
+    '/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js|manifest.json|robots.txt|sitemap.xml|.*\\..*).*)'
+  ],
 };
