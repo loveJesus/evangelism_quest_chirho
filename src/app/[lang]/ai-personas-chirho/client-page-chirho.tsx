@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, PartyPopper } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -73,7 +73,7 @@ export interface ArchivedConversationChirho {
   difficultyLevelChirho: number;
   messagesChirho: MessageChirho[];
   convincedChirho: boolean;
-  conversationLanguageChirho: string; // Added to store the language of the conversation
+  conversationLanguageChirho: string; 
   archivedAtServerMillis?: number; 
 }
 
@@ -98,6 +98,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   const [suggestedAnswerChirho, setSuggestedAnswerChirho] = useState<string | null>(null);
   const [isFetchingSuggestionChirho, setIsFetchingSuggestionChirho] = useState(false);
   const [currentConversationLanguageChirho, setCurrentConversationLanguageChirho] = useState<string>(lang);
+  const [isCelebrationModeActiveChirho, setIsCelebrationModeActiveChirho] = useState<boolean>(false);
 
 
   const [archivedConversationsChirho, setArchivedConversationsChirho] = useState<ArchivedConversationChirho[]>([]);
@@ -117,7 +118,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho) {
       if (routerChirho) {
-        console.log("AIPersonasPageChirho: Attempting redirect to /login-chirho");
+        console.log("AIPersonasPageChirho: Attempting redirect to login page.");
         routerChirho.push(`/${lang}/login-chirho`);
       } else {
         console.warn("AIPersonasPageChirho: routerChirho from context is not yet available for redirect on auth check.");
@@ -126,12 +127,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   }, [currentUserChirho, loadingAuthChirho, routerChirho, lang]);
 
  useEffect(() => {
-    setCurrentConversationLanguageChirho(lang); // Update conversation language when UI language changes
+    setCurrentConversationLanguageChirho(lang); 
   }, [lang]);
 
   useEffect(() => {
     if (!loadingAuthChirho && currentUserChirho) {
-      // Fetch history if it hasn't been loaded yet for this user
       if (archivedConversationsChirho.length === 0 && !isLoadingHistoryChirho) {
         setIsLoadingHistoryChirho(true);
         fetchArchivedConversationsFromFirestoreChirho(currentUserChirho.uid)
@@ -142,31 +142,30 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
               console.error("Failed to fetch history from Firestore:", result.error);
               toastChirho({
                 variant: "destructive",
-                title: dictionary?.toastHistoryLoadFailedTitle || "History Load Failed",
-                description: result.error || dictionary?.toastHistoryLoadFailedDescription || "Could not retrieve your conversation history.",
+                title: dictionary.toastHistoryLoadFailedTitle,
+                description: result.error || dictionary.toastHistoryLoadFailedDescription,
               });
             }
           })
           .finally(() => setIsLoadingHistoryChirho(false));
       }
 
-      // Initial persona load logic
-      if (!personaChirho && messagesChirho.length === 0 && !justContinuedConversationRef.current && !isLoadingPersonaChirho) {
+      if (!personaChirho && messagesChirho.length === 0 && !justContinuedConversationRef.current && !isLoadingPersonaChirho && !isCelebrationModeActiveChirho) {
         console.log("Initial persona load triggered by useEffect for new session/page load.");
-        setCurrentConversationLanguageChirho(lang); // Set language for new conversation
+        setCurrentConversationLanguageChirho(lang); 
         loadNewPersonaChirho(difficultyLevelChirho, false, null);
       }
       if (justContinuedConversationRef.current) {
         justContinuedConversationRef.current = false; 
       }
     } else if (!loadingAuthChirho && !currentUserChirho) {
-      // Clear state on logout
       setPersonaChirho(null);
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
       setSuggestedAnswerChirho(null);
       setArchivedConversationsChirho([]);
       setIsLoadingPersonaChirho(false); 
+      setIsCelebrationModeActiveChirho(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserChirho, loadingAuthChirho, toastChirho, dictionary, lang]);
@@ -190,7 +189,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       personaNameChirho: personaToArchive.personaNameChirho,
       initialPersonaImageChirho: personaToArchive.personaImageChirho || null, 
       meetingContextChirho: personaToArchive.meetingContextChirho,
-      encounterTitleChirho: personaToArchive.encounterTitleChirho || "A Past Encounter",
+      encounterTitleChirho: personaToArchive.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle,
       personaDetailsChirho: personaToArchive.personaDetailsChirho, 
       personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
       difficultyLevelChirho: difficultyLevelChirho,
@@ -208,15 +207,15 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     if (result.success) {
       setArchivedConversationsChirho(prev => [newArchiveEntry, ...prev].sort((a,b) => b.timestamp - a.timestamp).slice(0, MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
       toastChirho({
-        title: dictionary?.toastConversationArchivedTitle || "Conversation Archived",
-        description: dictionary?.toastConversationArchivedDescription || "Your chat has been saved to the server.",
+        title: dictionary.toastConversationArchivedTitle,
+        description: dictionary.toastConversationArchivedDescription,
         duration: 3000
       });
     } else {
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastArchiveErrorTitle || "Archive Error",
-        description: result.error || dictionary?.toastArchiveErrorDescription || "Could not save conversation to server.",
+        title: dictionary.toastArchiveErrorTitle,
+        description: result.error || dictionary.toastArchiveErrorDescription,
       });
     }
   }, [difficultyLevelChirho, toastChirho, currentUserChirho, dictionary]);
@@ -230,14 +229,14 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       setArchivedConversationsChirho([]);
       setSelectedArchivedConversationChirho(null); 
       toastChirho({
-        title: dictionary?.toastHistoryClearedTitle || "History Cleared",
-        description: dictionary?.toastHistoryClearedDescription || "All conversation history has been removed from the server.",
+        title: dictionary.toastHistoryClearedTitle,
+        description: dictionary.toastHistoryClearedDescription,
       });
     } else {
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastClearHistoryErrorTitle || "Clear History Error",
-        description: result.error || dictionary?.toastClearHistoryErrorDescription || "Could not clear conversation history from server.",
+        title: dictionary.toastClearHistoryErrorTitle,
+        description: result.error || dictionary.toastClearHistoryErrorDescription,
       });
     }
     setIsLoadingHistoryChirho(false);
@@ -256,6 +255,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     setIsLoadingPersonaChirho(true);
     setUserInputChirho("");
     setSuggestedAnswerChirho(null);
+    setIsCelebrationModeActiveChirho(false); 
     
     if (currentPersonaForArchive && currentMessagesForArchive.length > 1 && currentUserChirho && !conversationToContinue) {
         console.log("Archiving current conversation before loading new/continued one.");
@@ -269,7 +269,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             personaNameChirho: conversationToContinue.personaNameChirho,
             personaDetailsChirho: conversationToContinue.personaDetailsChirho,
             meetingContextChirho: conversationToContinue.meetingContextChirho,
-            encounterTitleChirho: conversationToContinue.encounterTitleChirho || "A Continued Encounter",
+            encounterTitleChirho: conversationToContinue.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle,
             personaImageChirho: conversationToContinue.initialPersonaImageChirho || "", 
             personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
         };
@@ -295,10 +295,10 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         setSelectedArchivedConversationChirho(null);
         setIsLoadingPersonaChirho(false);
         toastChirho({
-            title: dictionary?.toastConversationContinuedTitle || "Conversation Continued",
-            description: (dictionary?.toastConversationContinuedDescription || "Continuing chat with {nameOrTitle}.").replace(
+            title: dictionary.toastConversationContinuedTitle,
+            description: (dictionary.toastConversationContinuedDescription).replace(
               "{nameOrTitle}", 
-              conversationToContinue.personaNameKnownToUserChirho ? conversationToContinue.personaNameChirho : (conversationToContinue.encounterTitleChirho || 'the person')
+              conversationToContinue.personaNameKnownToUserChirho ? conversationToContinue.personaNameChirho : (conversationToContinue.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle)
             ),
             duration: 5000,
         });
@@ -306,7 +306,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     }
 
     console.log("Loading NEW persona, difficulty:", difficultyToLoadChirho, "in language:", lang);
-    setCurrentConversationLanguageChirho(lang); // Set language for new conversation
+    setCurrentConversationLanguageChirho(lang); 
     setMessagesChirho([]); 
     setDynamicPersonaImageChirho(null);
     setPersonaChirho(null); 
@@ -322,7 +322,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         setPersonaChirho(resultChirho.data); 
         setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho); 
         const initialMessageTextChirho = resultChirho.data.meetingContextChirho
-          ? (dictionary?.initialMeetingMessage || "{context}").replace("{context}", resultChirho.data.meetingContextChirho)
+          ? (dictionary.initialMeetingMessage).replace("{context}", resultChirho.data.meetingContextChirho)
           : "Hello! I'm ready to talk.";
         setMessagesChirho([{
           sender: "persona",
@@ -333,16 +333,16 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       } else {
         toastChirho({
           variant: "destructive",
-          title: dictionary?.errorGeneratingPersonaTitle || "Error Generating Persona",
-          description: resultChirho.error || dictionary?.errorGeneratingPersonaDescription || "Could not load a new persona. Please try again.",
+          title: dictionary.errorGeneratingPersonaTitle,
+          description: resultChirho.error || dictionary.errorGeneratingPersonaDescription,
         });
         setPersonaChirho(null); 
       }
     } catch (errorChirho: any) {
         toastChirho({
             variant: "destructive",
-            title: "Error",
-            description: errorChirho.message || "An unexpected error occurred while generating the persona.",
+            title: dictionary.generalErrorTitle,
+            description: errorChirho.message || dictionary.generalUnexpectedError,
         });
         setPersonaChirho(null); 
     }
@@ -385,8 +385,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     if (userProfileChirho.credits <= 0) {
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastOutOfCreditsTitle || "Out of Credits",
-        description: dictionary?.toastOutOfCreditsDescription || "You have no message credits left. Please get more to continue.",
+        title: dictionary.toastOutOfCreditsTitle,
+        description: dictionary.toastOutOfCreditsDescription,
       });
       setIsBuyCreditsDialogOpenChirho(true);
       return;
@@ -396,8 +396,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     if (!creditDecrementResult.success) {
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastCreditErrorTitle || "Credit Error",
-        description: creditDecrementResult.error || dictionary?.toastCreditErrorDescription || "Failed to update credits. Message not sent.",
+        title: dictionary.toastCreditErrorTitle,
+        description: creditDecrementResult.error || dictionary.toastCreditErrorDescription,
       });
       if(creditDecrementResult.error === "Insufficient credits.") setIsBuyCreditsDialogOpenChirho(true);
       return;
@@ -426,6 +426,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       const resultChirho = await sendMessageToPersonaChirho(convincingInputChirho);
       if (resultChirho.success && resultChirho.data) {
         const personaResponseChirho = resultChirho.data as AIPersonaConvincingOutputChirho;
+        console.log("AI response language: ", personaResponseChirho.outputLanguageChirho, " | Requested language: ", currentConversationLanguageChirho);
         
         let imageForPersonaMessage = currentDynamicImageForResponse; 
 
@@ -444,7 +445,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             imageForPersonaMessage = imageResultChirho.data.updatedImageUriChirho;
           } else {
             console.warn("Image update failed, keeping previous image for message. Error:", imageResultChirho.error)
-            toastChirho({ variant: "destructive", title: "Image Update Failed", description: dictionary?.errorUpdatingImageDescription || "Could not update the persona's image."});
+            toastChirho({ variant: "destructive", title: "Image Update Failed", description: dictionary.errorUpdatingImageDescription });
           }
           setIsUpdatingImageChirho(false);
         }
@@ -460,24 +461,21 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
 
         if (personaResponseChirho.convincedChirho) {
           toastChirho({
-            title: dictionary?.personaConvincedToastTitle || "Persona Convinced!",
-            description: (dictionary?.personaConvincedToastDescription || "{nameOrTitle} has come to believe! A new, more challenging persona will now be generated.").replace(
+            title: dictionary.personaConvincedToastTitle,
+            description: (dictionary.personaConvincedToastDescription).replace(
               "{nameOrTitle}", 
-              personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || 'The person')
+              personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle)
             ),
             duration: 7000,
           });
-          const newDifficulty = Math.min(difficultyLevelChirho + 1, 10);
           await archiveCurrentConversationChirho(personaChirho, finalMessagesForArchive, true, currentConversationLanguageChirho); 
-          setDifficultyLevelChirho(newDifficulty); 
-          setCurrentConversationLanguageChirho(lang); // New persona starts in current UI language
-          loadNewPersonaChirho(newDifficulty, false, null); 
+          setIsCelebrationModeActiveChirho(true);
         }
       } else {
         toastChirho({
           variant: "destructive",
-          title: dictionary?.errorSendingMessageTitle || "Error Getting Response",
-          description: resultChirho.error || dictionary?.errorSendingMessageDescription || "Could not get persona's response.",
+          title: dictionary.errorSendingMessageTitle,
+          description: resultChirho.error || dictionary.errorSendingMessageDescription,
         });
          setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
          if(currentUserChirho) { 
@@ -490,8 +488,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     } catch (errorChirho: any) {
         toastChirho({
             variant: "destructive",
-            title: "Error",
-            description: errorChirho.message || "An unexpected error occurred while sending the message.",
+            title: dictionary.generalErrorTitle,
+            description: errorChirho.message || dictionary.generalUnexpectedError,
         });
         setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
          if(currentUserChirho) { 
@@ -509,11 +507,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     
     const lastPersonaMessageChirho = messagesChirho.filter(mChirho => mChirho.sender === 'persona').pop();
     if (!lastPersonaMessageChirho) {
-        toastChirho({ variant: "destructive", title: dictionary?.toastCannotSuggestTitle || "Cannot Suggest", description: dictionary?.toastCannotSuggestNoMessage || "No persona message found to base a suggestion on." });
+        toastChirho({ variant: "destructive", title: dictionary.toastCannotSuggestTitle, description: dictionary.toastCannotSuggestNoMessage });
         return;
     }
     if (!lastPersonaMessageChirho.text?.trim()) {
-        toastChirho({ variant: "destructive", title: dictionary?.toastCannotSuggestTitle || "Cannot Suggest", description: dictionary?.toastCannotSuggestEmptyMessage || "The last persona message is empty." });
+        toastChirho({ variant: "destructive", title: dictionary.toastCannotSuggestTitle, description: dictionary.toastCannotSuggestEmptyMessage });
         return;
     }
     
@@ -521,7 +519,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                               ? personaChirho.personaNameChirho 
                               : "Character"; 
 
-    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : (personaChirho.encounterTitleChirho || "the person");
+    const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : (personaChirho.encounterTitleChirho || dictionary.thePerson);
 
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
@@ -543,19 +541,26 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       } else {
         toastChirho({
           variant: "destructive",
-          title: dictionary?.toastSuggestionFailedTitle || "Suggestion Failed",
-          description: resultChirho.error || dictionary?.toastSuggestionFailedDescription || "Could not fetch a suggestion. Please try again.",
+          title: dictionary.toastSuggestionFailedTitle,
+          description: resultChirho.error || dictionary.toastSuggestionFailedDescription,
         });
       }
     } catch (errorChirho: any) {
       console.error("Error fetching suggested response:", errorChirho);
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastSuggestionErrorTitle || "Suggestion Error",
-        description: errorChirho.message || dictionary?.toastSuggestionErrorDescription || "An unexpected error occurred while fetching the suggestion.",
+        title: dictionary.toastSuggestionErrorTitle,
+        description: errorChirho.message || dictionary.toastSuggestionErrorDescription,
       });
     }
     setIsFetchingSuggestionChirho(false);
+  };
+
+  const handleStartNextConversationChirho = () => {
+    const newDifficulty = Math.min(difficultyLevelChirho + 1, 10);
+    setDifficultyLevelChirho(newDifficulty);
+    setCurrentConversationLanguageChirho(lang); // New persona starts in current UI language
+    loadNewPersonaChirho(newDifficulty, false, null); 
   };
   
   const handleImagePopupChirho = (imageUrl: string | null | undefined) => {
@@ -572,15 +577,15 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     if (result.success && result.newCredits !== undefined) {
       updateLocalUserProfileChirho({ credits: result.newCredits });
       toastChirho({
-        title: dictionary?.toastCreditsAddedTitle || "Credits Added",
-        description: dictionary?.toastCreditsAddedDescription || "1000 test credits have been added to your account.",
+        title: dictionary.toastCreditsAddedTitle,
+        description: dictionary.toastCreditsAddedDescription,
       });
       setIsBuyCreditsDialogOpenChirho(false);
     } else {
       toastChirho({
         variant: "destructive",
-        title: dictionary?.toastErrorAddingCreditsTitle || "Error Adding Credits",
-        description: result.error || dictionary?.toastErrorAddingCreditsDescription || "Failed to add test credits.",
+        title: dictionary.toastErrorAddingCreditsTitle,
+        description: result.error || dictionary.toastErrorAddingCreditsDescription,
       });
     }
     setIsSendingMessageChirho(false);
@@ -591,27 +596,30 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   }
 
   if (!currentUserChirho && !loadingAuthChirho) {
-    return <div className="flex items-center justify-center h-full"><p>{dictionary?.redirectingToLogin || "Redirecting to login..."}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
+    return <div className="flex items-center justify-center h-full"><p>{dictionary.redirectingToLogin}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
   
   if (!userProfileChirho || !dictionary) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>{dictionary?.loadingUserProfile || "Loading user profile..."}</p>
+        <p>{dictionary.loadingUserProfile}</p>
         <Loader2 className="h-8 w-8 animate-spin text-primary ml-2" />
       </div>
     );
   }
   
-  const personaDisplayNameForCard = personaChirho 
-    ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown || "AI Persona: {name}").replace("{name}", personaChirho.personaNameChirho) : (dictionary.personaCardTitleUnknown || "Encounter: {title}").replace("{title}", personaChirho.encounterTitleChirho || "A New Encounter"))
-    : (dictionary.personaCardTitleLoading || "Loading Persona...");
+  const personaDisplayNameForCard = isCelebrationModeActiveChirho
+    ? (dictionary.personaConvincedCelebrationMessage).replace("{nameOrTitle}", personaChirho?.personaNameKnownToUserChirho ? (personaChirho?.personaNameChirho || "") : (personaChirho?.encounterTitleChirho || dictionary.thePerson))
+    : personaChirho 
+      ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (dictionary.personaCardTitleUnknown).replace("{title}", personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))
+      : dictionary.personaCardTitleLoading;
+
   const chatWithNameForHeader = personaChirho 
-    ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.chatWithTitleKnown || "Chat with {name}").replace("{name}", personaChirho.personaNameChirho) : (dictionary.chatWithTitleUnknown || "Chat with {title}").replace("{title}", personaChirho.encounterTitleChirho || "the Person"))
-    : (dictionary.personaCardTitleLoading || "Loading...");
+    ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.chatWithTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (dictionary.chatWithTitleUnknown).replace("{title}", personaChirho.encounterTitleChirho || dictionary.thePerson))
+    : dictionary.personaCardTitleLoading;
   const messagePlaceholderName = personaChirho 
-    ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.messagePlaceholderKnown || "Message {name}...").replace("{name}", personaChirho.personaNameChirho) : (dictionary.messagePlaceholderUnknown || "Message {title}...").replace("{title}", personaChirho.encounterTitleChirho || "the person"))
-    : (dictionary.messagePlaceholderLoading || "Loading persona...");
+    ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.messagePlaceholderKnown).replace("{name}", personaChirho.personaNameChirho) : (dictionary.messagePlaceholderUnknown).replace("{title}", personaChirho.encounterTitleChirho || dictionary.thePerson))
+    : dictionary.messagePlaceholderLoading;
   const noCreditsChirho = userProfileChirho.credits <= 0;
 
   return (
@@ -634,10 +642,10 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
                   <DialogHeader>
                     <DialogTitle>
-                      {selectedArchivedConversationChirho ? (dictionary.historyDialogTitleSelected || "Chat with {nameOrTitle}").replace("{nameOrTitle}", selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || "Person")) : (dictionary.historyDialogTitle || "Conversation History")}
+                      {selectedArchivedConversationChirho ? (dictionary.historyDialogTitleSelected).replace("{nameOrTitle}", selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || dictionary.thePerson)) : dictionary.historyDialogTitle}
                     </DialogTitle>
                     <DialogDescription>
-                      {selectedArchivedConversationChirho ? (dictionary.historyDialogDescriptionSelected || "Conversation from {date}").replace("{date}", new Date(selectedArchivedConversationChirho.timestamp).toLocaleString()) : (dictionary.historyDialogDescription || "Select a past conversation to view details, continue, or clear history.")}
+                      {selectedArchivedConversationChirho ? (dictionary.historyDialogDescriptionSelected).replace("{date}", new Date(selectedArchivedConversationChirho.timestamp).toLocaleString()) : dictionary.historyDialogDescription}
                     </DialogDescription>
                   </DialogHeader>
                   {!selectedArchivedConversationChirho ? (
@@ -654,12 +662,12 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                                 className="w-full justify-start"
                                 onClick={() => setSelectedArchivedConversationChirho(chatChirho)}
                               >
-                                {(chatChirho.personaNameKnownToUserChirho ? chatChirho.personaNameChirho : (chatChirho.encounterTitleChirho || "A Past Encounter"))} - {new Date(chatChirho.timestamp).toLocaleDateString()} ({chatChirho.convincedChirho ? (dictionary.historyArchivedPersonaConvinced || "Convinced") : (dictionary.historyArchivedPersonaNotConvinced || "Not Convinced")})
+                                {(chatChirho.personaNameKnownToUserChirho ? chatChirho.personaNameChirho : (chatChirho.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle))} - {new Date(chatChirho.timestamp).toLocaleDateString()} ({chatChirho.convincedChirho ? dictionary.historyArchivedPersonaConvinced : dictionary.historyArchivedPersonaNotConvinced})
                               </Button>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-muted-foreground text-center py-4">{dictionary.historyListEmpty || "No conversation history found."}</p>
+                          <p className="text-muted-foreground text-center py-4">{dictionary.historyListEmpty}</p>
                         )}
                       </ScrollArea>
                       {archivedConversationsChirho.length > 0 && (
@@ -668,20 +676,20 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                             <AlertDialogTrigger asChild>
                               <Button variant="destructive" className="w-full" disabled={isLoadingHistoryChirho}>
                                 {isLoadingHistoryChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} 
-                                {dictionary.historyClearAllButton || "Clear All History"}
+                                {dictionary.historyClearAllButton}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>{dictionary.historyClearConfirmTitle || "Are you absolutely sure?"}</AlertDialogTitle>
+                                <AlertDialogTitle>{dictionary.historyClearConfirmTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  {dictionary.historyClearConfirmDescription || "This action cannot be undone. This will permanently delete all your conversation history for this account from the server."}
+                                  {dictionary.historyClearConfirmDescription}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>{dictionary.general?.cancel || "Cancel"}</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleClearHistoryChirho}>
-                                  {dictionary.historyClearConfirmAction || "Yes, delete history"}
+                                  {dictionary.historyClearConfirmAction}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -692,22 +700,22 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                   ) : (
                     <div className="flex-grow flex flex-col overflow-hidden">
                       <Button onClick={() => setSelectedArchivedConversationChirho(null)} variant="outline" size="sm" className="mb-2 self-start">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> {dictionary.historyBackButton || "Back to List"}
+                        <ArrowLeft className="mr-2 h-4 w-4" /> {dictionary.historyBackButton}
                       </Button>
                       <Card className="mb-2 p-3">
                         <div className="flex items-center gap-3">
-                           <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80" onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)} title="View initial persona image">
+                           <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80" onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)} title={dictionary.historyArchivedPersonaAvatarTitle}>
                               {selectedArchivedConversationChirho.initialPersonaImageChirho ? (
-                                <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt={dictionary.historyArchivedPersonaAvatarAlt || "Archived persona avatar"} />
+                                <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt={dictionary.historyArchivedPersonaAvatarAlt} />
                               ) : null }
                               <AvatarFallback className="bg-primary text-primary-foreground">
                                 {selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5" />}
                               </AvatarFallback>
                             </Avatar>
                           <div>
-                            <p className="font-semibold">{(selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || "A Past Encounter"))}</p>
+                            <p className="font-semibold">{(selectedArchivedConversationChirho.personaNameKnownToUserChirho ? selectedArchivedConversationChirho.personaNameChirho : (selectedArchivedConversationChirho.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle))}</p>
                             <p className="text-xs text-muted-foreground">{selectedArchivedConversationChirho.meetingContextChirho}</p>
-                            <p className="text-xs text-muted-foreground">Difficulty: {selectedArchivedConversationChirho.difficultyLevelChirho} - {selectedArchivedConversationChirho.convincedChirho ? (dictionary.historyArchivedPersonaConvinced || "Convinced") : (dictionary.historyArchivedPersonaNotConvinced || "Not Convinced")}</p>
+                            <p className="text-xs text-muted-foreground">{dictionary.difficultyLevel.replace('{level}',selectedArchivedConversationChirho.difficultyLevelChirho.toString())} - {selectedArchivedConversationChirho.convincedChirho ? dictionary.historyArchivedPersonaConvinced : dictionary.historyArchivedPersonaNotConvinced}</p>
                           </div>
                         </div>
                       </Card>
@@ -722,11 +730,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                                  <Avatar 
                                     className={`h-8 w-8 ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`} 
                                     onClick={() => handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                                    title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
+                                    title={msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                                  >
                                     {msgChirho.imageUrlChirho ? (
-                                        <AvatarImage src={msgChirho.imageUrlChirho} alt="Persona avatar" />
-                                    ) : (selectedArchivedConversationChirho.initialPersonaImageChirho ? <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt="Persona initial avatar" /> : null)}
+                                        <AvatarImage src={msgChirho.imageUrlChirho} alt={dictionary.personaAvatarAlt} />
+                                    ) : (selectedArchivedConversationChirho.initialPersonaImageChirho ? <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null)}
                                     <AvatarFallback className="bg-accent text-accent-foreground">
                                       {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && (selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5"/>)}
                                     </AvatarFallback>
@@ -737,7 +745,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                                   msgChirho.sender === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
                                 } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
                                 onClick={() => msgChirho.sender === "persona" && handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                                title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
+                                title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                               >
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                               </div>
@@ -760,12 +768,12 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                                     loadNewPersonaChirho(selectedArchivedConversationChirho.difficultyLevelChirho, false, selectedArchivedConversationChirho);
                                 }
                             }}
-                            disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}
+                            disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isCelebrationModeActiveChirho}
                         >
-                            {dictionary.historyContinueButton || "Continue this Conversation"}
+                            {dictionary.historyContinueButton}
                         </Button>
                         <DialogClose asChild>
-                            <Button variant="outline">{dictionary.historyCloseButton || "Close"}</Button>
+                            <Button variant="outline">{dictionary.historyCloseButton}</Button>
                         </DialogClose>
                       </DialogFooter>
                     </div>
@@ -773,18 +781,26 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 </DialogContent>
               </Dialog>
 
-              <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho, false, null)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho} title={dictionary.newPersonaButtonTitle}>
+              <Button variant="outline" size="icon" onClick={() => loadNewPersonaChirho(difficultyLevelChirho, false, null)} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || isCelebrationModeActiveChirho} title={dictionary.newPersonaButtonTitle}>
                 {(isLoadingPersonaChirho && !personaChirho && messagesChirho.length === 0) ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="sr-only">{dictionary.newPersonaButtonTitle}</span>
               </Button>
             </div>
           </CardTitle>
-          {!isLoadingPersonaChirho && personaChirho && (
-            <CardDescription>{(dictionary.difficultyLevel || "Difficulty Level: {level}").replace("{level}", difficultyLevelChirho.toString())}</CardDescription>
+          {!(isLoadingPersonaChirho && !personaChirho) && !isCelebrationModeActiveChirho && personaChirho && (
+            <CardDescription>{dictionary.difficultyLevel.replace("{level}", difficultyLevelChirho.toString())}</CardDescription>
           )}
         </CardHeader>
-        <CardContent>
-          {(isLoadingPersonaChirho && !personaChirho) ? (
+        <CardContent className={isCelebrationModeActiveChirho ? "flex flex-col items-center justify-center h-full" : ""}>
+          {isCelebrationModeActiveChirho ? (
+             <div className="text-center space-y-4 p-4">
+                <PartyPopper className="h-16 w-16 text-accent mx-auto" />
+                <h2 className="text-2xl font-semibold">{personaDisplayNameForCard}</h2>
+                <Button onClick={handleStartNextConversationChirho} size="lg">
+                  {dictionary.startNextConversationButton}
+                </Button>
+              </div>
+          ) : (isLoadingPersonaChirho && !personaChirho) ? (
             <div className="space-y-4">
               <div className="w-full aspect-square bg-muted rounded-lg animate-pulse" />
               <div className="h-6 w-3/4 bg-muted rounded animate-pulse mt-2" />
@@ -796,12 +812,12 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
               <div 
                 className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden shadow-md cursor-pointer hover:opacity-80"
                 onClick={() => handleImagePopupChirho(dynamicPersonaImageChirho || personaChirho.personaImageChirho)} 
-                title="Click to enlarge image"
+                title={dictionary.enlargeImageTitle}
               >
                 {(dynamicPersonaImageChirho || personaChirho.personaImageChirho) && ( 
                   <Image
                     src={dynamicPersonaImageChirho || personaChirho.personaImageChirho!} 
-                    alt={`AI Persona: ${personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || "Current Encounter")}`}
+                    alt={dictionary.personaImageAlt.replace("{nameOrTitle}", personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))}
                     fill
                     style={{ objectFit: "cover" }}
                     data-ai-hint="portrait person"
@@ -819,7 +835,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
               <div className="mt-4 space-y-2">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <Info className="h-5 w-5 text-primary" />
-                  {dictionary.meetingContextTitle || "Meeting Context"}
+                  {dictionary.meetingContextTitle}
                 </h3>
                 <p className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-md border">
                   {personaChirho.meetingContextChirho}
@@ -828,47 +844,49 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             </>
           ) : (
             <Alert variant="destructive">
-              <AlertTitle>{dictionary.errorGeneratingPersonaTitle || "Error Loading Persona"}</AlertTitle>
-              <AlertDescription>{dictionary.errorGeneratingPersonaDescription || "Failed to load persona details. Please try refreshing to get a new persona."}</AlertDescription>
+              <AlertTitle>{dictionary.errorGeneratingPersonaTitle}</AlertTitle>
+              <AlertDescription>{dictionary.errorGeneratingPersonaDescription}</AlertDescription>
             </Alert>
           )}
         </CardContent>
-         <CardFooter className="border-t pt-4">
-          <Dialog open={isBuyCreditsDialogOpenChirho} onOpenChange={setIsBuyCreditsDialogOpenChirho}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="w-full" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}>
-                <CreditCard className="mr-2 h-4 w-4" /> {dictionary.getMoreCreditsButton || "Get More Message Credits"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{dictionary.creditsDialogTitle || "Get More Message Credits"}</DialogTitle>
-                <DialogDescription>
-                  {dictionary.creditsDialogDescription || "Choose a package to continue your conversations. (Payment integration is a demo)."}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <Card className="p-4 hover:shadow-lg transition-shadow">
-                  <CardTitle className="text-lg">{dictionary.creditsTestPackageTitle || "Test Package"}</CardTitle>
-                  <CardDescription>{dictionary.creditsTestPackageDescription || "Add 1000 credits for testing purposes."}</CardDescription>
-                  <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
-                    {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (dictionary.creditsTestPackageButton || "Get 1000 Test Credits")}
-                  </Button>
-                </Card>
-                <Card className="p-4 bg-muted/50">
-                  <CardTitle className="text-lg">{dictionary.creditsBasicPackageTitle || "Basic Evangelist Pack (Example)"}</CardTitle>
-                  <CardDescription>{dictionary.creditsBasicPackageDescription || "$5.00 - Approximately 5000 message credits. (Actual payment not implemented)"}</CardDescription>
-                  <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsBuyNowButtonDisabled || "Buy Now (Disabled)"}</Button>
-                </Card>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">{dictionary.creditsDialogCloseButton || "Close"}</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </CardFooter>
+         {!isCelebrationModeActiveChirho && (
+            <CardFooter className="border-t pt-4">
+                <Dialog open={isBuyCreditsDialogOpenChirho} onOpenChange={setIsBuyCreditsDialogOpenChirho}>
+                    <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}>
+                        <CreditCard className="mr-2 h-4 w-4" /> {dictionary.getMoreCreditsButton}
+                    </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{dictionary.creditsDialogTitle}</DialogTitle>
+                        <DialogDescription>
+                        {dictionary.creditsDialogDescription}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <Card className="p-4 hover:shadow-lg transition-shadow">
+                        <CardTitle className="text-lg">{dictionary.creditsTestPackageTitle}</CardTitle>
+                        <CardDescription>{dictionary.creditsTestPackageDescription}</CardDescription>
+                        <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
+                            {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : dictionary.creditsTestPackageButton}
+                        </Button>
+                        </Card>
+                        <Card className="p-4 bg-muted/50">
+                        <CardTitle className="text-lg">{dictionary.creditsBasicPackageTitle}</CardTitle>
+                        <CardDescription>{dictionary.creditsBasicPackageDescription}</CardDescription>
+                        <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsBuyNowButtonDisabled}</Button>
+                        </Card>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                        <Button variant="outline">{dictionary.creditsDialogCloseButton}</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardFooter>
+         )}
       </Card>
 
       <Card className="flex-grow flex flex-col shadow-xl max-h-full">
@@ -876,7 +894,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
           <CardTitle>{chatWithNameForHeader}</CardTitle>
           <CardDescription className="flex items-center gap-1">
             <MessageCircleMore className="h-4 w-4 text-primary" /> 
-            {(dictionary.creditsRemaining || "Credits remaining: {count}").replace("{count}", (userProfileChirho?.credits ?? 0).toString())}
+            {dictionary.creditsRemaining.replace("{count}", (userProfileChirho?.credits ?? 0).toString())}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col overflow-hidden p-0">
@@ -893,11 +911,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                     <Avatar 
                         className={`h-8 w-8 ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`} 
                         onClick={() => handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                        title={msgChirho.imageUrlChirho ? "Click avatar to view image" : ""}
+                        title={msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                     >
                       {msgChirho.imageUrlChirho ? (
-                        <AvatarImage src={msgChirho.imageUrlChirho} alt="Persona avatar" />
-                      ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt="Persona initial avatar" /> : null )}
+                        <AvatarImage src={msgChirho.imageUrlChirho} alt={dictionary.personaAvatarAlt} />
+                      ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null )}
                       <AvatarFallback className="bg-accent text-accent-foreground">
                         {!(msgChirho.imageUrlChirho || personaChirho?.personaImageChirho) && (personaChirho?.personaNameChirho ? personaChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5"/>)}
                       </AvatarFallback>
@@ -910,7 +928,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                         : "bg-card border"
                     } ${msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "cursor-pointer hover:bg-muted/80" : ""}`}
                      onClick={() => msgChirho.sender === "persona" && handleImagePopupChirho(msgChirho.imageUrlChirho)}
-                     title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? "Click message to view image" : ""}
+                     title={msgChirho.sender === "persona" && msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                   </div>
@@ -923,12 +941,12 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                   )}
                 </div>
               ))}
-              {(isSendingMessageChirho || isUpdatingImageChirho) && messagesChirho[messagesChirho.length-1]?.sender === 'user' && (
+              {(isSendingMessageChirho || isUpdatingImageChirho) && messagesChirho[messagesChirho.length-1]?.sender === 'user' && !isCelebrationModeActiveChirho && (
                  <div className="flex items-end gap-2 justify-start">
                     <Avatar className="h-8 w-8">
                        {dynamicPersonaImageChirho ? (
-                         <AvatarImage src={dynamicPersonaImageChirho} alt="Persona avatar" />
-                       ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt="Persona initial avatar" /> : null ) }
+                         <AvatarImage src={dynamicPersonaImageChirho} alt={dictionary.personaAvatarAlt} />
+                       ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null ) }
                        <AvatarFallback className="bg-accent text-accent-foreground">
                          {!(dynamicPersonaImageChirho || personaChirho?.personaImageChirho) && <Bot className="h-5 w-5" />}
                        </AvatarFallback>
@@ -940,14 +958,14 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
               )}
             </div>
           </ScrollArea>
-          {suggestedAnswerChirho && (
+          {suggestedAnswerChirho && !isCelebrationModeActiveChirho && (
             <Alert variant="default" className="m-4 border-accent shadow-md">
                 <Lightbulb className="h-4 w-4 text-accent" />
                 <AlertTitle className="flex justify-between items-center">
-                    {dictionary.suggestedAnswerAlertTitle || "Suggested Answer"}
+                    {dictionary.suggestedAnswerAlertTitle}
                     <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswerChirho(null)} className="h-6 w-6">
                         <XCircle className="h-4 w-4" />
-                        <span className="sr-only">Dismiss suggestion</span>
+                        <span className="sr-only">{dictionary.dismissSuggestionButtonTitle}</span>
                     </Button>
                 </AlertTitle>
                 <AlertDescription className="mt-1 text-sm whitespace-pre-wrap">
@@ -963,56 +981,58 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                     }}
                     disabled={noCreditsChirho}
                 >
-                    {dictionary.useSuggestionButton || "Use this suggestion"}
+                    {dictionary.useSuggestionButton}
                 </Button>
             </Alert>
           )}
-          {noCreditsChirho && personaChirho && ( 
+          {noCreditsChirho && personaChirho && !isCelebrationModeActiveChirho && ( 
              <Alert variant="destructive" className="m-4">
-                <AlertTitle>{dictionary.outOfCreditsAlertTitle || "Out of Message Credits"}</AlertTitle>
+                <AlertTitle>{dictionary.outOfCreditsAlertTitle}</AlertTitle>
                 <AlertDescription>
-                  {(dictionary.outOfCreditsAlertDescription || "You've used all your message credits. Please get more to continue chatting with {nameOrTitle}.").replace("{nameOrTitle}", chatWithNameForHeader)}
+                  {dictionary.outOfCreditsAlertDescription.replace("{nameOrTitle}", chatWithNameForHeader)}
                   <Button className="mt-2 w-full" size="sm" onClick={() => setIsBuyCreditsDialogOpenChirho(true)}>
-                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.getMoreCreditsButton || "Get More Credits"}
+                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.getMoreCreditsButton}
                   </Button>
                 </AlertDescription>
              </Alert>
           )}
-          <div className="border-t p-4 bg-background/50">
-            <div className="flex items-end gap-2">
-              <Textarea
-                value={userInputChirho}
-                onChange={(eChirho) => setUserInputChirho(eChirho.target.value)}
-                placeholder={isLoadingPersonaChirho || !personaChirho ? (dictionary.messagePlaceholderLoading || "Loading persona...") : (noCreditsChirho ? (dictionary.messagePlaceholderNoCredits || "Out of credits. Get more to continue.") : messagePlaceholderName)}
-                className="flex-grow resize-none"
-                rows={2}
-                onKeyDown={(eChirho) => {
-                  if (eChirho.key === 'Enter' && !eChirho.shiftKey && !noCreditsChirho) {
-                    eChirho.preventDefault();
-                    handleSendMessageChirho();
-                  }
-                }}
-                disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || noCreditsChirho}
-              />
-              <div className="flex flex-col gap-1">
-                <Button
-                  onClick={handleSuggestAnswerChirho}
-                  disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || messagesChirho.filter(mChirho=>mChirho.sender==='persona').length === 0 || noCreditsChirho}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  title={dictionary.suggestButton || "Suggest an answer"}
-                >
-                  {isFetchingSuggestionChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                  <span className="sr-only sm:not-sr-only sm:ml-1">{dictionary.suggestButton || "Suggest"}</span>
-                </Button>
-                <Button onClick={handleSendMessageChirho} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !userInputChirho.trim() || !personaChirho || noCreditsChirho} className="w-full">
-                  {(isSendingMessageChirho || isUpdatingImageChirho) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  <span className="sr-only sm:not-sr-only sm:ml-1">{dictionary.sendButton || "Send"}</span>
-                </Button>
-              </div>
+          {!isCelebrationModeActiveChirho && (
+            <div className="border-t p-4 bg-background/50">
+                <div className="flex items-end gap-2">
+                <Textarea
+                    value={userInputChirho}
+                    onChange={(eChirho) => setUserInputChirho(eChirho.target.value)}
+                    placeholder={isLoadingPersonaChirho || !personaChirho ? dictionary.messagePlaceholderLoading : (noCreditsChirho ? dictionary.messagePlaceholderNoCredits : messagePlaceholderName)}
+                    className="flex-grow resize-none"
+                    rows={2}
+                    onKeyDown={(eChirho) => {
+                    if (eChirho.key === 'Enter' && !eChirho.shiftKey && !noCreditsChirho) {
+                        eChirho.preventDefault();
+                        handleSendMessageChirho();
+                    }
+                    }}
+                    disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || noCreditsChirho}
+                />
+                <div className="flex flex-col gap-1">
+                    <Button
+                    onClick={handleSuggestAnswerChirho}
+                    disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !personaChirho || messagesChirho.filter(mChirho=>mChirho.sender==='persona').length === 0 || noCreditsChirho}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    title={dictionary.suggestButtonTitle}
+                    >
+                    {isFetchingSuggestionChirho ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                    <span className="sr-only sm:not-sr-only sm:ml-1">{dictionary.suggestButton}</span>
+                    </Button>
+                    <Button onClick={handleSendMessageChirho} disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isFetchingSuggestionChirho || !userInputChirho.trim() || !personaChirho || noCreditsChirho} className="w-full">
+                    {(isSendingMessageChirho || isUpdatingImageChirho) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    <span className="sr-only sm:not-sr-only sm:ml-1">{dictionary.sendButton}</span>
+                    </Button>
+                </div>
+                </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1020,7 +1040,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         isOpenChirho={isImagePopupOpenChirho}
         onCloseChirho={() => setIsImagePopupOpenChirho(false)}
         imageUrlChirho={imagePopupUrlChirho}
-        dictionary={dictionary ? {title: dictionary.imagePopupTitle, notAvailable: dictionary.imagePopupNotAvailable, closeButton: dictionary.imagePopupCloseButton} : undefined}
+        dictionary={dictionary}
       />
 
     </div>

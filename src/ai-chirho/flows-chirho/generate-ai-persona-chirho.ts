@@ -18,15 +18,15 @@ const GenerateAiPersonaInputSchemaChirho = z.object({
       'A person with a unique life story, who may have difficult questions before they come to believe.'
     )
     .describe('A general description or theme for the desired persona (e.g., struggling with loss, curious skeptic, specific profession).'),
-  languageChirho: z.string().optional().default('en').describe('The language for the persona generation (e.g., "en", "es").'),
+  languageChirho: z.string().optional().default('en').describe('The language for the persona generation (e.g., "en" for English, "es" for Spanish).'),
 });
 export type GenerateAiPersonaInputChirho = z.infer<typeof GenerateAiPersonaInputSchemaChirho>;
 
 const GenerateAiPersonaOutputSchemaChirho = z.object({
-  personaNameChirho: z.string().describe('The first name of the AI persona. Should be diverse and not repetitive.'),
-  personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex and approximate age/age range.'),
-  meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known, leave personaNameChirho out if not known.'),
-  encounterTitleChirho: z.string().describe('A short, engaging title for the encounter (max 5-7 words), suitable for display if the persona name is not immediately known. e.g., "The Distressed Artist", "Park Bench Contemplation", "Barista\'s Questions". This is different from the full meetingContextChirho.'),
+  personaNameChirho: z.string().describe('The first name of the AI persona. Should be diverse and not repetitive. MUST be in the language specified by the input languageChirho.'),
+  personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex and approximate age/age range. MUST be in the language specified by the input languageChirho.'),
+  meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known, leave personaNameChirho out if not known. MUST be in the language specified by the input languageChirho.'),
+  encounterTitleChirho: z.string().describe('A short, engaging title for the encounter (max 5-7 words), suitable for display if the persona name is not immediately known. e.g., "The Distressed Artist", "Park Bench Contemplation", "Barista\'s Questions". This is different from the full meetingContextChirho. MUST be in the language specified by the input languageChirho.'),
   personaImageChirho: z
     .string()
     .describe(
@@ -48,7 +48,7 @@ const generateAiPersonaFlowChirho = ai.defineFlow(
   },
   async (input: GenerateAiPersonaInputChirho) => {
     const personaDataPromptChirho = `You are an AI that generates diverse and unique characters for evangelism simulations.
-CRITICAL LANGUAGE INSTRUCTION: ALL text fields in your JSON output (personaNameChirho, personaDetailsChirho, meetingContextChirho, encounterTitleChirho) MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text must be in English. If {{{languageChirho}}} is 'es', all text must be in Spanish. No other language is acceptable for these text fields.
+CRITICAL LANGUAGE INSTRUCTION: ALL text fields in your JSON output (personaNameChirho, personaDetailsChirho, meetingContextChirho, encounterTitleChirho) MUST be strictly in the language specified by the language code: {{{languageChirho}}}. For example, if {{{languageChirho}}} is 'en', all text for these fields must be in English. If {{{languageChirho}}} is 'es', all text for these fields must be in Spanish. No other language is acceptable for these text fields.
 
 Based on the following input hint: "${input.personaDescriptionChirho}".
 
@@ -70,7 +70,7 @@ Your primary goal is to create a NEW and UNIQUE character each time.
 4.  **Encounter Title ("encounterTitleChirho")**:
     *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words) strictly in {{{languageChirho}}}. 
     *   This title will be displayed to the user if the persona's name isn't immediately known.
-    *   Examples (for English, adapt for {{{languageChirho}}}): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
+    *   Examples (The language of these example titles should be overridden by {{{languageChirho}}} in your actual output): "The Lost Tourist", "Anxious at the Airport", "Cafe Philosopher", "Skeptic in the Park", "Grieving Widow".
     *   Make it descriptive of the situation or the persona's initial presentation.
 5.  **Name Known to User ("personaNameKnownToUserChirho")**:
     *   Based on the "meetingContextChirho", determine if the persona's name would be immediately known to the user.
@@ -79,7 +79,7 @@ Your primary goal is to create a NEW and UNIQUE character each time.
 
 Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsChirho", "meetingContextChirho", "encounterTitleChirho", and "personaNameKnownToUserChirho". All string values in the JSON MUST be in the language specified by {{{languageChirho}}}.
 
-Example (The language of this example's text fields should be overridden by {{{languageChirho}}} in your actual output. Ensure to vary ALL details, especially names, from this example):
+Example (The language of this example's text fields MUST be overridden by {{{languageChirho}}} in your actual output. Ensure to vary ALL details, especially names, from this example):
 {
   "personaNameChirho": "Soren", 
   "personaDetailsChirho": "Soren is a man in his early 50s...",
