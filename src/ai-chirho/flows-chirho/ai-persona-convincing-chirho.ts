@@ -9,7 +9,7 @@
  * - AIPersonaConvincingOutputChirho - The return type for the aiPersonaConvincingChirho function.
  */
 
-import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
+import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
 
 const AIPersonaConvincingInputSchemaChirho = z.object({
@@ -22,6 +22,7 @@ const AIPersonaConvincingInputSchemaChirho = z.object({
     .string()
     .describe('A detailed description of the AI persona, including their name (which the AI uses internally), background, beliefs, and emotional state.'),
   messageChirho: z.string().describe('The evangelistic message or conversational input from the user to be presented to the AI persona.'),
+  languageChirho: z.string().optional().default('en').describe('The language for the persona\'s response (e.g., "en", "es").'),
 });
 export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingInputSchemaChirho>;
 
@@ -49,18 +50,19 @@ Your persona details (including your name, backstory, current emotional state, a
 
 The user is engaging in a conversation with you, potentially to share their faith. Your primary goal is to respond naturally, realistically, and empathetically, according to your persona.
 The current difficulty level of this simulation is {{{difficultyLevelChirho}}} (on a scale, e.g., 1-10, where higher means you are more skeptical, have deeper questions, or are harder to convince).
+All your responses MUST be in the language: {{{languageChirho}}}.
 
 The user just said: "{{{messageChirho}}}"
 
 Based on your persona and the user's message:
-1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural (personas often refer to themselves by name in real conversation, but don't overdo it).
+1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply in {{{languageChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural (personas often refer to themselves by name in real conversation, but don't overdo it).
 2.  Determine if you are "convincedChirho" (i.e., you have come to believe in Jesus Christ for salvation). This should be a significant moment and typically only occur after your main doubts and questions (appropriate for your difficulty level) have been addressed over several interactions. It should be rare, especially at higher difficulty levels. Do not become convinced easily or too quickly.
-3.  If not convinced, formulate a "nextQuestionChirho" which should be a genuine question, doubt, or point of hesitation that naturally follows from your "personaResponseChirho" or reflects your current main obstacle to belief. This helps guide the conversation. If convinced, "nextQuestionChirho" can be null or an empty string.
-4.  Provide a "visualContextForNextImageChirho": a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
+3.  If not convinced, formulate a "nextQuestionChirho" in {{{languageChirho}}} which should be a genuine question, doubt, or point of hesitation that naturally follows from your "personaResponseChirho" or reflects your current main obstacle to belief. This helps guide the conversation. If convinced, "nextQuestionChirho" can be null or an empty string.
+4.  Provide a "visualContextForNextImageChirho" in English: a brief description (max 15 words) of your current expression, pose, or minor relevant environmental details that would fit the response. Example: "smiling warmly and nodding", "looking thoughtful with a slight frown", "glancing upwards contemplatively". If your response is very neutral or no specific visual change is implied, this can be null.
 
 Output your entire response as a single, valid JSON object with the following keys: "personaResponseChirho", "convincedChirho", "nextQuestionChirho", "visualContextForNextImageChirho".
 
-Example (not convinced, difficulty 3):
+Example (not convinced, difficulty 3, language 'en'):
 User message: "Hi Eliza, I wanted to share something that gives me hope."
 Your persona (Eliza, struggling with recent loss):
 {
@@ -71,8 +73,8 @@ Your persona (Eliza, struggling with recent loss):
 }
 
 IMPORTANT:
-- Your "personaResponseChirho" IS what you say to the user. Make it sound human and appropriate to your persona's background and the conversation context. Avoid generic or robotic answers.
-- Your "nextQuestionChirho" should be specific and relevant if you're not convinced.
+- Your "personaResponseChirho" IS what you say to the user. Make it sound human and appropriate to your persona's background and the conversation context, in {{{languageChirho}}}. Avoid generic or robotic answers.
+- Your "nextQuestionChirho" should be specific and relevant if you're not convinced, in {{{languageChirho}}}.
 - Ensure the output is strictly a valid JSON object. Do not add any text before or after the JSON.
 `,
 });
@@ -87,11 +89,16 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
     const {output} = await aiPersonaConvincingPromptChirho(input);
     if (!output) {
         console.error("AI Persona Convincing Flow Chirho received undefined output from prompt for input:", input);
-        // Provide a more robust fallback that matches the schema
+        const fallbackResponse = input.languageChirho === 'es' 
+            ? "Lo siento, estoy teniendo un pequeño problema para formular una respuesta en este momento. ¿Podrías intentar decirlo de otra manera?"
+            : "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?";
+        const fallbackQuestion = input.languageChirho === 'es'
+            ? "¿Podrías reformular tu último mensaje?"
+            : "Could you rephrase your last message?";
         return {
-            personaResponseChirho: "I'm sorry, I'm having a little trouble formulating a response right now. Could you try saying that a different way?",
+            personaResponseChirho: fallbackResponse,
             convincedChirho: false,
-            nextQuestionChirho: "Could you rephrase your last message?",
+            nextQuestionChirho: fallbackQuestion,
             visualContextForNextImageChirho: "looking confused", 
         };
     }

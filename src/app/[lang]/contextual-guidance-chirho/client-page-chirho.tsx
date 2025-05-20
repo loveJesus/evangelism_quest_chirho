@@ -25,7 +25,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 const formSchemaChirho = z.object({
   topicChirho: z.string().min(3, "Topic must be at least 3 characters long.").max(100, "Topic must be at most 100 characters long."),
@@ -56,12 +56,11 @@ export default function ContextualGuidanceClientPageChirho({ dictionary, lang }:
     setErrorChirho(null);
     setGuidanceChirho(null);
 
-    // Pass the current language to the action
     const resultChirho = await fetchContextualGuidanceChirho({ topicChirho: dataChirho.topicChirho, languageChirho: lang });
     if (resultChirho.success && resultChirho.data) {
       setGuidanceChirho(resultChirho.data);
     } else {
-      const errorMsg = resultChirho.error || "Failed to fetch guidance. Please try again.";
+      const errorMsg = resultChirho.error || (dictionary?.errorAlertDescription || "Failed to fetch guidance. Please try again.");
       setErrorChirho(errorMsg);
       toastChirho({
         variant: "destructive",
@@ -95,6 +94,18 @@ export default function ContextualGuidanceClientPageChirho({ dictionary, lang }:
   if (!dictionary) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
+  
+  // Update form validation messages based on dictionary
+  useEffect(() => {
+    formSchemaChirho.refine(data => data.topicChirho.length >= 3, {
+      message: dictionary.topicMinLengthError || "Topic must be at least 3 characters long.",
+      path: ['topicChirho'],
+    }).refine(data => data.topicChirho.length <= 100, {
+      message: dictionary.topicMaxLengthError || "Topic must be at most 100 characters long.",
+      path: ['topicChirho'],
+    });
+  }, [dictionary]);
+
 
   return (
     <div className="space-y-6">

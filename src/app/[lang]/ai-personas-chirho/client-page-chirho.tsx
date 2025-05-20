@@ -20,7 +20,7 @@ import type { GenerateAiPersonaOutputChirho, GenerateAiPersonaInputChirho } from
 import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai-chirho/flows-chirho/ai-persona-convincing-chirho";
 import type { UpdatePersonaVisualsInputChirho } from "@/ai-chirho/flows-chirho/update-persona-visuals-chirho";
 import type { SuggestEvangelisticResponseInputChirho, SuggestEvangelisticResponseOutputChirho } from "@/ai-chirho/flows-chirho/suggest-evangelistic-response-chirho";
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,6 +73,7 @@ export interface ArchivedConversationChirho {
   difficultyLevelChirho: number;
   messagesChirho: MessageChirho[];
   convincedChirho: boolean;
+  conversationLanguageChirho: string; // Added to store the language of the conversation
   archivedAtServerMillis?: number; 
 }
 
@@ -96,6 +97,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   const [difficultyLevelChirho, setDifficultyLevelChirho] = useState(1);
   const [suggestedAnswerChirho, setSuggestedAnswerChirho] = useState<string | null>(null);
   const [isFetchingSuggestionChirho, setIsFetchingSuggestionChirho] = useState(false);
+  const [currentConversationLanguageChirho, setCurrentConversationLanguageChirho] = useState<string>(lang);
+
 
   const [archivedConversationsChirho, setArchivedConversationsChirho] = useState<ArchivedConversationChirho[]>([]);
   const [selectedArchivedConversationChirho, setSelectedArchivedConversationChirho] = useState<ArchivedConversationChirho | null>(null);
@@ -122,8 +125,13 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     }
   }, [currentUserChirho, loadingAuthChirho, routerChirho, lang]);
 
+ useEffect(() => {
+    setCurrentConversationLanguageChirho(lang); // Update conversation language when UI language changes
+  }, [lang]);
+
   useEffect(() => {
     if (!loadingAuthChirho && currentUserChirho) {
+      // Fetch history if it hasn't been loaded yet for this user
       if (archivedConversationsChirho.length === 0 && !isLoadingHistoryChirho) {
         setIsLoadingHistoryChirho(true);
         fetchArchivedConversationsFromFirestoreChirho(currentUserChirho.uid)
@@ -142,14 +150,17 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
           .finally(() => setIsLoadingHistoryChirho(false));
       }
 
+      // Initial persona load logic
       if (!personaChirho && messagesChirho.length === 0 && !justContinuedConversationRef.current && !isLoadingPersonaChirho) {
         console.log("Initial persona load triggered by useEffect for new session/page load.");
+        setCurrentConversationLanguageChirho(lang); // Set language for new conversation
         loadNewPersonaChirho(difficultyLevelChirho, false, null);
       }
       if (justContinuedConversationRef.current) {
         justContinuedConversationRef.current = false; 
       }
     } else if (!loadingAuthChirho && !currentUserChirho) {
+      // Clear state on logout
       setPersonaChirho(null);
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
@@ -158,19 +169,20 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       setIsLoadingPersonaChirho(false); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserChirho, loadingAuthChirho, toastChirho, dictionary]);
+  }, [currentUserChirho, loadingAuthChirho, toastChirho, dictionary, lang]);
 
 
   const archiveCurrentConversationChirho = useCallback(async (
     personaToArchive: GenerateAiPersonaOutputChirho | null, 
     messagesToArchive: MessageChirho[], 
-    convinced: boolean
+    convinced: boolean,
+    conversationLang: string
   ) => {
     if (!personaToArchive || messagesToArchive.length === 0 || !currentUserChirho) {
         console.log("Archive skipped: no persona, messages, or user.", { hasPersona: !!personaToArchive, messagesLength: messagesToArchive.length, hasUser: !!currentUserChirho });
         return;
     }
-    console.log(`Attempting to archive conversation for ${personaToArchive.personaNameChirho}`);
+    console.log(`Attempting to archive conversation for ${personaToArchive.personaNameChirho} in language: ${conversationLang}`);
     
     const newArchiveEntry: ArchivedConversationChirho = {
       id: Date.now().toString() + "_" + Math.random().toString(36).substring(2,9),
@@ -189,6 +201,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         imageUrlChirho: msg.imageUrlChirho || null 
       })),
       convincedChirho: convinced,
+      conversationLanguageChirho: conversationLang,
     };
 
     const result = await archiveConversationToFirestoreChirho(currentUserChirho.uid, newArchiveEntry);
@@ -238,6 +251,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     
     const currentPersonaForArchive = personaChirho; 
     const currentMessagesForArchive = messagesChirho;
+    const currentLangForArchive = currentConversationLanguageChirho;
 
     setIsLoadingPersonaChirho(true);
     setUserInputChirho("");
@@ -245,7 +259,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     
     if (currentPersonaForArchive && currentMessagesForArchive.length > 1 && currentUserChirho && !conversationToContinue) {
         console.log("Archiving current conversation before loading new/continued one.");
-        await archiveCurrentConversationChirho(currentPersonaForArchive, currentMessagesForArchive, convincedStatusOverride ?? false);
+        await archiveCurrentConversationChirho(currentPersonaForArchive, currentMessagesForArchive, convincedStatusOverride ?? false, currentLangForArchive);
     }
 
     if (conversationToContinue && currentUserChirho) {
@@ -260,6 +274,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
         };
         setPersonaChirho(restoredPersona);
+        setCurrentConversationLanguageChirho(conversationToContinue.conversationLanguageChirho);
+
 
         const restoredMessages = conversationToContinue.messagesChirho.map(msg => ({ ...msg }));
         setMessagesChirho(restoredMessages);
@@ -289,7 +305,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         return; 
     }
 
-    console.log("Loading NEW persona, difficulty:", difficultyToLoadChirho);
+    console.log("Loading NEW persona, difficulty:", difficultyToLoadChirho, "in language:", lang);
+    setCurrentConversationLanguageChirho(lang); // Set language for new conversation
     setMessagesChirho([]); 
     setDynamicPersonaImageChirho(null);
     setPersonaChirho(null); 
@@ -300,7 +317,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       if (!currentUserChirho) {
         throw new Error("User not authenticated for new persona generation.");
       }
-      const resultChirho = await generateNewPersonaActionChirho({ personaDescriptionChirho: personaThemeDescriptionChirho } as GenerateAiPersonaInputChirho, currentUserChirho.uid);
+      const resultChirho = await generateNewPersonaActionChirho({ personaDescriptionChirho: personaThemeDescriptionChirho, languageChirho: lang }, currentUserChirho.uid);
       if (resultChirho.success && resultChirho.data) {
         setPersonaChirho(resultChirho.data); 
         setDynamicPersonaImageChirho(resultChirho.data.personaImageChirho); 
@@ -331,7 +348,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     }
     setIsLoadingPersonaChirho(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toastChirho, archiveCurrentConversationChirho, currentUserChirho, dictionary]);
+  }, [toastChirho, archiveCurrentConversationChirho, currentUserChirho, dictionary, lang, currentConversationLanguageChirho]);
 
 
   useEffect(() => {
@@ -402,6 +419,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       difficultyLevelChirho: difficultyLevelChirho,
       personaDescriptionChirho: `${personaChirho.personaNameChirho}: ${personaChirho.personaDetailsChirho}`, 
       messageChirho: currentInputChirho,
+      languageChirho: currentConversationLanguageChirho,
     };
 
     try {
@@ -450,8 +468,9 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             duration: 7000,
           });
           const newDifficulty = Math.min(difficultyLevelChirho + 1, 10);
-          await archiveCurrentConversationChirho(personaChirho, finalMessagesForArchive, true); 
+          await archiveCurrentConversationChirho(personaChirho, finalMessagesForArchive, true, currentConversationLanguageChirho); 
           setDifficultyLevelChirho(newDifficulty); 
+          setCurrentConversationLanguageChirho(lang); // New persona starts in current UI language
           loadNewPersonaChirho(newDifficulty, false, null); 
         }
       } else {
@@ -511,7 +530,8 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       personaLastResponseChirho: lastPersonaMessageChirho.text,
       personaActualNameForContextChirho: actualPersonaName, 
       personaDisplayNameForUserChirho: displayNameForSuggestion,
-      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : displayNameForSuggestion}: ${m.text}`).join('\n')
+      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? 'User' : displayNameForSuggestion}: ${m.text}`).join('\n'),
+      languageChirho: currentConversationLanguageChirho,
     };
     
     console.log("Requesting suggestion with input:", suggestionInputChirho);
@@ -571,7 +591,6 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   }
 
   if (!currentUserChirho && !loadingAuthChirho) {
-    // This will be handled by the useEffect that calls routerChirho.push
     return <div className="flex items-center justify-center h-full"><p>{dictionary?.redirectingToLogin || "Redirecting to login..."}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
   

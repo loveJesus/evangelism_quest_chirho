@@ -22,7 +22,6 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
     return { success: false, error: "User ID, image data, and image name are required." };
   }
    if (!imageDataUri.startsWith('data:image')) {
-    // If it's already an HTTP URL (e.g., from Firebase Storage), just return it.
     if (imageDataUri.startsWith('http')) {
         console.warn("[Storage Action] uploadImageToStorageChirho received an HTTP URL, assuming already uploaded:", imageDataUri.substring(0, 50) + "...");
         return { success: true, downloadURL: imageDataUri };
@@ -48,8 +47,9 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
 export async function initializeUserChirho(userId: string, email: string | null, displayName?: string | null, photoURL?: string | null): Promise<{ success: boolean, error?: string }> {
   console.log("[Action initializeUserChirho] Called for user:", userId);
   if (!userId) {
-    console.error("initializeUserChirho Action: userId is required.");
-    return { success: false, error: "User ID is required." };
+    const errorMsg = "User ID is required for initializeUserChirho.";
+    console.error("[Action initializeUserChirho]", errorMsg);
+    return { success: false, error: errorMsg };
   }
   
   const userDocRef = doc(dbChirho, "users", userId);
@@ -67,18 +67,17 @@ export async function initializeUserChirho(userId: string, email: string | null,
         displayName: displayName || email?.split('@')[0] || "User",
         photoURL: photoURL || null,
         credits: INITIAL_FREE_CREDITS_CHIRHO,
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
+        createdAt: serverTimestamp(), // Firestore server timestamp
+        lastLogin: serverTimestamp(), // Firestore server timestamp
       };
       await setDoc(userDocRef, newUserProfile);
-      console.log("[Action initializeUserChirho] New user profile created in Firestore for:", userId);
+      console.log("[Action initializeUserChirho] New user profile CREATED in Firestore for:", userId);
     } else {
-      console.log("[Action initializeUserChirho] User document exists, updating profile for:", userId);
+      console.log("[Action initializeUserChirho] User document exists, UPDATING profile for:", userId);
       const existingData = userDocSnap.data() as UserProfileChirho;
       const updates: any = { 
         lastLogin: serverTimestamp(),
       };
-      // Only update displayName if it's different, non-empty, and not the default "User" or email prefix
       if (displayName && displayName.trim() !== "" && (existingData.displayName !== displayName || !existingData.displayName || existingData.displayName === "User" || (existingData.email && existingData.displayName === existingData.email.split('@')[0]))) {
         updates.displayName = displayName;
       }
@@ -86,11 +85,11 @@ export async function initializeUserChirho(userId: string, email: string | null,
         updates.photoURL = photoURL;
       }
       await updateDoc(userDocRef, updates);
-      console.log("[Action initializeUserChirho] User profile updated in Firestore for:", userId, "with updates:", updates);
+      console.log("[Action initializeUserChirho] User profile UPDATED in Firestore for:", userId, "with updates:", updates);
     }
     return { success: true };
   } catch (error: any) {
-    console.error("[Action initializeUserChirho] Firestore error for user", userId, ":", error.code, error.message, error);
+    console.error("[Action initializeUserChirho] Firestore error for user", userId, ":", error.code, error.message, error.stack);
     return { success: false, error: `Failed to initialize user profile: ${error.message} (Code: ${error.code})` };
   }
 }
@@ -102,6 +101,7 @@ export async function fetchUserProfileFromServerChirho(userId: string): Promise<
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
       const data = userDocSnap.data();
+      // Convert Timestamps to milliseconds for client-side compatibility
       const profileData: UserProfileChirho = {
         ...data,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : data.createdAt,
@@ -244,6 +244,12 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
     const dataToSave = { 
         ...conversationData, 
+        // Ensure all message image URLs are null or string (Firebase Storage URLs)
+        messagesChirho: conversationData.messagesChirho.map(msg => ({
+            ...msg,
+            imageUrlChirho: msg.imageUrlChirho || null 
+        })),
+        initialPersonaImageChirho: conversationData.initialPersonaImageChirho || null,
         archivedAtServer: serverTimestamp(), 
     };
 
@@ -302,9 +308,10 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
             id: msg.id,
             sender: msg.sender,
             text: msg.text,
-            imageUrlChirho: msg.imageUrlChirho || null
+            imageUrlChirho: msg.imageUrlChirho || null // Ensure it's null if undefined/empty
         })),
         convincedChirho: data.convincedChirho,
+        conversationLanguageChirho: data.conversationLanguageChirho || 'en', // Default to 'en' if missing
         archivedAtServerMillis: data.archivedAtServer instanceof Timestamp 
                                 ? data.archivedAtServer.toMillis() 
                                 : (typeof data.archivedAtServer === 'number' ? data.archivedAtServer : undefined),

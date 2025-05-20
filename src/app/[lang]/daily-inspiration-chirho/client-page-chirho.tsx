@@ -5,8 +5,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { quotesChirho, InspirationalQuoteChirho } from "@/lib/quotes-chirho"; 
 import { Sun, CalendarDays, Loader2 } from "lucide-react";
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
-import { defaultLocale } from '@/middleware'; // Import defaultLocale
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
+import { defaultLocale } from '@/middleware';
 
 interface DailyInspirationClientPagePropsChirho {
   dictionary: DictionaryChirho['dailyInspirationPage'];
@@ -22,7 +22,6 @@ export default function DailyInspirationClientPageChirho({ dictionary, lang }: D
     const dayOfYearChirho = Math.floor((todayChirho.getTime() - new Date(todayChirho.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
     setDailyQuoteChirho(quotesChirho[dayOfYearChirho % quotesChirho.length]);
     
-    // Format date based on locale, defaulting to undefined for system default
     const localeForDate = lang === defaultLocale ? undefined : lang;
     setCurrentDateChirho(todayChirho.toLocaleDateString(localeForDate, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -38,6 +37,8 @@ export default function DailyInspirationClientPageChirho({ dictionary, lang }: D
     );
   }
 
+  const quoteText = dailyQuoteChirho.text[lang as keyof typeof dailyQuoteChirho.text] || dailyQuoteChirho.text['en'];
+
   return (
     <div className="flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-2xl shadow-xl bg-gradient-to-br from-primary/10 via-background to-accent/10">
@@ -52,7 +53,7 @@ export default function DailyInspirationClientPageChirho({ dictionary, lang }: D
         </CardHeader>
         <CardContent className="text-center p-8">
           <blockquote className="text-2xl italic font-serif text-foreground mb-4">
-            "{dailyQuoteChirho.text}"
+            "{quoteText}"
           </blockquote>
           <p className="text-lg text-muted-foreground">&mdash; {dailyQuoteChirho.author}</p>
         </CardContent>

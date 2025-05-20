@@ -8,7 +8,7 @@
  * - SuggestEvangelisticResponseOutputChirho - The return type for the function.
  */
 
-import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
+import {ai} from '@/ai-chirho/genkit-chirho'; 
 import {z} from 'genkit';
 
 const SuggestEvangelisticResponseInputSchemaChirho = z.object({
@@ -16,6 +16,7 @@ const SuggestEvangelisticResponseInputSchemaChirho = z.object({
   personaActualNameForContextChirho: z.string().describe("The actual name of the AI persona. The AI coach uses this name internally for contextual understanding of who the user is interacting with."),
   personaDisplayNameForUserChirho: z.string().describe("The name or generic term (e.g., 'the person', 'them') that the user currently knows the AI persona by. This is what should be used in the suggested response if addressing the persona directly."),
   conversationHistoryChirho: z.string().optional().describe("A brief summary of the conversation so far, if available. This helps provide context for the suggestion."),
+  languageChirho: z.string().optional().default('en').describe('The language for the suggested response (e.g., "en", "es").'),
 });
 export type SuggestEvangelisticResponseInputChirho = z.infer<typeof SuggestEvangelisticResponseInputSchemaChirho>;
 
@@ -34,6 +35,7 @@ const promptChirho = ai.definePrompt({
   output: {schema: SuggestEvangelisticResponseOutputSchemaChirho},
   prompt: `You are an expert evangelism coach, modeling your response style after Ray Comfort of Living Waters.
 Your goal is to help the user effectively share their faith. The user is interacting with an AI persona.
+The response should be in the language: {{{languageChirho}}}.
 
 For your internal context, the AI persona's actual name is {{{personaActualNameForContextChirho}}}.
 However, the user currently knows this persona as: "{{{personaDisplayNameForUserChirho}}}".
@@ -42,11 +44,11 @@ It is CRITICAL that your suggested response for the user ONLY refers to the pers
 The persona (referred to as "{{{personaDisplayNameForUserChirho}}}") just said: "{{{personaLastResponseChirho}}}"
 
 {{#if conversationHistoryChirho}}
-Here's a brief summary of the conversation so far:
+Here's a brief summary of the conversation so far (also in {{{languageChirho}}}):
 {{{conversationHistoryChirho}}}
 {{/if}}
 
-Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}.
+Craft a "suggestedResponseChirho" for the user to say next to {{{personaDisplayNameForUserChirho}}}, in {{{languageChirho}}}.
 Your suggestion should:
 1.  Be conversational and natural, yet direct and purposeful.
 2.  Reflect a Bible-believing, evangelical Christian perspective. This includes belief in the authority of Scripture and the necessity of salvation through Jesus Christ.
@@ -57,13 +59,14 @@ Your suggestion should:
 7.  Be sensitive: "Law to the proud, grace to the humble." If {{{personaDisplayNameForUserChirho}}} seems resistant or self-righteous, gently use the Law to show their need for a Savior. If they seem open or broken, extend grace and hope.
 8.  Be concise and focused on one or two key points.
 
-Example of a possible interaction (if user knows persona as "Eliza"):
+Example of a possible interaction (if user knows persona as "Eliza", language 'en'):
 Persona Question: "Why does a good God allow so much suffering?"
 Your Suggested Response for User: "That's a really deep question, Eliza. Before we explore that, have you ever considered what the Bible says about why we experience good things in life, despite our own imperfections? For example, have you ever told a lie, stolen anything (even small), or used God's name in vain?"
 
-Example of a possible interaction (if user knows persona as "the person"):
-Persona Statement: "I think I'm a good person, I try my best."
-Your Suggested Response for User: "I appreciate your sincerity. Most of us like to think of ourselves as good. Could I ask, have you always kept all of the Ten Commandments? For instance, have you ever looked with lust, which Jesus said is like adultery in the heart, or been angry without cause, which He likened to murder?"
+Example of a possible interaction (if user knows persona as "la persona", language 'es'):
+Declaración de la Persona: "Creo que soy una buena persona, hago lo mejor que puedo."
+Tu Respuesta Sugerida para el Usuario: "Aprecio tu sinceridad. A la mayoría nos gusta pensar que somos buenos. ¿Podría preguntarte si siempre has guardado todos los Diez Mandamientos? Por ejemplo, ¿alguna vez has mirado con lujuria, que Jesús dijo que es como adulterio en el corazón, o te has enojado sin causa, lo cual Él comparó con el asesinato?"
+
 
 Provide ONLY the "suggestedResponseChirho" text.
 Format your entire response as a single, valid JSON object with the key "suggestedResponseChirho".
@@ -89,11 +92,13 @@ const suggestEvangelisticResponseFlowChirho = ai.defineFlow(
     const {output} = await promptChirho(input);
     if (!output) {
       console.error("Suggest Evangelistic Response Flow Chirho received undefined output from prompt for input:", input);
+      const fallbackSuggestion = input.languageChirho === 'es'
+        ? "Estoy teniendo un poco de dificultad para pensar en una sugerencia ahora mismo. Quizás intenta responder basándote en lo último que dijeron, y haz una pregunta amable que invite a la reflexión."
+        : "I'm having a bit of trouble thinking of a suggestion right now. Perhaps try to respond based on what they last said, and ask a gentle, thought-provoking question?";
       return {
-        suggestedResponseChirho: "I'm having a bit of trouble thinking of a suggestion right now. Perhaps try to respond based on what they last said, and ask a gentle, thought-provoking question?",
+        suggestedResponseChirho: fallbackSuggestion,
       };
     }
     return output;
   }
 );
-
