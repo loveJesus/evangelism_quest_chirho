@@ -10,14 +10,12 @@ function getLocale(request: NextRequest): string {
   const negotiatorHeaders: Record<string, string> = {};
   request.headers.forEach((value, key) => (negotiatorHeaders[key] = value));
 
-  // @ts-ignore languages are readonly (this is a known workaround for Negotiator)
+  // @ts-ignore languages are readonly
   const languages = new Negotiator({ headers: negotiatorHeaders }).languages();
 
   try {
     return match(languages, locales, defaultLocale);
   } catch (e) {
-    // Handle "No locale data has been provided for this object yet."
-    // This can happen if intl-localematcher is not properly initialized or languages array is empty/invalid.
     console.warn("Error matching locale in middleware, defaulting to:", defaultLocale, e);
     return defaultLocale;
   }
@@ -35,8 +33,6 @@ export function middleware(request: NextRequest) {
   if (pathnameIsMissingLocale) {
     const locale = getLocale(request);
 
-    // e.g. incoming request is /products
-    // The new URL is now /en/products or /es/products
     return NextResponse.redirect(
       new URL(
         '/' + locale + (pathname.startsWith('/') ? '' : '/') + pathname,
@@ -49,17 +45,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring paths starting with:
-  // - api (API routes)
-  // - _next/static (static files)
-  // - _next/image (image optimization files)
-  // - assets (your static assets folder)
-  // - favicon.ico (favicon file)
-  // - sw.js (service worker file)
-  // - manifest.json (PWA manifest)
-  // - robots.txt (robots file)
-  // - sitemap.xml (sitemap file)
-  // - any file with an extension (e.g., .png, .jpg, .svg)
   matcher: [
     '/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js|manifest.json|robots.txt|sitemap.xml|.*\\..*).*)'
   ],

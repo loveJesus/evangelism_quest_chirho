@@ -2,7 +2,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -31,7 +30,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // No explicit i18n config needed here if middleware handles routing
+  // No explicit i18n config needed here as middleware handles routing
 };
 
 export default nextConfig;

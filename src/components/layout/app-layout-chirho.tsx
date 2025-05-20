@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar"; 
 import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
-import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2, Gamepad2 } from "lucide-react";
+import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react";
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; 
@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 interface AppLayoutPropsChirho {
   children: ReactNode;
@@ -52,10 +52,10 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
   else if (pathnameChirho === "/contextual-guidance-chirho") currentPageTitleChirho = dictionary.contextualGuidance;
   else if (pathnameChirho === "/daily-inspiration-chirho") currentPageTitleChirho = dictionary.dailyInspiration;
   else if (pathnameChirho === "/settings-chirho") currentPageTitleChirho = dictionary.settings;
-  else if (pathnameChirho === "/") currentPageTitleChirho = dictionary.home; 
+  // No specific title for "/" as it's the landing page handled differently
 
   if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
-    return <>{children}</>;
+    return <>{children}</>; // Render children directly for login and landing page
   }
 
   if (loadingAuthChirho) {
@@ -69,15 +69,13 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
     );
   }
   
+  // For protected routes, if the user is not logged in, the page component itself will handle redirection.
+  // AppLayoutChirho will render if the page is public or user is logged in.
   if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
-    // The page component (e.g., AIPersonasPageChirho) will handle the actual redirect
-    // and can show its own "Redirecting..." message. This layout just renders its children.
-    // If children are null due to page's early return, nothing from children is shown.
-    return (
-      <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50" style={{ display: 'none' }}>
-         {children}
-      </div>
-    );
+    // The page component will render its own "Redirecting..." message and handle the redirect.
+    // To prevent layout flash, we ensure the page component itself handles this state.
+    // Returning children here allows the page component to manage its pre-auth rendering.
+    return <>{children}</>; 
   }
   
   return (
@@ -155,7 +153,7 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
                 </DropdownMenu>
               </>
             ) : (
-              pathnameChirho !== '/login-chirho' && ( 
+              pathnameChirho !== '/login-chirho' && pathnameChirho !== '/' && ( 
                  <Button asChild variant="outline" size="sm">
                    <Link href={`/${lang}/login-chirho`}>{dictionary.loginSignup}</Link>
                  </Button>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Gamepad2, Users, Lightbulb, LogIn, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 interface LandingPagePropsChirho {
   lang: string;
@@ -75,7 +75,7 @@ export default function LandingPageChirho({ lang, dictionary }: LandingPageProps
             <div className="mt-10">
               {loadingAuthChirho ? (
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground opacity-50 cursor-not-allowed">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {dictionary.loading || "Loading..."}
                 </Button>
               ) : !currentUserChirho ? (
                 <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">

@@ -5,17 +5,18 @@ import { ToasterChirho } from '@/components/ui/toaster';
 import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
 import { AuthProviderChirho } from '@/contexts/auth-context-chirho';
 import { getDictionaryChirho } from '@/lib/get-dictionary-chirho';
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 import { defaultLocale } from '@/middleware';
 
 export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
   const lang = params.lang || defaultLocale;
-  let appName = "Faith Forward ☧"; 
-  let description = "Empowering your evangelism journey."; 
+  let appName = "Evangelism Quest ☧";
+  let description = "Empowering your evangelism journey.";
 
   try {
-    const dictionary: DictionaryChirho = await getDictionaryChirho(lang); // Add type for dictionary
+    const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
     appName = dictionary.appLayout?.appName || appName;
+    // You could also localize the description if it's in your dictionary
   } catch (error) {
     console.warn(`Could not load dictionary for lang '${lang}' in [lang] layout metadata:`, error);
   }
@@ -29,7 +30,6 @@ export async function generateMetadata({ params }: { params: { lang: string } })
   };
 }
 
-
 export default async function LocaleLayout({
   children,
   params,
@@ -37,7 +37,7 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { lang: string };
 }) {
-  const dictionary: DictionaryChirho = await getDictionaryChirho(params.lang); // Add type for dictionary
+  const dictionary: DictionaryChirho = await getDictionaryChirho(params.lang);
 
   return (
     <AuthProviderChirho lang={params.lang} dictionary={dictionary.authContext}>

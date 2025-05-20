@@ -8,7 +8,7 @@ import { authChirho } from '@/lib/firebase-config-chirho';
 import { initializeUserChirho as initializeUserActionChirho, fetchUserProfileFromServerChirho } from '@/lib/actions-chirho'; 
 import { useRouter } from 'next/navigation';
 import { useToastChirho } from '@/hooks/use-toast-chirho';
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 
 export interface UserProfileChirho {
@@ -17,8 +17,8 @@ export interface UserProfileChirho {
   displayName?: string | null;
   photoURL?: string | null;
   credits: number;
-  createdAt: any; // Firestore Timestamp
-  lastLogin?: any; // Firestore Timestamp
+  createdAt: any; 
+  lastLogin?: any; 
 }
 
 interface AuthContextTypeChirho {
@@ -40,7 +40,7 @@ const AuthContextChirho = createContext<AuthContextTypeChirho | undefined>(undef
 interface AuthProviderPropsChirho {
   children: ReactNode;
   lang: string; 
-  dictionary: DictionaryChirho['authContext']; // Expect authContext part of the dictionary
+  dictionary: DictionaryChirho['authContext'];
 }
 
 export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderPropsChirho) => {
@@ -50,12 +50,10 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
   const routerChirho = useRouter();
   const { toastChirho } = useToastChirho();
   const [currentLangChirho, setCurrentLangChirho] = useState(lang);
-  // Dictionary is now passed as a prop
 
   useEffect(() => {
     setCurrentLangChirho(lang); 
   }, [lang]);
-
 
   useEffect(() => {
     const unsubscribeChirho = onAuthStateChanged(authChirho, async (user) => {
@@ -63,41 +61,47 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
       if (user) {
         setCurrentUserChirho(user);
         try {
+          console.log("[AuthContext] User authenticated, initializing/updating profile:", user.uid);
           const initResult = await initializeUserActionChirho(user.uid, user.email, user.displayName, user.photoURL);
           if (!initResult.success) {
-             console.error("Failed to initialize user on server:", initResult.error);
-             toastChirho({ variant: "destructive", title: dictionary?.toastProfileSetupErrorTitle || "Profile Setup Error", description: initResult.error || dictionary?.toastProfileSetupErrorDescription || "There was an issue setting up your profile." });
+             console.error("[AuthContext] Failed to initialize user on server:", initResult.error);
+             toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: initResult.error || dictionary.toastProfileSetupErrorDescription });
+          } else {
+            console.log("[AuthContext] User profile initialized/updated on server.");
           }
           
+          console.log("[AuthContext] Fetching user profile from server:", user.uid);
           const profileResult = await fetchUserProfileFromServerChirho(user.uid);
           if (profileResult.success && profileResult.data) {
             setUserProfileChirho(profileResult.data);
+            console.log("[AuthContext] User profile loaded:", profileResult.data);
           } else {
-            console.error(`Profile not found for user ${user.uid} after initialization attempt. Error: ${profileResult.error}`);
-            toastChirho({ variant: "destructive", title: dictionary?.toastProfileErrorTitle || "Profile Error", description: profileResult.error || dictionary?.toastProfileStillNotFound || "Failed to load your profile after initialization." });
+            console.error(`[AuthContext] Profile not found for user ${user.uid} after initialization attempt. Error: ${profileResult.error}`);
+            toastChirho({ variant: "destructive", title: dictionary.toastProfileErrorTitle, description: profileResult.error || dictionary.toastProfileStillNotFound });
             setUserProfileChirho(null); 
           }
         } catch (error: any) {
-          console.error("Error during post-auth user processing:", error);
-          toastChirho({ variant: "destructive", title: dictionary?.toastProfileSetupErrorTitle || "Profile Setup Error", description: error.message || dictionary?.toastProfileSetupErrorDescription || "There was an issue setting up your profile." });
+          console.error("[AuthContext] Error during post-auth user processing:", error);
+          toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: error.message || dictionary.toastProfileSetupErrorDescription });
           setUserProfileChirho(null);
         }
       } else {
         setCurrentUserChirho(null);
         setUserProfileChirho(null);
+        console.log("[AuthContext] No user authenticated.");
       }
       setLoadingAuthChirho(false);
     });
     return () => unsubscribeChirho();
-  }, [toastChirho, dictionary]); // dictionary is a dependency if its strings are used in this effect
+  }, [toastChirho, dictionary, lang]); 
 
   const fetchUserProfileChirho = async (userId: string): Promise<UserProfileChirho | null> => {
      const result = await fetchUserProfileFromServerChirho(userId);
      if (result.success && result.data) {
        return result.data;
      } else {
-       console.error(`fetchUserProfileChirho (direct call): Error fetching profile for 'users/${userId}':`, result.error);
-       toastChirho({ variant: "destructive", title: dictionary?.toastProfileErrorTitle || "Profile Error", description: result.error || dictionary?.toastProfileErrorDescription || "Could not load your profile." });
+       console.error(`[AuthContext] fetchUserProfileChirho (direct call): Error fetching profile for 'users/${userId}':`, result.error);
+       toastChirho({ variant: "destructive", title: dictionary.toastProfileErrorTitle, description: result.error || dictionary.toastProfileErrorDescription });
        return null;
      }
   };
@@ -105,36 +109,37 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
   const logInWithGoogleChirho = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      console.log("Attempting Google Sign-In. Firebase App Options for authChirho instance:", authChirho.app.options);
+      console.log("[AuthContext] Attempting Google Sign-In. Firebase App Options for authChirho instance:", authChirho.app.options);
       if (!authChirho.app.options.apiKey || !authChirho.app.options.authDomain || !authChirho.app.options.projectId) {
-        console.error("CRITICAL: authChirho instance is missing key configuration for Google Sign-In!", authChirho.app.options);
-        toastChirho({ variant: "destructive", title: dictionary?.toastGoogleConfigErrorTitle || "Google Sign-In Config Error", description: dictionary?.toastGoogleConfigErrorDescription || "Internal configuration error for Google Sign-In. Please contact support." });
+        console.error("[AuthContext] CRITICAL: authChirho instance is missing key configuration for Google Sign-In!", authChirho.app.options);
+        toastChirho({ variant: "destructive", title: dictionary.toastGoogleConfigErrorTitle, description: dictionary.toastGoogleConfigErrorDescription });
         return;
       }
       await signInWithPopup(authChirho, provider);
+      // onAuthStateChanged will handle profile loading and redirect
     } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
+      console.error("[AuthContext] Google Sign-In Error:", error);
       if (error.code === 'auth/popup-blocked' || 
           (error.message && error.message.toLowerCase().includes('popup was blocked')) ||
           (error.message && error.message.toLowerCase().includes('blocked by the browser'))) {
         toastChirho({
           variant: "destructive",
-          title: dictionary?.toastPopupBlockedTitle || "Popup Blocked",
-          description: dictionary?.toastPopupBlockedDescription || "Your browser blocked the Google Sign-In popup. Please check your browser settings to allow popups from this site or disable popup blockers and try again.",
+          title: dictionary.toastPopupBlockedTitle,
+          description: dictionary.toastPopupBlockedDescription,
           duration: 9000,
         });
       } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
          toastChirho({
           variant: "default", 
-          title: dictionary?.toastSignInCancelledTitle || "Sign-In Cancelled",
-          description: dictionary?.toastSignInCancelledDescription || "The Google Sign-In popup was closed before completion.",
+          title: dictionary.toastSignInCancelledTitle,
+          description: dictionary.toastSignInCancelledDescription,
           duration: 5000,
         });
       } else if (error.code === 'auth/network-request-failed') {
-         toastChirho({ variant: "destructive", title: dictionary?.toastNetworkErrorTitle || "Network Error", description: dictionary?.toastNetworkErrorDescription || "A network error occurred during Google Sign-In. Please check your internet connection." });
+         toastChirho({ variant: "destructive", title: dictionary.toastNetworkErrorTitle, description: dictionary.toastNetworkErrorDescription });
       }
       else {
-        toastChirho({ variant: "destructive", title: dictionary?.toastLoginFailedTitle || "Login Failed", description: error.message || dictionary?.toastLoginFailedDescriptionGoogle || "Could not sign in with Google." });
+        toastChirho({ variant: "destructive", title: dictionary.toastLoginFailedTitle, description: error.message || dictionary.toastLoginFailedDescriptionGoogle });
       }
     }
   };
@@ -142,18 +147,20 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
   const logInWithEmailChirho = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(authChirho, email, pass);
+      // onAuthStateChanged will handle profile loading and redirect
     } catch (error: any) {
-      console.error("Email Sign-In Error:", error);
-      toastChirho({ variant: "destructive", title: dictionary?.toastLoginFailedTitle || "Login Failed", description: error.message || dictionary?.toastLoginFailedDescriptionEmail || "Incorrect email or password." });
+      console.error("[AuthContext] Email Sign-In Error:", error);
+      toastChirho({ variant: "destructive", title: dictionary.toastLoginFailedTitle, description: error.message || dictionary.toastLoginFailedDescriptionEmail });
     }
   };
 
   const signUpWithEmailChirho = async (email: string, pass: string) => {
     try {
       await createUserWithEmailAndPassword(authChirho, email, pass);
+      // onAuthStateChanged will handle profile creation/loading and redirect
     } catch (error: any) {
-      console.error("Email Sign-Up Error:", error);
-      toastChirho({ variant: "destructive", title: dictionary?.toastSignupFailedTitle || "Signup Failed", description: error.message || dictionary?.toastSignupFailedDescription || "Could not create account." });
+      console.error("[AuthContext] Email Sign-Up Error:", error);
+      toastChirho({ variant: "destructive", title: dictionary.toastSignupFailedTitle, description: error.message || dictionary.toastSignupFailedDescription });
     }
   };
 
@@ -161,12 +168,13 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
     try {
       await firebaseSignOut(authChirho);
       if (routerChirho) {
+          // Redirect to the localized login page
           routerChirho.push(`/${currentLangChirho}/login-chirho`); 
       }
-      toastChirho({ title: dictionary?.toastLoggedOutTitle || "Logged Out", description: dictionary?.toastLoggedOutDescription || "You have been successfully logged out." });
+      toastChirho({ title: dictionary.toastLoggedOutTitle, description: dictionary.toastLoggedOutDescription });
     } catch (error: any) {
-      console.error("Logout Error:", error);
-      toastChirho({ variant: "destructive", title: dictionary?.toastLogoutFailedTitle || "Logout Failed", description: error.message });
+      console.error("[AuthContext] Logout Error:", error);
+      toastChirho({ variant: "destructive", title: dictionary.toastLogoutFailedTitle, description: error.message });
     }
   };
   

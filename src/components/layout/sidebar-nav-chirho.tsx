@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/sidebar"; 
 import { cn } from "@/lib/utils-chirho.ts"; 
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 
 interface NavItemChirho {
-  hrefKey: keyof Omit<DictionaryChirho['siteNav'], 'loading' | 'userMenuLabel' | 'userMenuManageSubscription'>; // Adjusted to available keys
+  hrefKey: keyof Omit<DictionaryChirho['siteNav'], 'loading' | 'userMenuLabel' | 'userMenuManageSubscription'>;
   path: string; 
   icon: Icon; 
   soon?: boolean;
@@ -32,7 +32,7 @@ export function SidebarNavChirho({ lang, dictionary }: SidebarNavPropsChirho) {
   const { currentUserChirho, logOutChirho, loadingAuthChirho } = useAuthChirho();
 
   const navItemsChirho: NavItemChirho[] = [
-    { hrefKey: "home", path: "/", icon: Home, authRequired: undefined },
+    { hrefKey: "home", path: "/", icon: Home, authRequired: false },
     { hrefKey: "evangelismQuest", path: "/ai-personas-chirho", icon: Gamepad2, authRequired: true }, 
     { hrefKey: "contextualGuidance", path: "/contextual-guidance-chirho", icon: Lightbulb, authRequired: true },
     { hrefKey: "dailyInspiration", path: "/daily-inspiration-chirho", icon: Sun, authRequired: false },
@@ -46,7 +46,7 @@ export function SidebarNavChirho({ lang, dictionary }: SidebarNavPropsChirho) {
           return null; 
         }
         const label = dictionary[itemChirho.hrefKey];
-        const href = `/${lang}${itemChirho.path === "/" ? "" : itemChirho.path}`; // Simplified href
+        const href = `/${lang}${itemChirho.path === "/" ? "" : itemChirho.path}`;
 
         return (
           <SidebarMenuItem key={itemChirho.path}>
