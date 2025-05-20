@@ -8,15 +8,14 @@ import { updatePersonaVisualsChirho, type UpdatePersonaVisualsInputChirho, type 
 import { suggestEvangelisticResponseChirho, type SuggestEvangelisticResponseInputChirho, type SuggestEvangelisticResponseOutputChirho } from "@/ai-chirho/flows-chirho/suggest-evangelistic-response-chirho";
 
 import { dbChirho, storageChirho } from '@/lib/firebase-config-chirho'; 
-import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, writeBatch, deleteDoc, Timestamp } from 'firebase/firestore'; // Added Timestamp
+import { doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, writeBatch, deleteDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"; 
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; 
-import type { ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/ai-personas-chirho/page'; // Use client-defined type for return
+import type { ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/[lang]/ai-personas-chirho/page';
 
 const INITIAL_FREE_CREDITS_CHIRHO = 100;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; 
 
-// Helper to convert data URI to Blob
 function dataUriToBlobChirho(dataURI: string): Blob {
   const byteString = atob(dataURI.split(',')[1]);
   const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
@@ -85,25 +84,53 @@ export async function initializeUserChirho(userId: string, email: string | null,
     } else {
       console.log("[Action initializeUserChirho] User document exists, updating profile for:", userId);
       const existingData = userDocSnap.data() as UserProfileChirho;
-      const updates: { lastLogin: any; displayName?: string | null; photoURL?: string | null } = {
+      const updates: any = { // Use 'any' for updates object to allow dynamic properties
         lastLogin: serverTimestamp(),
       };
-      if (displayName && (existingData.displayName !== displayName || existingData.displayName === "User" || (existingData.email && existingData.displayName === existingData.email.split('@')[0]))) {
+      if (displayName && (existingData.displayName !== displayName || !existingData.displayName || existingData.displayName === "User" || (existingData.email && existingData.displayName === existingData.email.split('@')[0]))) {
         updates.displayName = displayName;
       }
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
-      await updateDoc(userDocRef, updates);
-      console.log("[Action initializeUserChirho] User profile updated in Firestore for:", userId, "with updates:", Object.keys(updates).length > 1 ? updates : { lastLogin: "updated" });
+      if (Object.keys(updates).length > 1) { // Only update if more than just lastLogin changed
+         await updateDoc(userDocRef, updates);
+         console.log("[Action initializeUserChirho] User profile updated in Firestore for:", userId, "with updates:", updates);
+      } else {
+         await updateDoc(userDocRef, { lastLogin: serverTimestamp() }); // Only update lastLogin
+         console.log("[Action initializeUserChirho] User profile lastLogin updated for:", userId);
+      }
     }
     return { success: true };
   } catch (error: any) {
     console.error("[Action initializeUserChirho] Firestore error for user", userId, ":", error.code, error.message, error);
-    // Return the error message so the client can potentially display it or log it
     return { success: false, error: `Failed to initialize user profile: ${error.message} (Code: ${error.code})` };
   }
 }
+
+export async function fetchUserProfileFromServerChirho(userId: string): Promise<{ success: boolean; data?: UserProfileChirho; error?: string }> {
+  if (!userId) return { success: false, error: "User ID is required." };
+  const userDocRef = doc(dbChirho, "users", userId);
+  try {
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      // Convert Timestamps to numbers for client compatibility
+      const profileData: UserProfileChirho = {
+        ...data,
+        createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt,
+        lastLogin: data.lastLogin?.toMillis ? data.lastLogin.toMillis() : data.lastLogin,
+      } as UserProfileChirho;
+      return { success: true, data: profileData };
+    } else {
+      return { success: false, error: "User profile not found." };
+    }
+  } catch (error: any) {
+    console.error(`fetchUserProfileFromServerChirho: Error fetching profile for 'users/${userId}':`, error);
+    return { success: false, error: error.message || "Could not load user profile." };
+  }
+}
+
 
 export async function decrementUserCreditsChirho(userId: string, amount: number = 1): Promise<{ success: boolean; newCredits?: number; error?: string; }> {
   if (!userId) return { success: false, error: "User ID is required." };
@@ -181,6 +208,7 @@ export async function sendMessageToPersonaChirho(input: AIPersonaConvincingInput
 
 export async function fetchContextualGuidanceChirho(input: ContextualGuidanceInputChirho): Promise<{ success: boolean; data?: ContextualGuidanceOutputChirho; error?: string; }> {
   try {
+    // Input already includes languageChirho from the client
     const resultChirho = await contextualGuidanceChirho(input);
     return { success: true, data: resultChirho };
   } catch (errorChirho) {
@@ -229,16 +257,14 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
   
   try {
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
-    // Data to save to Firestore; Firestore Timestamps are fine on the server.
     const dataToSave = { 
         ...conversationData, 
-        archivedAtServer: serverTimestamp(), // Firestore server timestamp
+        archivedAtServer: serverTimestamp(), 
     };
 
     await setDoc(newConvDocRef, dataToSave);
     console.log(`[Firestore Action] Successfully archived conversation ${conversationData.id} for user ${userId}`);
 
-    // Pruning logic
     const q = query(userConversationsRef, orderBy("timestamp", "desc")); 
     const snapshot = await getDocs(q);
     
@@ -274,10 +300,9 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
     const snapshot = await getDocs(q);
     const conversations = snapshot.docs.map(docSnapshot => {
       const data = docSnapshot.data();
-      // Explicitly construct the object for the client, converting Timestamp
       const clientData: ClientArchivedConversationChirho = {
         id: data.id,
-        timestamp: data.timestamp, // This is client-generated Date.now()
+        timestamp: data.timestamp, 
         personaNameChirho: data.personaNameChirho,
         initialPersonaImageChirho: data.initialPersonaImageChirho || null,
         meetingContextChirho: data.meetingContextChirho,
@@ -285,17 +310,16 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
         personaDetailsChirho: data.personaDetailsChirho,
         personaNameKnownToUserChirho: data.personaNameKnownToUserChirho,
         difficultyLevelChirho: data.difficultyLevelChirho,
-        messagesChirho: data.messagesChirho.map((msg: any) => ({ // Ensure messages are also plain
+        messagesChirho: data.messagesChirho.map((msg: any) => ({
             id: msg.id,
             sender: msg.sender,
             text: msg.text,
             imageUrlChirho: msg.imageUrlChirho || null
         })),
         convincedChirho: data.convincedChirho,
-        // Convert Firestore Timestamp for archivedAtServer to a number (milliseconds)
         archivedAtServerMillis: data.archivedAtServer && typeof data.archivedAtServer.toMillis === 'function' 
                                 ? data.archivedAtServer.toMillis() 
-                                : undefined,
+                                : (typeof data.archivedAtServer === 'number' ? data.archivedAtServer : undefined),
       };
       return clientData;
     });

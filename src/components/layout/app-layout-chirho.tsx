@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/sidebar"; 
 import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
-import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react"; // Added Church
+import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react";
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "next/navigation"; // From next/navigation for App Router
 import { useCustomizationChirho } from "@/contexts/customization-context-chirho";
 import { useAuthChirho } from "@/contexts/auth-context-chirho";
 import {
@@ -28,29 +28,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import type { DictionaryChirho } from "@/lib/get-dictionary-chirho";
 
-const pageTitlesChirho: { [key: string]: string } = {
-  "/": "Welcome - Evangelism Quest ☧", 
-  "/ai-personas-chirho": "Evangelism Quest",
-  "/contextual-guidance-chirho": "Contextual Guidance ☧",
-  "/daily-inspiration-chirho": "Daily Inspiration ☧",
-  "/settings-chirho": "Settings ☧",
-  "/login-chirho": "Login / Signup - Evangelism Quest ☧",
-};
+interface AppLayoutPropsChirho {
+  children: ReactNode;
+  lang: string;
+  dictionary: DictionaryChirho['siteNav']; // Expecting siteNav part of the dictionary
+  appName: string;
+}
 
 const PROTECTED_ROUTES_CHIRHO = ["/ai-personas-chirho", "/contextual-guidance-chirho", "/settings-chirho"];
 
-
-export function AppLayoutChirho({ children }: { children: ReactNode }) {
+export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayoutPropsChirho) {
   const isMobileChirho = useIsMobileChirho();
-  const pathnameChirho = usePathname();
+  const pathnameWithLocale = usePathname(); // e.g., /en/some-page
+  const pathnameChirho = pathnameWithLocale.replace(`/${lang}`, "") || "/"; // Get path without locale prefix
+  
   const { effectiveThemeChirho } = useCustomizationChirho(); 
   const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
 
-  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Evangelism Quest ☧";
+  let currentPageTitleChirho = appName; // Default to app name
+  if (pathnameChirho === "/ai-personas-chirho") currentPageTitleChirho = dictionary.evangelismQuest;
+  else if (pathnameChirho === "/contextual-guidance-chirho") currentPageTitleChirho = dictionary.contextualGuidance;
+  else if (pathnameChirho === "/daily-inspiration-chirho") currentPageTitleChirho = dictionary.dailyInspiration;
+  else if (pathnameChirho === "/settings-chirho") currentPageTitleChirho = dictionary.settings;
+  else if (pathnameChirho === "/") currentPageTitleChirho = dictionary.home; // For landing page
 
-  // Bypass layout entirely for login page and landing page
+  // Bypass layout entirely for login page and landing page if landing page has its own full layout
   if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
+     // The root page (landing) now renders its own full layout
     return <>{children}</>;
   }
 
@@ -64,20 +70,11 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
+  
+  // For protected routes, if user is not logged in, let the page handle the redirect message.
+  // The page will return null or a minimal redirecting message, allowing its useEffect for redirection to run.
   if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
-    return (
-        <>
-          <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-lg">Redirecting to login...</p>
-            </div>
-          </div>
-          {/* Render children hidden so its useEffect for redirection can run, e.g., from AIPersonasPageChirho */}
-          <div style={{ display: 'none' }}>{children}</div> 
-        </>
-    );
+    return <div style={{ display: 'none' }}>{children}</div>; // Render children hidden so their redirect logic can run
   }
   
   return (
@@ -88,16 +85,15 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
         className="shadow-lg"
       >
         <SidebarHeader className="p-4 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
-            <Church className="h-6 w-6" /> {/* Changed icon to Church */}
-            <span className="group-data-[collapsible=icon]:hidden">Evangelism Quest ☧</span>
+          <Link href={`/${lang}/`} className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
+            <Church className="h-6 w-6" />
+            <span className="group-data-[collapsible=icon]:hidden">{appName}</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarNavChirho />
+          <SidebarNavChirho lang={lang} dictionary={dictionary} />
         </SidebarContent>
         <SidebarFooter className="p-2">
-          {/* Optional: Add settings or user profile link here if not in main nav */}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -138,11 +134,11 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                       {currentUserChirho.email}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                     <DropdownMenuItem onClick={() => routerChirho && routerChirho.push('/ai-personas-chirho')}>
-                      Evangelism Quest
+                     <DropdownMenuItem onClick={() => routerChirho && routerChirho.push(`/${lang}/ai-personas-chirho`)}>
+                      {dictionary.evangelismQuest}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => routerChirho && routerChirho.push('/settings-chirho')}>
-                      Settings
+                    <DropdownMenuItem onClick={() => routerChirho && routerChirho.push(`/${lang}/settings-chirho`)}>
+                      {dictionary.settings}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => alert("Manage Subscription - Placeholder. This would lead to your payment provider's customer portal or a custom subscription management page.")}>
                       Manage Subscription
@@ -150,15 +146,15 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logOutChirho}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      Logout
+                      {dictionary.logout}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
             ) : (
-              pathnameChirho !== '/login-chirho' && (
+              pathnameChirho !== '/login-chirho' && ( // No login button if already on login page
                  <Button asChild variant="outline" size="sm">
-                   <Link href="/login-chirho">Login / Signup</Link>
+                   <Link href={`/${lang}/login-chirho`}>{dictionary.loginSignup}</Link>
                  </Button>
               )
             ) 

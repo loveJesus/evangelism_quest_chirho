@@ -1,41 +1,44 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Geist_Sans as GeistSans, Geist_Mono as GeistMono } from 'next/font/google'; // Corrected import for Geist Sans
 import './globals.css';
-import { AppLayoutChirho } from '@/components/layout/app-layout-chirho';
-import { ToasterChirho } from '@/components/ui/toaster'; 
-import { CustomizationProviderChirho } from '@/contexts/customization-context-chirho';
-import { AuthProviderChirho } from '@/contexts/auth-context-chirho'; // Import AuthProviderChirho
 
-const geistSansChirho = Geist({
+const geistSansChirho = GeistSans({ // Use the corrected import
   variable: '--font-geist-sans',
   subsets: ['latin'],
 });
 
-const geistMonoChirho = Geist_Mono({
+const geistMonoChirho = GeistMono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = { // Renamed metadataChirho to metadata for Next.js convention
-  title: 'Evangelism Quest ☧',
+// Note: Metadata and Viewport in the root layout are often static.
+// Dynamic metadata based on locale would typically be in [lang]/layout.tsx
+export const metadata: Metadata = {
+  title: 'Faith Forward ☧', // Updated
   description: 'Empowering your evangelism journey.',
 };
 
-export default function RootLayout({ // Renamed RootLayoutChirho to RootLayout for Next.js convention
+export const viewport: Viewport = {
+  themeColor: [ // Example theme color, adjust as needed
+    { media: '(prefers-color-scheme: light)', color: 'hsl(216 25% 95%)' },
+    { media: '(prefers-color-scheme: dark)', color: 'hsl(240 10% 3.9%)' },
+  ],
+}
+
+export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    // The [lang] segment in the URL will determine the actual lang attribute.
+    // The middleware handles redirecting to a locale-prefixed path.
+    // This html tag doesn't need a lang prop directly if children (i.e., [lang]/layout.tsx) handle it.
+    <html lang="en" suppressHydrationWarning> 
       <body className={`${geistSansChirho.variable} ${geistMonoChirho.variable} antialiased`}>
-        <AuthProviderChirho> {/* AuthProviderChirho wraps CustomizationProviderChirho */}
-          <CustomizationProviderChirho>
-            <AppLayoutChirho>{children}</AppLayoutChirho>
-            <ToasterChirho />
-          </CustomizationProviderChirho>
-        </AuthProviderChirho>
+        {children}
       </body>
     </html>
   );
