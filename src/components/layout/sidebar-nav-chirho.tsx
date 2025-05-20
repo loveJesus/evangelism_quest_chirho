@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lightbulb, Sun, Settings, Icon, Gamepad2, LogIn, LogOut, Loader2 } from "lucide-react"; 
+import { Lightbulb, Sun, Settings, Icon, Gamepad2, LogIn, LogOut, Loader2, Home } from "lucide-react"; 
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -17,13 +17,14 @@ interface NavItemChirho {
   label: string;
   icon: Icon; 
   soon?: boolean;
-  authRequired?: boolean;
+  authRequired?: boolean; // True if auth is required, false if public, undefined if shown for both
 }
 
 const navItemsChirho: NavItemChirho[] = [
+  { href: "/", label: "Home", icon: Home, authRequired: undefined }, // Public landing page
   { href: "/ai-personas-chirho", label: "Evangelism Quest", icon: Gamepad2, authRequired: true }, 
   { href: "/contextual-guidance-chirho", label: "Contextual Guidance", icon: Lightbulb, authRequired: true },
-  { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun, authRequired: false },
+  { href: "/daily-inspiration-chirho", label: "Daily Inspiration", icon: Sun, authRequired: false }, // Public page
   { href: "/settings-chirho", label: "Settings", icon: Settings, authRequired: true },
 ];
 
@@ -34,9 +35,15 @@ export function SidebarNavChirho() {
   return (
     <SidebarMenu>
       {navItemsChirho.map((itemChirho) => {
-        if (itemChirho.authRequired && !currentUserChirho && !loadingAuthChirho) {
+        // Hide item if auth is required and no user, or if auth is false (public only) and user exists
+        if (itemChirho.authRequired === true && !currentUserChirho && !loadingAuthChirho) {
           return null; 
         }
+        if (itemChirho.authRequired === false && currentUserChirho && !loadingAuthChirho) {
+            // Optionally hide public-only links when logged in, or show them. For now, show.
+            // return null; 
+        }
+
         return (
           <SidebarMenuItem key={itemChirho.href}>
             <Link href={itemChirho.href} passHref legacyBehavior>
@@ -45,7 +52,7 @@ export function SidebarNavChirho() {
                   "w-full justify-start",
                   itemChirho.soon && "cursor-not-allowed opacity-50"
                 )}
-                isActive={pathnameChirho === itemChirho.href || (itemChirho.href === "/ai-personas-chirho" && pathnameChirho === "/")}
+                isActive={pathnameChirho === itemChirho.href}
                 tooltip={itemChirho.label}
                 disabled={itemChirho.soon}
                 aria-disabled={itemChirho.soon}
@@ -85,7 +92,7 @@ export function SidebarNavChirho() {
               tooltip="Login"
             >
               <LogIn className="h-5 w-5" />
-              <span className="truncate group-data-[collapsible=icon]:hidden">Login</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">Login / Signup</span>
             </SidebarMenuButton>
           </Link>
         )}
