@@ -8,6 +8,6 @@ interface SettingsPagePropsChirho {
 }
 
 export default async function SettingsPageChirho({ params: { lang } }: SettingsPagePropsChirho) {
-  const dictionary = await getDictionaryChirho(lang);
-  return <SettingsClientPageChirho dictionary={dictionary.settingsPage} lang={lang} />;
+  const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
+  return <SettingsClientPageChirho dictionary={dictionary} lang={lang} />;
 }

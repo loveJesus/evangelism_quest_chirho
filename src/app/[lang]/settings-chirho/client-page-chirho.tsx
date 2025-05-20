@@ -14,13 +14,14 @@ import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Separator } from "@/components/ui/separator";
 
 interface SettingsClientPagePropsChirho {
-  dictionary: DictionaryChirho['settingsPage'];
+  dictionary: DictionaryChirho;
   lang: string;
 }
 
 const LOCAL_STORAGE_LANG_KEY_CHIRHO = 'faithforward-lang';
 
-export default function SettingsClientPageChirho({ dictionary, lang: currentUrlLang }: SettingsClientPagePropsChirho) {
+export default function SettingsClientPageChirho({ dictionary: fullDictionary, lang: currentUrlLang }: SettingsClientPagePropsChirho) {
+  const dictionary = fullDictionary.settingsPage;
   const { fontSizeChirho, setFontSizeChirho, themeChirho, setThemeChirho, effectiveThemeChirho } = useCustomizationChirho();
   const [selectedLangChirho, setSelectedLangChirho] = useState<string>(currentUrlLang);
   const routerChirho = useRouter();

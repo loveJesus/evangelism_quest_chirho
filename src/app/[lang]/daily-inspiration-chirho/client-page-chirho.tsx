@@ -9,11 +9,12 @@ import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 import { defaultLocale } from '@/middleware';
 
 interface DailyInspirationClientPagePropsChirho {
-  dictionary: DictionaryChirho['dailyInspirationPage'];
+  dictionary: DictionaryChirho;
   lang: string;
 }
 
-export default function DailyInspirationClientPageChirho({ dictionary, lang }: DailyInspirationClientPagePropsChirho) {
+export default function DailyInspirationClientPageChirho({ dictionary: fullDictionary, lang }: DailyInspirationClientPagePropsChirho) {
+  const dictionary = fullDictionary.dailyInspirationPage;
   const [dailyQuoteChirho, setDailyQuoteChirho] = useState<InspirationalQuoteChirho | null>(null);
   const [currentDateChirho, setCurrentDateChirho] = useState<string>("");
 

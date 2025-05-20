@@ -8,6 +8,6 @@ interface LoginPagePropsChirho {
 }
 
 export default async function LoginPageChirho({ params: { lang } }: LoginPagePropsChirho) {
-  const dictionary = await getDictionaryChirho(lang);
-  return <LoginClientPageChirho dictionary={dictionary.loginPage} lang={lang} />;
+  const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
+  return <LoginClientPageChirho dictionary={dictionary} lang={lang} />;
 }

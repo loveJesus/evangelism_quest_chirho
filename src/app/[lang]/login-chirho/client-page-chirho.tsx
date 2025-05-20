@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthChirho } from '@/contexts/auth-context-chirho';
 import { useRouter } from 'next/navigation'; 
 import { Loader2, ArrowLeft } from 'lucide-react';
-import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; // Updated import
+import type { DictionaryChirho } from '@/lib/dictionary-types-chirho'; 
 
 const loginSchemaChirho = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -33,11 +33,12 @@ const signupSchemaChirho = z.object({
 type SignupFormValuesChirho = z.infer<typeof signupSchemaChirho>;
 
 interface LoginClientPagePropsChirho {
-  dictionary: DictionaryChirho['loginPage'];
+  dictionary: DictionaryChirho;
   lang: string;
 }
 
-export default function LoginClientPageChirho({ dictionary, lang }: LoginClientPagePropsChirho) { 
+export default function LoginClientPageChirho({ dictionary: fullDictionary, lang }: LoginClientPagePropsChirho) { 
+  const dictionary = fullDictionary.loginPage;
   const { currentUserChirho, logInWithGoogleChirho, logInWithEmailChirho, signUpWithEmailChirho, loadingAuthChirho } = useAuthChirho();
   const routerChirho = useRouter();
   const [isSubmittingChirho, setIsSubmittingChirho] = useState(false);

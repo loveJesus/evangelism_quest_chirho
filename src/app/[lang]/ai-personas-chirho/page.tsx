@@ -8,6 +8,6 @@ interface AIPersonasPagePropsChirho {
 }
 
 export default async function AIPersonasPageChirho({ params: { lang } }: AIPersonasPagePropsChirho) {
-  const dictionary = await getDictionaryChirho(lang);
-  return <AIPersonasClientPageChirho dictionary={dictionary.aiPersonasPage} lang={lang} />;
+  const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
+  return <AIPersonasClientPageChirho dictionary={dictionary} lang={lang} />;
 }

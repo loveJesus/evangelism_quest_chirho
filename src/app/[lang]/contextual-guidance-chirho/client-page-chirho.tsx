@@ -34,11 +34,12 @@ const formSchemaChirho = z.object({
 type FormValuesChirho = z.infer<typeof formSchemaChirho>;
 
 interface ContextualGuidanceClientPagePropsChirho {
-  dictionary: DictionaryChirho['contextualGuidancePage'];
+  dictionary: DictionaryChirho;
   lang: string;
 }
 
-export default function ContextualGuidanceClientPageChirho({ dictionary, lang }: ContextualGuidanceClientPagePropsChirho) {
+export default function ContextualGuidanceClientPageChirho({ dictionary: fullDictionary, lang }: ContextualGuidanceClientPagePropsChirho) {
+  const dictionary = fullDictionary.contextualGuidancePage;
   const [guidanceChirho, setGuidanceChirho] = useState<ContextualGuidanceOutputChirho | null>(null);
   const [isLoadingChirho, setIsLoadingChirho] = useState(false);
   const [errorChirho, setErrorChirho] = useState<string | null>(null);
@@ -95,7 +96,6 @@ export default function ContextualGuidanceClientPageChirho({ dictionary, lang }:
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
   
-  // Update form validation messages based on dictionary
   useEffect(() => {
     formSchemaChirho.refine(data => data.topicChirho.length >= 3, {
       message: dictionary.topicMinLengthError || "Topic must be at least 3 characters long.",

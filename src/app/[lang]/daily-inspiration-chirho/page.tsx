@@ -8,6 +8,6 @@ interface DailyInspirationPagePropsChirho {
 }
 
 export default async function DailyInspirationPageChirho({ params: { lang } }: DailyInspirationPagePropsChirho) {
-  const dictionary = await getDictionaryChirho(lang);
-  return <DailyInspirationClientPageChirho dictionary={dictionary.dailyInspirationPage} lang={lang} />;
+  const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
+  return <DailyInspirationClientPageChirho dictionary={dictionary} lang={lang} />;
 }

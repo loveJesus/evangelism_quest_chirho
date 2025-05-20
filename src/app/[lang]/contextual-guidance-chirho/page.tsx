@@ -8,6 +8,6 @@ interface ContextualGuidancePagePropsChirho {
 }
 
 export default async function ContextualGuidancePageChirho({ params: { lang } }: ContextualGuidancePagePropsChirho) {
-  const dictionary = await getDictionaryChirho(lang);
-  return <ContextualGuidanceClientPageChirho dictionary={dictionary.contextualGuidancePage} lang={lang} />;
+  const dictionary: DictionaryChirho = await getDictionaryChirho(lang);
+  return <ContextualGuidanceClientPageChirho dictionary={dictionary} lang={lang} />;
 }
