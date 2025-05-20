@@ -18,7 +18,7 @@ const geistMonoChirho = Geist_Mono({
 });
 
 export const metadata: Metadata = { // Renamed metadataChirho to metadata for Next.js convention
-  title: 'Faith Forward ☧',
+  title: 'Evangelism Quest ☧',
   description: 'Empowering your evangelism journey.',
 };
 

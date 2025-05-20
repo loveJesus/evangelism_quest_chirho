@@ -24,7 +24,7 @@ export type GenerateAiPersonaInputChirho = z.infer<typeof GenerateAiPersonaInput
 const GenerateAiPersonaOutputSchemaChirho = z.object({
   personaNameChirho: z.string().describe('The first name of the AI persona. Should be diverse and not repetitive.'),
   personaDetailsChirho: z.string().describe('The detailed backstory of the AI persona (intended for AI context, not direct user display). This MUST include the persona\'s sex and approximate age/age range.'),
-  meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known.'),
+  meetingContextChirho: z.string().describe('A brief scenario describing how the user meets the persona, consistent with the persona image and backstory. This context determines if the name is immediately known, leave personaNameChirho out if not known.'),
   encounterTitleChirho: z.string().describe('A short, engaging title for the encounter (max 5-7 words), suitable for display if the persona name is not immediately known. e.g., "The Distressed Artist", "Park Bench Contemplation", "Barista\'s Questions". This is different from the full meetingContextChirho.'),
   personaImageChirho: z
     .string()
@@ -56,13 +56,14 @@ Your primary goal is to create a NEW and UNIQUE character each time.
     *   **CRITICAL: DO NOT REPEAT names like Caleb, Kai, Zephyr, Zephyrine, or any other names you might have used in recent generations. Always try for something fresh unless specifically hinted.**
 2.  **Persona Details ("personaDetailsChirho")**:
     *   Craft a detailed backstory (a few paragraphs). This backstory is for the AI to understand its role and should allow for discovery through conversation.
-    *   It MUST explicitly state the persona's **sex** (e.g., "a man", "a woman", "a non-binary individual") and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old").
+    *   It MUST explicitly state the persona's **sex** (e.g., "a man" or "a woman") and an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old").
     *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith.
     *   Ensure varied professions, cultural backgrounds, and life situations.
 3.  **Meeting Context ("meetingContextChirho")**:
-    *   Create a brief, imaginative meeting context (1-2 engaging sentences) describing how the user might encounter this person.
+    *   Create a brief, imaginative meeting context (1-4 engaging sentences) describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
     *   This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character.
     *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings.
+    *   If the person's name is known, explain why it is known. If it is an encounter with a stranger, do not mention the individual's name.
 4.  **Encounter Title ("encounterTitleChirho")**:
     *   Based on the persona and meeting context, generate a short, engaging title for this specific encounter (max 5-7 words). 
     *   This title will be displayed to the user if the persona's name isn't immediately known.
@@ -77,12 +78,22 @@ Return ONLY a JSON object with five keys: "personaNameChirho", "personaDetailsCh
 
 Example (ensure to vary ALL details, especially names, from this example):
 {
+  "personaNameChirho": "Soren",
+  "personaDetailsChirho": "Soren is a man in his early 50s, a former architect turned urban farmer after a midlife crisis prompted him to seek a simpler, more grounded life. Born in a small Danish immigrant community in the Midwest, he carries a quiet pride in his heritage but feels disconnected from the religious traditions of his upbringing, favoring a pragmatic, self-reliant worldview. Recently, a blight destroyed half his crop, leaving him frustrated and introspective, wondering if there's a deeper meaning to his struggles. His sex is male, age early 50s. Soren is reserved but warm once trust is earned, with a sharp wit and a curiosity about others' beliefs, though he’s skeptical of anything that feels dogmatic.",
+  "meetingContextChirho": "At a local farmers' market, you notice a man with weathered hands and a thoughtful gaze arranging baskets of vibrant vegetables. He catches your eye and offers a small, knowing smile, as if inviting a conversation about more than just produce.",
+  "encounterTitleChirho": "The Thoughtful Farmer",
+  "personaNameKnownToUserChirho": false
+}
+
+Another Example
+{
   "personaNameChirho": "Elara",
   "personaDetailsChirho": "Elara is a woman in her late 20s, a marine biologist deeply passionate about ocean conservation. She's logical and scientifically minded, finding spiritual explanations hard to accept without empirical evidence. Recently, a close research project lost funding, leaving her disheartened and questioning her impact. Her sex is female, age late 20s.",
-  "meetingContextChirho": "You're at a coastal cleanup event. Elara is meticulously sorting plastics, her expression a mix of determination and weariness.",
+  "meetingContextChirho": "You're at a coastal cleanup event. Elara who introduced herself to you yesterday is meticulously sorting plastics, her expression a mix of determination and weariness.",
   "encounterTitleChirho": "The Weary Scientist",
   "personaNameKnownToUserChirho": false
 }
+
 Ensure the output is a single, valid JSON object and nothing else.`;
 
     const personaDataResultChirho = await ai.generate({
@@ -122,10 +133,10 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       };
     }
 
-    const imagePromptChirho = `Generate a 512x512 portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
+    const imagePromptChirho = `Generate a photorealistic portrait style image of a person named ${parsedPersonaDataChirho.personaNameChirho}.
 Their general disposition, sex, and age can be inferred from: ${parsedPersonaDataChirho.personaDetailsChirho.substring(0, 350)}...
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
-The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure diverse appearances. Photorealistic style.`;
+The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation. Ensure varied appearances. Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',

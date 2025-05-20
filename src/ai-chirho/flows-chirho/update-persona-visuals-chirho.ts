@@ -67,13 +67,13 @@ const updatePersonaVisualsFlowChirho = ai.defineFlow(
       {media: {url: baseImageUriChirho}},
       {
         text: `You are an image generation AI. You have been given a base image of a character named ${personaNameChirho}. Their original meeting context was: "${originalMeetingContextChirho}".
-Your task is to generate a *new* 512x512 image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
+Your task is to generate a *new*  image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
 The new image should only reflect changes in their expression, pose, or minor environmental details as described in the 'new visual prompt' below.
-Do NOT change the character into someone else. Do NOT drastically change the setting. Focus on their expression and pose.
+Do NOT change the character into someone else. Do NOT drastically change the setting. Focus on their expression and pose. Help the changes keep the conversation engaging (in a pure, non-sensual) way.
 
 New Visual Prompt (expression, pose, minor changes): "${newVisualPromptChirho}"
 
-Generate the updated 512x512 image.`,
+Generate the updated image.`,
       },
     ];
 

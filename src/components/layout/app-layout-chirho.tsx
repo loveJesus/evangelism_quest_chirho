@@ -1,3 +1,4 @@
+
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use client";
 
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/sidebar"; 
 import { SidebarNavChirho } from "./sidebar-nav-chirho";
 import { Button } from "@/components/ui/button";
-import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2 } from "lucide-react";
+import { Church, PanelLeft, UserCircle, LogOut, CreditCard, Loader2, Gamepad2 } from "lucide-react"; // Added Gamepad2
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,19 +31,22 @@ import {
 import Image from "next/image";
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "Evangelism Quest",
-  "/ai-personas-chirho": "Evangelism Quest", 
+  "/": "Evangelism Quest ☧", // Updated from "AI Evangelism Game Chirho"
+  "/ai-personas-chirho": "Evangelism Quest ☧", // Updated from "AI Evangelism Game Chirho"
   "/contextual-guidance-chirho": "Contextual Guidance ☧",
   "/daily-inspiration-chirho": "Daily Inspiration ☧",
   "/settings-chirho": "Settings ☧",
-  "/login-chirho": "Login / Signup",
+  "/login-chirho": "Login / Signup ☧",
 };
+
+const PROTECTED_ROUTES_CHIRHO = ["/", "/ai-personas-chirho", "/contextual-guidance-chirho", "/settings-chirho"];
+
 
 export function AppLayoutChirho({ children }: { children: ReactNode }) {
   const isMobileChirho = useIsMobileChirho();
   const pathnameChirho = usePathname();
   const { effectiveThemeChirho } = useCustomizationChirho(); 
-  const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho(); // Added routerChirho from context
+  const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
 
   const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Faith Forward ☧";
 
@@ -50,6 +54,26 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
   if (pathnameChirho === '/login-chirho') {
     return <>{children}</>;
   }
+
+  if (loadingAuthChirho) {
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If not loading and no user, and on a protected route, show redirecting message at layout level
+  if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
+     // The actual redirect will be handled by the page component's useEffect
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <p className="mr-2">Redirecting to login...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <SidebarProvider defaultOpen={!isMobileChirho} open={!isMobileChirho}>
@@ -77,7 +101,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
             {isMobileChirho && (
               <SidebarTrigger asChild>
                 <Button size="icon" variant="outline" className="sm:hidden">
-                  <PanelLeft className="h-5 w-5" />
+                  <PanelLeft />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
               </SidebarTrigger>
@@ -86,9 +110,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
           </div>
           
           <div className="flex items-center gap-3">
-            {loadingAuthChirho ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : currentUserChirho && userProfileChirho ? (
+            {currentUserChirho && userProfileChirho ? ( // Only show if currentUserChirho AND userProfileChirho are available
               <>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <CreditCard className="h-4 w-4 text-primary" />
@@ -111,7 +133,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                       {currentUserChirho.email}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => routerChirho.push('/settings-chirho')}>
+                    <DropdownMenuItem onClick={() => routerChirho && routerChirho.push('/settings-chirho')}>
                       Settings
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => alert("Manage Subscription - Placeholder. This would lead to your payment provider's customer portal or a custom subscription management page.")}>
@@ -125,11 +147,12 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            ) : (
+            ) : !currentUserChirho && !loadingAuthChirho && !PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho) ? (
+              // Show login button only on non-protected pages if logged out
               <Button asChild variant="outline" size="sm">
                 <Link href="/login-chirho">Login</Link>
               </Button>
-            )}
+            ) : null /* Don't show login button on protected routes when already redirecting from layout level */ } 
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
