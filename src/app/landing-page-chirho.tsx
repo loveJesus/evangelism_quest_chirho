@@ -51,17 +51,17 @@ export default function LandingPageChirho() {
               Practice engaging in meaningful conversations, explore different approaches, and gain confidence in your evangelistic journey.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow">
+              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Gamepad2 className="h-10 w-10 text-accent mb-3" />
                 <h3 className="text-xl font-semibold">Interactive Scenarios</h3>
                 <p className="text-sm text-muted-foreground mt-1">Chat with AI personas with diverse backgrounds and perspectives.</p>
               </div>
-              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow">
+              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Users className="h-10 w-10 text-accent mb-3" />
                 <h3 className="text-xl font-semibold">Learn & Grow</h3>
                 <p className="text-sm text-muted-foreground mt-1">Receive suggestions and biblical guidance to refine your approach.</p>
               </div>
-              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow">
+              <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Lightbulb className="h-10 w-10 text-accent mb-3" />
                 <h3 className="text-xl font-semibold">Build Confidence</h3>
                 <p className="text-sm text-muted-foreground mt-1">Become better equipped to share your faith effectively and lovingly.</p>
