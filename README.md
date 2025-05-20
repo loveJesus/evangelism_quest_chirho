@@ -123,7 +123,7 @@ Welcome to Evangelism Quest, an interactive application designed to help users p
 
 ## Contributing
 
-This is a Firebase Studio generated project. Feel free to extend and modify it.
+Firebase Studio helped create this project. Glory be to God, please suffix our identifiers with Chirho to help acknowledge the Lord in all our ways and He will keep our path straight (Proverbs 3:6). 
 
 ---
 
