@@ -105,8 +105,7 @@ export default function AIPersonasPageChirho() {
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const justContinuedConversationRef = useRef(false);
   
-  // Effect for handling auth changes: redirecting or fetching initial data
-  useEffect(() => {
+ useEffect(() => {
     if (!loadingAuthChirho) {
       if (currentUserChirho) {
         if (archivedConversationsChirho.length === 0 && !isLoadingHistoryChirho) { 
@@ -127,7 +126,6 @@ export default function AIPersonasPageChirho() {
             .finally(() => setIsLoadingHistoryChirho(false));
         }
       } else {
-        // User is logged out, redirect to login and clear states
         if (routerChirho) { 
             routerChirho.push('/login-chirho');
         } else {
@@ -139,7 +137,6 @@ export default function AIPersonasPageChirho() {
         setSuggestedAnswerChirho(null);
         setDifficultyLevelChirho(1);
         setArchivedConversationsChirho([]); 
-        setArchivedConversationsChirho([]);
       }
     }
   }, [currentUserChirho, loadingAuthChirho, routerChirho, toastChirho, archivedConversationsChirho.length, isLoadingHistoryChirho]);
@@ -160,14 +157,13 @@ export default function AIPersonasPageChirho() {
       id: Date.now().toString() + "_" + Math.random().toString(36).substring(2,9),
       timestamp: Date.now(),
       personaNameChirho: personaToArchive.personaNameChirho,
-      // Ensure initialPersonaImageChirho is the original, first image of the persona
       initialPersonaImageChirho: personaToArchive.personaImageChirho || null, 
       meetingContextChirho: personaToArchive.meetingContextChirho,
       encounterTitleChirho: personaToArchive.encounterTitleChirho || "A Past Encounter",
       personaDetailsChirho: personaToArchive.personaDetailsChirho, 
       personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
-      difficultyLevelChirho: difficultyLevelChirho, // Use current difficulty
-      messagesChirho: messagesToArchive.map(msg => ({ // Store URLs from Firebase Storage
+      difficultyLevelChirho: difficultyLevelChirho,
+      messagesChirho: messagesToArchive.map(msg => ({ 
         id: msg.id,
         sender: msg.sender,
         text: msg.text,
@@ -224,12 +220,7 @@ export default function AIPersonasPageChirho() {
     const currentMessagesForArchive = messagesChirho;
 
     if (currentPersonaForArchive && currentMessagesForArchive.length > 1 && currentUserChirho && !conversationToContinue) {
-        // Pass the original personaImageChirho (first image) for archiving
-        const personaToArchive = { 
-            ...currentPersonaForArchive, 
-            personaImageChirho: currentPersonaForArchive.personaImageChirho // This should be the first image
-        };
-        await archiveCurrentConversationChirho(personaToArchive, currentMessagesForArchive, convincedStatusOverride ?? false);
+        await archiveCurrentConversationChirho(currentPersonaForArchive, currentMessagesForArchive, convincedStatusOverride ?? false);
     }
     
     setIsLoadingPersonaChirho(true);
@@ -239,20 +230,18 @@ export default function AIPersonasPageChirho() {
     if (conversationToContinue && currentUserChirho) {
         console.log("Continuing conversation with:", conversationToContinue.personaNameChirho);
         
-        // Set persona state from the archived data
         setPersonaChirho({ 
             personaNameChirho: conversationToContinue.personaNameChirho,
             personaDetailsChirho: conversationToContinue.personaDetailsChirho,
             meetingContextChirho: conversationToContinue.meetingContextChirho,
             encounterTitleChirho: conversationToContinue.encounterTitleChirho || "A Continued Encounter",
-            personaImageChirho: conversationToContinue.initialPersonaImageChirho || "", // This is the *first* image
+            personaImageChirho: conversationToContinue.initialPersonaImageChirho || "",
             personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
         });
 
         const restoredMessages = conversationToContinue.messagesChirho.map(msg => ({ ...msg }));
         setMessagesChirho(restoredMessages);
         
-        // Set dynamic image to the image of the *last* message in the continued conversation
         let lastImageUrl: string | null = null;
         if (restoredMessages.length > 0) {
             const lastMsgWithImage = [...restoredMessages].reverse().find(msg => msg.imageUrlChirho);
@@ -333,12 +322,12 @@ export default function AIPersonasPageChirho() {
     if (scrollAreaRefChirho.current) {
       const viewport = scrollAreaRefChirho.current.querySelector('div[data-radix-scroll-area-viewport]') as HTMLElement | null;
       if (viewport) {
-        requestAnimationFrame(() => {
+        requestAnimationFrame(() => { // Defers the DOM update
           viewport.scrollTop = viewport.scrollHeight;
         });
       }
     }
-  }, [messagesChirho.length]); // Dependency changed to messagesChirho.length
+  }, [messagesChirho.length]); // Only re-run if the number of messages changes
 
   useEffect(() => {
     if (selectedArchivedConversationChirho && archivedChatScrollAreaRefChirho.current) {
@@ -354,10 +343,9 @@ export default function AIPersonasPageChirho() {
   const handleSendMessageChirho = async () => {
     if (!userInputChirho.trim() || !personaChirho || !currentUserChirho || !userProfileChirho) return;
     
-    let currentDynamicImageForResponse = dynamicPersonaImageChirho || personaChirho.personaImageChirho;
+    let currentDynamicImageForResponse = dynamicPersonaImageChirho || personaChirho.personaImageChirho; 
     if (!currentDynamicImageForResponse) {
         console.warn("No base image available for persona response, image update might be skipped.");
-        // Consider using personaChirho.personaImageChirho (the very first image) as a fallback if currentDynamic is null
         currentDynamicImageForResponse = personaChirho.personaImageChirho; 
     }
 
@@ -442,9 +430,7 @@ export default function AIPersonasPageChirho() {
             duration: 7000,
           });
           const newDifficulty = Math.min(difficultyLevelChirho + 1, 10);
-          // Pass the *original* persona image for archiving
-          const personaToArchive = { ...personaChirho, personaImageChirho: personaChirho.personaImageChirho };
-          await archiveCurrentConversationChirho(personaToArchive, finalMessagesForArchive, true); 
+          await archiveCurrentConversationChirho(personaChirho, finalMessagesForArchive, true); 
           setDifficultyLevelChirho(newDifficulty); 
           loadNewPersonaChirho(newDifficulty, false, null); 
         }
@@ -990,5 +976,3 @@ export default function AIPersonasPageChirho() {
     </div>
   );
 }
-
-    
