@@ -30,12 +30,12 @@ import {
 import Image from "next/image";
 
 const pageTitlesChirho: { [key: string]: string } = {
-  "/": "Welcome - Faith Forward ☧", 
+  "/": "Welcome - Evangelism Quest ☧", 
   "/ai-personas-chirho": "Evangelism Quest",
   "/contextual-guidance-chirho": "Contextual Guidance ☧",
   "/daily-inspiration-chirho": "Daily Inspiration ☧",
   "/settings-chirho": "Settings ☧",
-  "/login-chirho": "Login / Signup - Faith Forward ☧",
+  "/login-chirho": "Login / Signup - Evangelism Quest ☧",
 };
 
 const PROTECTED_ROUTES_CHIRHO = ["/ai-personas-chirho", "/contextual-guidance-chirho", "/settings-chirho"];
@@ -47,7 +47,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
   const { effectiveThemeChirho } = useCustomizationChirho(); 
   const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
 
-  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Faith Forward ☧";
+  const currentPageTitleChirho = pageTitlesChirho[pathnameChirho] || "Evangelism Quest ☧";
 
   // Bypass layout entirely for login page and landing page
   if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
@@ -90,7 +90,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-primary transition-colors">
             <Church className="h-6 w-6" /> {/* Changed icon to Church */}
-            <span className="group-data-[collapsible=icon]:hidden">Faith Forward ☧</span>
+            <span className="group-data-[collapsible=icon]:hidden">Evangelism Quest ☧</span>
           </Link>
         </SidebarHeader>
         <SidebarContent>

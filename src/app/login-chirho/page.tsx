@@ -99,7 +99,7 @@ export default function LoginPage() {
             </Button>
           </Link>
         <CardHeader className="text-center pt-16"> {/* Added padding-top to make space for back button */}
-          <CardTitle className="text-2xl">Welcome to Faith Forward ☧</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Evangelism Quest ☧</CardTitle>
           <CardDescription>Sign in or create an account to continue</CardDescription>
         </CardHeader>
         <CardContent>

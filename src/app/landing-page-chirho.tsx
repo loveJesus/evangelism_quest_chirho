@@ -40,7 +40,7 @@ export default function LandingPageChirho() {
               </svg>
             </div>
             <CardTitle className="text-4xl md:text-5xl font-bold text-foreground">
-              Welcome to Faith Forward ☧
+              Welcome to Evangelism Quest
             </CardTitle>
             <CardDescription className="text-xl text-muted-foreground mt-2">
               Sharpen your skills in sharing the Gospel through interactive AI-powered scenarios.
@@ -87,7 +87,7 @@ export default function LandingPageChirho() {
       </main>
        <footer className="py-8 text-center text-sm text-muted-foreground">
         <p>"Go therefore and make disciples of all nations..." - Matthew 28:19</p>
-        <p>&copy; {new Date().getFullYear()} Faith Forward ☧. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Love Jesus ☧. All rights reserved.</p>
       </footer>
     </div>
   );
