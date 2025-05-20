@@ -2,15 +2,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { useCustomizationChirho, FontSizeChirho, ThemeChirho } from "@/contexts/customization-context-chirho"; 
-import { Moon, Sun, CaseLower, CaseUpper, Laptop, Loader2, Languages } from "lucide-react";
+import { Moon, Sun, CaseLower, CaseUpper, Laptop, Loader2, Languages, ExternalLink } from "lucide-react";
 import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 import { useRouter, usePathname } from "next/navigation";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
+import { Separator } from "@/components/ui/separator";
 
 interface SettingsClientPagePropsChirho {
   dictionary: DictionaryChirho['settingsPage'];
@@ -31,16 +32,13 @@ export default function SettingsClientPageChirho({ dictionary, lang: currentUrlL
     setIsMounted(true);
     const storedLang = localStorage.getItem(LOCAL_STORAGE_LANG_KEY_CHIRHO);
     if (storedLang && storedLang !== currentUrlLang) {
-      // If localStorage lang is different from URL lang, prioritize URL lang for initial state
-      // but you could also redirect here if desired:
-      // routerChirho.push(pathnameChirho.replace(`/${currentUrlLang}`, `/${storedLang}`));
       setSelectedLangChirho(currentUrlLang);
     } else if (storedLang) {
       setSelectedLangChirho(storedLang);
     } else {
       setSelectedLangChirho(currentUrlLang);
     }
-  }, [currentUrlLang, routerChirho, pathnameChirho]);
+  }, [currentUrlLang]);
 
   const handleLanguageChangeChirho = (newLang: string) => {
     if (!isMounted) return;
@@ -48,22 +46,17 @@ export default function SettingsClientPageChirho({ dictionary, lang: currentUrlL
     setSelectedLangChirho(newLang);
     localStorage.setItem(LOCAL_STORAGE_LANG_KEY_CHIRHO, newLang);
 
-    // Construct new path
-    // Pathname might be /en/settings-chirho or /settings-chirho if middleware hasn't run
-    // So we ensure we're always replacing the correct part if it exists
     let newPathname = pathnameChirho;
     if (pathnameChirho.startsWith(`/${currentUrlLang}`)) {
       newPathname = pathnameChirho.replace(`/${currentUrlLang}`, `/${newLang}`);
     } else {
-      // If currentUrlLang is not in the path, assume it's a path without lang (e.g. root redirected by middleware)
-      // or a path that needs the lang prefix added
       if (pathnameChirho === '/') {
          newPathname = `/${newLang}`;
       } else if (!pathnameChirho.startsWith('/')) {
          newPathname = `/${newLang}/${pathnameChirho}`;
-      } else if (!pathnameChirho.substring(1).includes('/')) { // e.g. /settings-chirho but missing lang
+      } else if (!pathnameChirho.substring(1).includes('/')) { 
          newPathname = `/${newLang}${pathnameChirho}`;
-      } else { // For paths like /some/other/page, prepend lang
+      } else { 
          newPathname = `/${newLang}${pathnameChirho}`;
       }
     }
@@ -116,6 +109,8 @@ export default function SettingsClientPageChirho({ dictionary, lang: currentUrlL
             )}
           </div>
 
+          <Separator />
+
           <div className="space-y-2">
             <Label htmlFor="font-size-selector" className="text-lg font-semibold">{dictionary.fontSizeLabel}</Label>
              <p className="text-sm text-muted-foreground">
@@ -149,6 +144,8 @@ export default function SettingsClientPageChirho({ dictionary, lang: currentUrlL
             </RadioGroup>
           </div>
 
+          <Separator />
+
           <div className="space-y-2">
             <Label htmlFor="language-selector" className="text-lg font-semibold flex items-center">
               <Languages className="mr-2 h-5 w-5 text-primary" />
@@ -181,6 +178,19 @@ export default function SettingsClientPageChirho({ dictionary, lang: currentUrlL
             </RadioGroup>
           </div>
 
+          <Separator />
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">{dictionary.supportDeveloperTitle || "Support the Developer"}</h3>
+            <p className="text-sm text-muted-foreground">
+              {dictionary.supportDeveloperDescription || "Evangelism Quest is a passion project. If you find this tool helpful and would like to support its continued development or require web/app development services, please feel free to reach out or visit my portfolio."}
+            </p>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <a href="https://portofolio.loveJes.us" target="_blank" rel="noopener noreferrer">
+                {dictionary.visitPortfolioButton || "Visit my Portfolio"} <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -44,25 +44,22 @@ import {
   Timestamp,
   deleteDoc
 } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from "firebase/storage"; 
+import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage"; 
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho'; 
-// Ensure MessageChirho is also exported or defined here if used by ActiveConversationData
-// For now, assuming client-page-chirho.tsx exports MessageChirho for this context
 import type { ArchivedConversationChirho as ClientArchivedConversationChirho, MessageChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho'; 
 
 
-const INITIAL_FREE_CREDITS_CHIRHO = 100;
+const INITIAL_FREE_CREDITS_CHIRHO = 50; // Updated initial credits
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10; 
+const ACTIVE_CONVERSATION_DOC_ID = "current"; // Define a constant for the active conversation doc ID
 
-// Interface for the active conversation data structure
-// This should mirror the structure of what's saved/fetched.
 export interface ActiveConversationDataChirho {
   personaChirho: GenerateAiPersonaOutputChirho;
   messagesChirho: MessageChirho[];
   difficultyLevelChirho: number;
   currentConversationLanguageChirho: string;
-  dynamicPersonaImageChirho: string | null; // This is the URL of the current main image
-  lastSaved: any; // Firestore Timestamp on server, number on client
+  dynamicPersonaImageChirho: string | null;
+  lastSaved: any; 
 }
 
 
@@ -118,13 +115,17 @@ export async function initializeUserChirho(userId: string, email: string | null,
         lastLogin: serverTimestamp(),
       };
       await setDoc(userDocRef, newProfile);
-      // For returning, we can't return serverTimestamp directly to client
-      // Fetch it again or simulate client-side values for immediate use
+      const fetchedData = (await getDoc(userDocRef)).data();
       userProfileData = {
-        ...newProfile,
-        createdAt: Date.now(), // Approximate for immediate client use
-        lastLogin: Date.now(), // Approximate for immediate client use
-      };
+          ...newProfile, // Use newProfile as base to ensure all fields are present
+          uid: userId,
+          email: newProfile.email, // ensure email is from newProfile
+          displayName: newProfile.displayName,
+          photoURL: newProfile.photoURL,
+          credits: newProfile.credits,
+          createdAt: fetchedData?.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : Date.now(),
+          lastLogin: fetchedData?.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now(),
+      } as UserProfileChirho;
       console.log("[Action initializeUserChirho] New user profile CREATED in Firestore for:", userId);
     } else {
       console.log("[Action initializeUserChirho] User document exists, UPDATING profile for:", userId);
@@ -132,30 +133,35 @@ export async function initializeUserChirho(userId: string, email: string | null,
       const updates: any = { 
         lastLogin: serverTimestamp(),
       };
-      // Only update displayName if it's substantially different or was generic
+      
       if (displayName && displayName.trim() !== "" && 
           (!existingData.displayName || existingData.displayName === "User" || 
            (existingData.email && existingData.displayName === existingData.email.split('@')[0]) || 
            existingData.displayName !== displayName)) {
         updates.displayName = displayName;
       }
-      // Only update photoURL if it's different
+      
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
       
-      if(Object.keys(updates).length > 1) { // if more than just lastLogin
+      if (email && existingData.email !== email) {
+        updates.email = email;
+      }
+      
+      if(Object.keys(updates).length > 1) { 
         await updateDoc(userDocRef, updates);
         console.log("[Action initializeUserChirho] User profile UPDATED in Firestore for:", userId, "with updates:", updates);
       } else {
-        await updateDoc(userDocRef, { lastLogin: serverTimestamp() }); // Ensure lastLogin is always updated
-         console.log("[Action initializeUserChirho] User profile lastLogin UPDATED in Firestore for:", userId);
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+        console.log("[Action initializeUserChirho] User profile lastLogin UPDATED in Firestore for:", userId);
       }
-      // Construct the profile to return, converting potential server timestamps
-      const fetchedData = (await getDoc(userDocRef)).data(); // Re-fetch to get actual timestamps
+      
+      const fetchedData = (await getDoc(userDocRef)).data();
       userProfileData = {
-          ...fetchedData,
-          uid: userId, // ensure uid is present
+          ...existingData, // Use existing data as base
+          ...fetchedData, // Overlay with potentially updated fields from Firestore
+          uid: userId, 
           createdAt: fetchedData?.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : (existingData.createdAt || Date.now()),
           lastLogin: fetchedData?.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now(),
       } as UserProfileChirho;
@@ -176,6 +182,7 @@ export async function fetchUserProfileFromServerChirho(userId: string): Promise<
       const data = userDocSnap.data();
       const profileData: UserProfileChirho = {
         ...data,
+        uid: userId, // Ensure uid is present
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : data.createdAt,
         lastLogin: data.lastLogin instanceof Timestamp ? data.lastLogin.toMillis() : data.lastLogin,
       } as UserProfileChirho;
@@ -316,26 +323,10 @@ export async function saveActiveConversationToFirestoreChirho(userId: string, ac
   if (!userId) return { success: false, error: "User ID is required for saving active conversation." };
   if (!activeData || !activeData.personaChirho) return { success: false, error: "Active conversation data with persona is required."};
   
-  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", "current");
+  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", ACTIVE_CONVERSATION_DOC_ID);
   try {
     const dataToSave = {
       ...activeData,
-      // Ensure all image URLs are either valid Firebase Storage URLs or null
-      personaChirho: {
-        ...activeData.personaChirho,
-        personaImageChirho: activeData.personaChirho.personaImageChirho?.startsWith('gs://') || activeData.personaChirho.personaImageChirho?.startsWith('https://firebasestorage.googleapis.com') 
-                              ? activeData.personaChirho.personaImageChirho 
-                              : null, // or a placeholder/error handling
-      },
-      messagesChirho: activeData.messagesChirho.map(msg => ({
-        ...msg,
-        imageUrlChirho: msg.imageUrlChirho?.startsWith('gs://') || msg.imageUrlChirho?.startsWith('https://firebasestorage.googleapis.com') 
-                          ? msg.imageUrlChirho 
-                          : null,
-      })),
-      dynamicPersonaImageChirho: activeData.dynamicPersonaImageChirho?.startsWith('gs://') || activeData.dynamicPersonaImageChirho?.startsWith('https://firebasestorage.googleapis.com')
-                                  ? activeData.dynamicPersonaImageChirho
-                                  : null,
       lastSaved: serverTimestamp() 
     };
     await setDoc(activeConvRef, dataToSave);
@@ -350,7 +341,7 @@ export async function saveActiveConversationToFirestoreChirho(userId: string, ac
 export async function fetchActiveConversationFromFirestoreChirho(userId: string): Promise<{ success: boolean; data?: ActiveConversationDataChirho; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required for fetching active conversation." };
   console.log(`[Action fetchActiveConversationFromFirestoreChirho] Attempting to fetch for user ${userId}`);
-  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", "current");
+  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", ACTIVE_CONVERSATION_DOC_ID);
   try {
     const docSnap = await getDoc(activeConvRef);
     if (docSnap.exists()) {
@@ -367,7 +358,7 @@ export async function fetchActiveConversationFromFirestoreChirho(userId: string)
       return { success: true, data: activeData };
     } else {
       console.log(`[Action fetchActiveConversationFromFirestoreChirho] No active conversation found for user ${userId}`);
-      return { success: false, error: "No active conversation found." }; // No data is not an error, just success:false
+      return { success: false, error: "No active conversation found." };
     }
   } catch (error: any) {
     console.error(`[Action fetchActiveConversationFromFirestoreChirho] Error fetching for user ${userId}:`, error);
@@ -378,20 +369,18 @@ export async function fetchActiveConversationFromFirestoreChirho(userId: string)
 export async function clearActiveConversationFromFirestoreChirho(userId: string): Promise<{ success: boolean; error?: string }> {
   if (!userId) return { success: false, error: "User ID is required for clearing active conversation." };
   console.log(`[Action clearActiveConversationFromFirestoreChirho] Attempting to clear for user ${userId}`);
-  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", "current");
+  const activeConvRef = doc(dbChirho, "users", userId, "activeConversationData", ACTIVE_CONVERSATION_DOC_ID);
   try {
     await deleteDoc(activeConvRef);
     console.log(`[Action clearActiveConversationFromFirestoreChirho] Successfully cleared for user ${userId}`);
     return { success: true };
   } catch (error: any) {
-    // If doc doesn't exist, deleteDoc doesn't throw an error.
-    // Only log actual errors.
-    if (error.code !== 'not-found') { 
+    if ((error as any).code !== 'not-found') { 
         console.error(`[Action clearActiveConversationFromFirestoreChirho] Error clearing for user ${userId}:`, error);
-        return { success: false, error: error.message || "Failed to clear active conversation." };
+        return { success: false, error: (error as Error).message || "Failed to clear active conversation." };
     }
     console.log(`[Action clearActiveConversationFromFirestoreChirho] Document already cleared or never existed for user ${userId}`);
-    return { success: true }; // Considered success if already gone
+    return { success: true }; 
   }
 }
 
@@ -407,12 +396,7 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
     const dataToSave: ClientArchivedConversationChirho & { archivedAtServer: any } = { 
         ...conversationData, 
-        messagesChirho: conversationData.messagesChirho.map(msg => ({
-            ...msg,
-            imageUrlChirho: msg.imageUrlChirho || null 
-        })),
-        initialPersonaImageChirho: conversationData.initialPersonaImageChirho || null,
-        timestamp: Timestamp.fromMillis(conversationData.timestamp), // Store as Firestore Timestamp
+        timestamp: Timestamp.fromMillis(conversationData.timestamp),
         archivedAtServer: serverTimestamp(), 
     };
 
@@ -448,7 +432,6 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
   console.log(`[Action fetchArchivedConversationsFromFirestoreChirho] Attempting to fetch archived conversations for user ${userId}`);
   
   const userConversationsRef = collection(dbChirho, "users", userId, "archivedConversations");
-  // Order by server timestamp for more reliability in pruning. Client timestamp used for display.
   const q = query(userConversationsRef, orderBy("timestamp", "desc"), limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO));
   
   try {

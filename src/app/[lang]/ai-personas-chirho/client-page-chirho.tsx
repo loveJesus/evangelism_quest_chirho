@@ -1,4 +1,3 @@
-
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use client";
 
@@ -107,7 +106,6 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   const [isCelebrationModeActiveChirho, setIsCelebrationModeActiveChirho] = useState<boolean>(false);
   const [isInitialLoadAttemptedChirho, setIsInitialLoadAttemptedChirho] = useState<boolean>(false);
 
-
   const [archivedConversationsChirho, setArchivedConversationsChirho] = useState<ArchivedConversationChirho[]>([]);
   const [selectedArchivedConversationChirho, setSelectedArchivedConversationChirho] = useState<ArchivedConversationChirho | null>(null);
   const [isHistoryDialogOpenChirho, setIsHistoryDialogOpenChirho] = useState<boolean>(false);
@@ -133,8 +131,6 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     setCurrentConversationLanguageChirho(lang); 
   }, [lang]);
 
-
-  // Effect for resetting state on logout or when auth state is initially resolved but no user
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho) {
       console.log("[AIPersonasPage] User logged out or no user. Resetting state.");
@@ -142,10 +138,10 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
       setSuggestedAnswerChirho(null);
-      setArchivedConversationsChirho([]); // Clear archived convos from local state
-      setIsLoadingPersonaChirho(false); // Ensure loading is false if no user
+      setArchivedConversationsChirho([]);
+      setIsLoadingPersonaChirho(false);
       setIsCelebrationModeActiveChirho(false);
-      setIsInitialLoadAttemptedChirho(false); // Reset for next login
+      setIsInitialLoadAttemptedChirho(false);
     }
   }, [currentUserChirho, loadingAuthChirho]);
 
@@ -224,12 +220,10 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     setUserInputChirho("");
     setSuggestedAnswerChirho(null);
     
-    // Archive current active session if it exists and is significant
     if (personaChirho && messagesChirho.length > 1 && !conversationToContinue && !isCelebrationModeActiveChirho) {
         console.log("[AIPersonasPage] Archiving current active session before loading new/continued one.");
         await archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false);
     }
-    // If it was celebration mode, active was already cleared when going into celebration.
     setIsCelebrationModeActiveChirho(false); 
 
     if (conversationToContinue) {
@@ -244,7 +238,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         };
         setPersonaChirho(restoredPersona);
         setCurrentConversationLanguageChirho(conversationToContinue.conversationLanguageChirho);
-        setMessagesChirho(conversationToContinue.messagesChirho.map(msg => ({ ...msg }))); // Ensure fresh array
+        setMessagesChirho(conversationToContinue.messagesChirho.map(msg => ({ ...msg }))); 
         
         let lastImageUrl: string | null = null;
         if (conversationToContinue.messagesChirho.length > 0) {
@@ -257,14 +251,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         setIsHistoryDialogOpenChirho(false); 
         setSelectedArchivedConversationChirho(null);
         
-        await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, {
-            personaChirho: restoredPersona,
-            messagesChirho: conversationToContinue.messagesChirho,
-            difficultyLevelChirho: conversationToContinue.difficultyLevelChirho,
-            currentConversationLanguageChirho: conversationToContinue.conversationLanguageChirho,
-            dynamicPersonaImageChirho: lastImageUrl,
-            lastSaved: serverTimestamp()
-        });
+        await saveCurrentActiveConversation(restoredPersona, conversationToContinue.messagesChirho, lastImageUrl);
         setIsLoadingPersonaChirho(false);
         toastChirho({
             title: dictionary.toastConversationContinuedTitle,
@@ -322,14 +309,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         }];
         setMessagesChirho(initialMessages);
         
-        await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, {
-          personaChirho: newPersona,
-          messagesChirho: initialMessages,
-          difficultyLevelChirho: difficultyToLoadChirho,
-          currentConversationLanguageChirho: lang,
-          dynamicPersonaImageChirho: newPersona.personaImageChirho,
-          lastSaved: serverTimestamp()
-        });
+        await saveCurrentActiveConversation(newPersona, initialMessages, newPersona.personaImageChirho);
 
       } else {
         toastChirho({ variant: "destructive", title: dictionary.errorGeneratingPersonaTitle, description: genResult.error || dictionary.errorGeneratingPersonaDescription });
@@ -338,7 +318,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
         toastChirho({ variant: "destructive", title: dictionary.generalErrorTitle, description: errorChirho.message || dictionary.generalUnexpectedError });
     }
     setIsLoadingPersonaChirho(false);
-  }, [toastChirho, currentUserChirho, userProfileChirho, dictionary, lang, archiveCurrentConversationChirho, updateLocalUserProfileChirho, personaChirho, messagesChirho, isCelebrationModeActiveChirho]);
+  }, [toastChirho, currentUserChirho, userProfileChirho, dictionary, lang, archiveCurrentConversationChirho, updateLocalUserProfileChirho, personaChirho, messagesChirho, isCelebrationModeActiveChirho, saveCurrentActiveConversation]);
 
 
   useEffect(() => {
@@ -462,7 +442,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
             setDynamicPersonaImageChirho(imageResultChirho.data.updatedImageUriChirho);
             imageForPersonaMessage = imageResultChirho.data.updatedImageUriChirho;
           } else {
-            toastChirho({ variant: "destructive", title: dictionary.errorUpdatingImageDescription || "Image Update Failed", description: dictionary.errorUpdatingImageDescription || "Could not update persona image." });
+            toastChirho({ variant: "destructive", title: dictionary.errorUpdatingImageTitle || "Image Update Failed", description: dictionary.errorUpdatingImageDescription || "Could not update persona image." });
           }
           setIsUpdatingImageChirho(false);
         }
@@ -600,7 +580,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     setIsSendingMessageChirho(false);
   };
   
-  if (loadingAuthChirho || (currentUserChirho && !isInitialLoadAttemptedChirho && isLoadingPersonaChirho)) { 
+  if (loadingAuthChirho) { 
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>; 
   }
 
@@ -619,9 +599,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
   
   const personaDisplayNameForCard = isCelebrationModeActiveChirho
     ? (dictionary.personaConvincedCelebrationMessage).replace("{nameOrTitle}", personaChirho?.personaNameKnownToUserChirho ? (personaChirho?.personaNameChirho || "") : (personaChirho?.encounterTitleChirho || dictionary.thePerson))
-    : personaChirho 
-      ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))
-      : dictionary.personaCardTitleLoading;
+    : isLoadingPersonaChirho && !personaChirho
+      ? (dictionary.generatingPersonaMessage || "Generating new encounter...")
+      : personaChirho 
+        ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))
+        : dictionary.errorGeneratingPersonaTitle; // Show error if not loading and no persona
 
   const chatWithNameForHeader = personaChirho 
     ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.chatWithTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.thePerson))
@@ -810,12 +792,11 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                   {dictionary.startNextConversationButton}
                 </Button>
               </div>
-          ) : (isLoadingPersonaChirho && !personaChirho && !isInitialLoadAttemptedChirho) ? ( 
-            <div className="space-y-4">
-              <div className="w-full aspect-square bg-muted rounded-lg animate-pulse" />
-              <div className="h-6 w-3/4 bg-muted rounded animate-pulse mt-2" />
-              <div className="h-4 w-full bg-muted rounded animate-pulse" />
-              <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
+          ) : isLoadingPersonaChirho && !personaChirho ? ( 
+            <div className="text-center space-y-2 p-4">
+              <Loader2 className="h-12 w-12 text-primary mx-auto animate-spin" />
+              <p className="text-lg font-semibold">{dictionary.generatingPersonaMessage || "Generating new encounter..."}</p>
+              <p className="text-sm text-muted-foreground">{dictionary.generatingPersonaDescription || "Please wait a moment."}</p>
             </div>
           ) : personaChirho ? (
             <>
@@ -864,33 +845,33 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 <Dialog open={isBuyCreditsDialogOpenChirho} onOpenChange={setIsBuyCreditsDialogOpenChirho}>
                     <DialogTrigger asChild>
                     <Button variant="outline" className="w-full" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}>
-                        <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || dictionary.getMoreCreditsButton}
+                        <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Get More Message Credits"}
                     </Button>
                     </DialogTrigger>
                     <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{dictionary.creditsDialog?.title || dictionary.creditsDialogTitle}</DialogTitle>
+                        <DialogTitle>{dictionary.creditsDialog?.title || "Get More Message Credits"}</DialogTitle>
                         <DialogDescription>
-                        {dictionary.creditsDialog?.description || dictionary.creditsDialogDescription}
+                        {dictionary.creditsDialog?.description || "Choose a package to continue your conversations. (Payment integration is a demo)."}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <Card className="p-4 hover:shadow-lg transition-shadow">
-                        <CardTitle className="text-lg">{dictionary.creditsDialog?.testPackageTitle || dictionary.creditsTestPackageTitle}</CardTitle>
-                        <CardDescription>{dictionary.creditsDialog?.testPackageDescription || dictionary.creditsTestPackageDescription}</CardDescription>
-                        <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
-                            {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (dictionary.creditsDialog?.testPackageButton || dictionary.creditsTestPackageButton)}
-                        </Button>
+                          <CardTitle className="text-lg">{dictionary.creditsDialog?.standardPackageTitle || "Standard Believer Pack"}</CardTitle>
+                          <CardDescription>{dictionary.creditsDialog?.standardPackageDescription || "100 credits for $5.00. (Actual payment not implemented)"}</CardDescription>
+                          <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsDialog?.buyNowButtonDisabled || "Buy Now (Disabled)"}</Button>
                         </Card>
-                        <Card className="p-4 bg-muted/50">
-                        <CardTitle className="text-lg">{dictionary.creditsDialog?.basicPackageTitle || dictionary.creditsBasicPackageTitle}</CardTitle>
-                        <CardDescription>{dictionary.creditsDialog?.basicPackageDescription || dictionary.creditsBasicPackageDescription}</CardDescription>
-                        <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsDialog?.buyNowButtonDisabled || dictionary.creditsBuyNowButtonDisabled}</Button>
+                        <Card className="p-4 hover:shadow-lg transition-shadow">
+                        <CardTitle className="text-lg">{dictionary.creditsDialog?.testPackageTitle || "Test Package"}</CardTitle>
+                        <CardDescription>{dictionary.creditsDialog?.testPackageDescription || "Add 1000 credits for testing purposes."}</CardDescription>
+                        <Button className="mt-2 w-full" onClick={handleAddTestCredits} disabled={isSendingMessageChirho}>
+                            {isSendingMessageChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (dictionary.creditsDialog?.testPackageButton || "Get 1000 Test Credits")}
+                        </Button>
                         </Card>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                        <Button variant="outline">{dictionary.creditsDialog?.closeButton || dictionary.creditsDialogCloseButton}</Button>
+                        <Button variant="outline">{dictionary.creditsDialog?.closeButton || "Close"}</Button>
                         </DialogClose>
                     </DialogFooter>
                     </DialogContent>
@@ -1001,7 +982,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 <AlertDescription>
                   {dictionary.outOfCreditsAlertDescription.replace("{nameOrTitle}", chatWithNameForHeader)}
                   <Button className="mt-2 w-full" size="sm" onClick={() => setIsBuyCreditsDialogOpenChirho(true)}>
-                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || dictionary.getMoreCreditsButton}
+                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Get More Message Credits"}
                   </Button>
                 </AlertDescription>
              </Alert>
@@ -1012,7 +993,7 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
                 <Textarea
                     value={userInputChirho}
                     onChange={(eChirho) => setUserInputChirho(eChirho.target.value)}
-                    placeholder={ (isLoadingPersonaChirho && !personaChirho && !isInitialLoadAttemptedChirho) ? dictionary.messagePlaceholderLoading : (noCreditsChirho ? dictionary.messagePlaceholderNoCredits : messagePlaceholderName)}
+                    placeholder={ (isLoadingPersonaChirho && !personaChirho) ? dictionary.messagePlaceholderLoading : (noCreditsChirho ? dictionary.messagePlaceholderNoCredits : messagePlaceholderName)}
                     className="flex-grow resize-none"
                     rows={2}
                     onKeyDown={(eChirho) => {
@@ -1056,4 +1037,3 @@ export default function AIPersonasClientPageChirho({ dictionary, lang }: AIPerso
     </div>
   );
 }
-
