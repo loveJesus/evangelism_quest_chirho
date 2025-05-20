@@ -52,7 +52,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
 
   if (loadingAuthChirho) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-background">
+      <div className="flex items-center justify-center h-screen w-screen bg-background text-foreground">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
@@ -63,8 +63,25 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  // If the user is authenticated OR if it's a public page that still uses the layout
-  // (e.g., /daily-inspiration-chirho), then render the full SidebarProvider layout.
+  // If the user is not authenticated and on a protected route, 
+  // AppLayoutChirho shows a full-page redirect message. 
+  // The child page is still rendered invisibly to allow its useEffect for redirection to run.
+  if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
+    return (
+      <>
+        <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg">Redirecting to login...</p>
+          </div>
+        </div>
+        {/* Render children hidden so its useEffect for redirection can run */}
+        <div style={{ display: 'none' }}>{children}</div> 
+      </>
+    );
+  }
+  
+  // If user is authenticated OR it's a public page that still uses the layout
   if (currentUserChirho || !PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
     return (
       <SidebarProvider defaultOpen={!isMobileChirho} open={!isMobileChirho}>
@@ -139,7 +156,7 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
                   </DropdownMenu>
                 </>
               ) : !currentUserChirho && !loadingAuthChirho && !PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho) ? (
-                // Show login button only on non-protected pages if logged out and layout is used
+                // Show login button only on non-protected pages if layout is used
                 <Button asChild variant="outline" size="sm">
                   <Link href="/login-chirho">Login</Link>
                 </Button>
@@ -153,12 +170,9 @@ export function AppLayoutChirho({ children }: { children: ReactNode }) {
         </SidebarInset>
       </SidebarProvider>
     );
-  } else {
-    // User is NOT authenticated AND on a PROTECTED route.
-    // The child page (e.g., AIPersonasPageChirho) is responsible for rendering its "Redirecting..."
-    // message and handling the actual redirect via its useEffect.
-    // AppLayout here just renders the children without its own chrome, allowing the page to mount and run effects.
-    return <>{children}</>;
   }
+  
+  // Fallback for any other unhandled case (e.g. if !loadingAuthChirho && !currentUserChirho but route is not protected)
+  // In such cases, the children (the page) should render and decide what to do.
+  return <>{children}</>; 
 }
-

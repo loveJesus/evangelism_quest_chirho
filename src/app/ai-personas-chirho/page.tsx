@@ -106,10 +106,11 @@ export default function AIPersonasPageChirho() {
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const justContinuedConversationRef = useRef(false);
   
-  // Effect for redirecting if not authenticated
+  // Effect for redirecting if not authenticated AND auth state is resolved
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho) {
       if (routerChirho) {
+        console.log("AIPersonasPageChirho: Attempting redirect to /login-chirho");
         routerChirho.push('/login-chirho');
       } else {
         console.warn("AIPersonasPageChirho: routerChirho from context is not yet available for redirect on auth check.");
@@ -157,7 +158,7 @@ export default function AIPersonasPageChirho() {
       setIsLoadingPersonaChirho(false); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserChirho, loadingAuthChirho, toastChirho, isLoadingHistoryChirho, isLoadingPersonaChirho, difficultyLevelChirho]);
+  }, [currentUserChirho, loadingAuthChirho, toastChirho]);
 
 
   const archiveCurrentConversationChirho = useCallback(async (
@@ -235,7 +236,7 @@ export default function AIPersonasPageChirho() {
     conversationToContinue?: ArchivedConversationChirho | null
   ) => {
     
-    const currentPersonaForArchive = personaChirho; // Capture current state before it's changed
+    const currentPersonaForArchive = personaChirho; 
     const currentMessagesForArchive = messagesChirho;
 
     setIsLoadingPersonaChirho(true);
@@ -560,15 +561,25 @@ export default function AIPersonasPageChirho() {
 
   // --- Early returns for auth states ---
   if (loadingAuthChirho) { 
-    return <div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+    // This is handled by AppLayoutChirho if it's a full-page loader.
+    // This component might return null or its own minimal loader if desired.
+    return null; 
   }
 
   if (!currentUserChirho) {
-    return <div className="flex items-center justify-center h-full"><p>Redirecting to login...</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
+    // The redirect useEffect will handle navigation.
+    // AppLayoutChirho shows a full-page "Redirecting..." message.
+    // This component should return null to avoid rendering its main UI.
+    return null;
   }
   
   if (!userProfileChirho) {
-    return <div className="flex items-center justify-center h-full"><p>Loading user profile...</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Loading user profile...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary ml-2" />
+      </div>
+    );
   }
   // --- End of early returns ---
 
@@ -777,7 +788,7 @@ export default function AIPersonasPageChirho() {
                     data-ai-hint="portrait person"
                     key={dynamicPersonaImageChirho || personaChirho.personaImageChirho} 
                     priority={true} 
-                    unoptimized={false} // Assuming Firebase Storage URLs are used
+                    unoptimized={false} 
                   />
                 )}
                 {isUpdatingImageChirho && (
@@ -995,3 +1006,4 @@ export default function AIPersonasPageChirho() {
     </div>
   );
 }
+
