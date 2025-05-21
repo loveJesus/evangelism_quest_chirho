@@ -886,7 +886,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                           <CardTitle className="text-lg">{dictionary.creditsDialog?.donationTitle || "Support Evangelism Quest"}</CardTitle>
                           <CardDescription>{dictionary.creditsDialog?.donationDescription || "Our operational cost is roughly $5 per 100 messages. Please consider supporting the ongoing development and server costs."}</CardDescription>
                           <Button asChild className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white">
-                            <a href="https://www.paypal.com/paypalme/brianloveJesus" target="_blank" rel="noopener noreferrer">
+                            <a href="https://paypal.me/brianloveJesus" target="_blank" rel="noopener noreferrer">
                                 {dictionary.creditsDialog?.donationButtonLabel || "Donate via PayPal"} <ExternalLink className="ml-2 h-4 w-4" />
                             </a>
                           </Button>

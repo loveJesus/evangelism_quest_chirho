@@ -13,7 +13,7 @@ import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
 import { useRouter, usePathname } from "next/navigation";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 
-const LOCAL_STORAGE_LANG_KEY_CHIRHO = 'faithforward-lang'; // Consistent key
+const LOCAL_STORAGE_LANG_KEY_CHIRHO = 'faithforward-lang';
 
 interface LandingPagePropsChirho {
   lang: string;
@@ -34,7 +34,6 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
     const storedLang = localStorage.getItem(LOCAL_STORAGE_LANG_KEY_CHIRHO);
     if (storedLang) {
       setSelectedLangChirho(storedLang);
-      // If stored lang is different from URL lang, redirect to ensure consistency
       if (storedLang !== currentUrlLang) {
         let newPathname = pathnameChirho;
         if (pathnameChirho.startsWith(`/${currentUrlLang}`)) {
@@ -42,7 +41,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
         } else {
             newPathname = `/${storedLang}${pathnameChirho.startsWith('/') ? '' : '/'}${pathnameChirho}`;
         }
-        routerChirho.push(newPathname);
+        if (routerChirho) routerChirho.push(newPathname);
       }
     } else {
       setSelectedLangChirho(currentUrlLang);
@@ -60,18 +59,21 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
      if (pathnameChirho.startsWith(`/${currentUrlLang}`)) {
       newPathname = pathnameChirho.replace(`/${currentUrlLang}`, `/${newLang}`);
     } else {
-       // Handle cases where pathname might not start with lang, e.g. root path
        newPathname = `/${newLang}${pathnameChirho === '/' ? '' : pathnameChirho}`;
     }
     
-    routerChirho.push(newPathname);
-    // Toast is more appropriate in settings, here the page reloads with new lang.
+    if(routerChirho) routerChirho.push(newPathname);
   };
 
 
   return (
     <div className="flex flex-col items-center justify-between min-h-screen bg-gradient-to-br from-background via-primary/5 to-background p-4 text-center">
       <header className="w-full flex justify-end items-center p-6 absolute top-0 right-0">
+        {loadingAuthChirho && (
+           <Button variant="outline" size="sm" disabled>
+             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {dictionary.loading || "Loading..."}
+           </Button>
+        )}
         {!loadingAuthChirho && !currentUserChirho && (
           <Button asChild variant="outline" size="sm">
             <Link href={`/${selectedLangChirho}/login-chirho`}>
@@ -88,7 +90,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
         )}
       </header>
       
-      <main className="flex flex-col items-center justify-center flex-1 mt-16 mb-8"> {/* Added margin-top for header space */}
+      <main className="flex flex-col items-center justify-center flex-1 mt-16 mb-8">
         <Card className="w-full max-w-3xl shadow-xl bg-card/90 backdrop-blur-sm border-primary/20">
           <CardHeader>
             <div className="flex justify-center mb-6">
@@ -110,17 +112,17 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Gamepad2 className="h-10 w-10 text-accent mb-3" />
-                <h3 className="text-xl font-semibold">{dictionary.feature1Title}</h3>
+                <h3 className="text-xl font-semibold min-h-[3.5rem] flex items-center justify-center">{dictionary.feature1Title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{dictionary.feature1Desc}</p>
               </div>
               <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Users className="h-10 w-10 text-accent mb-3" />
-                <h3 className="text-xl font-semibold">{dictionary.feature2Title}</h3>
+                <h3 className="text-xl font-semibold min-h-[3.5rem] flex items-center justify-center">{dictionary.feature2Title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{dictionary.feature2Desc}</p>
               </div>
               <div className="p-6 rounded-lg border bg-background/70 hover:shadow-md transition-shadow flex flex-col items-center">
                 <Lightbulb className="h-10 w-10 text-accent mb-3" />
-                <h3 className="text-xl font-semibold">{dictionary.feature3Title}</h3>
+                <h3 className="text-xl font-semibold min-h-[3.5rem] flex items-center justify-center">{dictionary.feature3Title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{dictionary.feature3Desc}</p>
               </div>
             </div>
@@ -150,7 +152,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
                     </a>
                 </Button>
                 <Button variant="outline" asChild>
-                    <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer"> {/* Replace with actual video URL */}
+                    <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">
                         <Youtube className="mr-2 h-4 w-4" /> {dictionary.watchDemoLink}
                     </a>
                 </Button>
@@ -161,7 +163,9 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
        <footer className="w-full py-8 text-center text-sm text-muted-foreground space-y-3">
         {isMounted && (
           <div className="flex flex-col items-center space-y-2 mb-4">
-            <Label htmlFor="landing-language-selector" className="text-xs">{dictionary.languageSelectorLabel}</Label>
+            <Label htmlFor="landing-language-selector" className="text-xs flex items-center gap-1">
+              <Languages className="h-3 w-3" /> {dictionary.languageSelectorLabel}
+            </Label>
             <RadioGroup
               id="landing-language-selector"
               value={selectedLangChirho}
