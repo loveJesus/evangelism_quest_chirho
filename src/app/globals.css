@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,4 +98,32 @@ body {
     /* @apply bg-background text-foreground; */ /* This is now set on the body tag in layout.tsx */
     min-height: 100vh;
   }
+}
+
+/* Avatar Pulse and Shrink Animation */
+@keyframes avatar-pulse-shrink-chirho {
+  0%, 77% { /* 0s to ~1.73s of 2.25s total */
+    transform: scale(1.5);
+  }
+  100% { /* ~1.73s to 2.25s */
+    transform: scale(1);
+  }
+}
+
+.avatar-animate-pulse-shrink-chirho {
+  animation: avatar-pulse-shrink-chirho 2.25s ease-out forwards;
+}
+
+/* Text Fade-In Animation (Delayed) */
+@keyframes text-fade-in-delayed-chirho {
+  0%, 88% { /* 0s to ~1.98s of 2.25s total */
+    opacity: 0;
+  }
+  100% { /* ~1.98s to 2.25s */
+    opacity: 1;
+  }
+}
+
+.text-animate-fade-in-chirho {
+  animation: text-fade-in-delayed-chirho 2.25s ease-in forwards;
 }
