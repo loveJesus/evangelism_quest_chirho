@@ -47,6 +47,7 @@ body {
 
     /* Font scaling */
     --font-scale-factor: 1;
+    --header-height: 56px; /* h-14 from AppLayoutChirho */
   }
 
   .dark {
@@ -100,37 +101,46 @@ body {
   }
 }
 
-/* Avatar Pulse and Shrink Animation */
-@keyframes avatar-pulse-shrink-chirho {
+/* Avatar Entrance Animation */
+@keyframes avatar-entrance-chirho {
   0% {
-    transform: scale(5.0) translateX(8rem); /* Start significantly larger */
-    opacity: 0.7;
+    transform: scale(5.0) translateX(8rem); /* Start large and shifted right */
+    opacity: 0;
   }
-  70% { /* Hold larger size for a bit longer */
-    transform: scale(5.0) translateX(8rem);
+  10% {
+    opacity: 0.7; /* Fade in */
+  }
+  70% {
+    transform: scale(5.0) translateX(8rem); /* Hold large and shifted */
     opacity: 1;
   }
-  100% { /* Shrink to normal size */
-    transform: scale(1) translateX(8rem);
+  100% {
+    transform: scale(1) translateX(0); /* Shrink and move to final position */
     opacity: 1;
   }
 }
 
-.avatar-animate-pulse-shrink-chirho {
-  animation: avatar-pulse-shrink-chirho 2.25s ease-out forwards;
+.avatar-entrance-chirho {
+  animation: avatar-entrance-chirho 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   transform-origin: center; /* Ensure scaling happens from the center */
 }
 
-/* Text Fade-In Animation (Delayed) */
-@keyframes text-fade-in-delayed-chirho {
-  0%, 80% { /* Delay opacity change slightly longer */
+/* Text Bubble Entrance Animation (Delayed) */
+@keyframes text-bubble-entrance-chirho {
+  0%, 80% { /* Delay opacity and position change */
     opacity: 0;
+    transform: translateX(8rem);
+  }
+  81% {
+      opacity: 0; /* Start fade-in */
+      transform: translateX(8rem);
   }
   100% {
     opacity: 1;
+    transform: translateX(0); /* Move to final position */
   }
 }
 
-.text-animate-fade-in-chirho {
-  animation: text-fade-in-delayed-chirho 2.25s ease-in forwards;
+.text-bubble-entrance-chirho {
+  animation: text-bubble-entrance-chirho 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }

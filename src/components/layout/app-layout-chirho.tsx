@@ -42,7 +42,7 @@ const PROTECTED_ROUTES_CHIRHO = ["/ai-personas-chirho", "/contextual-guidance-ch
 export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayoutPropsChirho) {
   const isMobileChirho = useIsMobileChirho();
   const pathnameWithLocale = usePathname(); 
-  const pathnameChirho = pathnameWithLocale.replace(`/${lang}`, "") || "/"; 
+  const pathnameChirho = pathnameWithLocale.startsWith(`/${lang}`) ? pathnameWithLocale.substring(`/${lang}`.length) || "/" : pathnameWithLocale;
   
   const { effectiveThemeChirho } = useCustomizationChirho(); 
   const { currentUserChirho, userProfileChirho, logOutChirho, loadingAuthChirho, routerChirho } = useAuthChirho();
@@ -52,10 +52,11 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
   else if (pathnameChirho === "/contextual-guidance-chirho") currentPageTitleChirho = dictionary.contextualGuidance;
   else if (pathnameChirho === "/daily-inspiration-chirho") currentPageTitleChirho = dictionary.dailyInspiration;
   else if (pathnameChirho === "/settings-chirho") currentPageTitleChirho = dictionary.settings;
-  // No specific title for "/" as it's the landing page handled differently
+  else if (pathnameChirho === "/") currentPageTitleChirho = dictionary.home; // Landing page title
 
+  // Bypass layout for login and root landing page
   if (pathnameChirho === '/login-chirho' || pathnameChirho === '/') {
-    return <>{children}</>; // Render children directly for login and landing page
+    return <>{children}</>;
   }
 
   if (loadingAuthChirho) {
@@ -69,13 +70,22 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
     );
   }
   
-  // For protected routes, if the user is not logged in, the page component itself will handle redirection.
-  // AppLayoutChirho will render if the page is public or user is logged in.
+  // If user is not authenticated and tries to access a protected route,
+  // the page component itself will handle showing a "Redirecting..." message and performing the redirect.
+  // The layout should still render its children (the page) to allow this logic to execute.
+  // However, for PROTECTED routes specifically, if no user, we can show a layout-level redirect message
+  // while the child page mounts and performs its actual redirect.
   if (!currentUserChirho && PROTECTED_ROUTES_CHIRHO.includes(pathnameChirho)) {
-    // The page component will render its own "Redirecting..." message and handle the redirect.
-    // To prevent layout flash, we ensure the page component itself handles this state.
-    // Returning children here allows the page component to manage its pre-auth rendering.
-    return <>{children}</>; 
+    return (
+      <div className="fixed inset-0 flex items-center justify-center h-screen w-screen bg-background text-foreground z-50">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg">{dictionary.loading}</p> {/* Using generic loading for redirect phase */}
+          {/* Children are rendered hidden to allow their useEffect for redirect to run */}
+          <div style={{ display: 'none' }}>{children}</div> 
+        </div>
+      </div>
+    );
   }
   
   return (
@@ -98,7 +108,7 @@ export function AppLayoutChirho({ children, lang, dictionary, appName }: AppLayo
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4" style={{'--header-height': '72px'} as React.CSSProperties}>
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
           <div className="flex items-center gap-4">
             {isMobileChirho && (
               <SidebarTrigger asChild>
