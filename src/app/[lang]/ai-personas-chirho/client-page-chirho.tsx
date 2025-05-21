@@ -25,6 +25,7 @@ import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } 
 import type { UpdatePersonaVisualsInputChirho } from "@/ai-chirho/flows-chirho/update-persona-visuals-chirho";
 import type { SuggestEvangelisticResponseInputChirho, SuggestEvangelisticResponseOutputChirho } from "@/ai-chirho/flows-chirho/suggest-evangelistic-response-chirho";
 import type { DictionaryChirho } from '@/lib/dictionary-types-chirho';
+import { defaultLocale } from '@/middleware';
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,29 +64,29 @@ export interface MessageChirho {
   sender: "user" | "persona";
   text: string;
   id: string;
-  imageUrlChirho?: string | null; // Firebase Storage URL
+  imageUrlChirho?: string | null;
 }
 
 export interface ArchivedConversationChirho {
   id: string;
-  timestamp: number; // JS milliseconds
+  timestamp: number;
   personaNameChirho: string;
-  initialPersonaImageChirho?: string | null; // Firebase Storage URL
+  initialPersonaImageChirho?: string | null;
   meetingContextChirho: string;
   encounterTitleChirho?: string | null;
   personaDetailsChirho: string;
   personaNameKnownToUserChirho: boolean;
   difficultyLevelChirho: number;
-  messagesChirho: MessageChirho[]; // Messages will have imageUrlChirho as Firebase Storage URLs
+  messagesChirho: MessageChirho[];
   convincedChirho: boolean;
   conversationLanguageChirho: string;
-  archivedAtServerMillis?: number; // JS milliseconds
+  archivedAtServerMillis?: number;
 }
 
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
 const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
 const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
-const ANIMATION_TOTAL_DURATION_CHIRHO = 2250; // milliseconds (1.75s hold + 0.5s shrink)
+const ANIMATION_TOTAL_DURATION_CHIRHO = 2250;
 
 
 interface AIPersonasClientPagePropsChirho {
@@ -127,8 +128,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const { toastChirho } = useToastChirho();
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
+  const justContinuedConversationRef = useRef(false);
 
-  // Effect for redirecting if not logged in
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho && routerChirho) {
         const targetLang = authContextLang || lang || defaultLocale;
@@ -137,7 +138,6 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
   }, [currentUserChirho, loadingAuthChirho, routerChirho, lang, authContextLang]);
 
-  // Effect for resetting state on logout or if initial load fails to find user
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho) {
       console.log("[AIPersonasPage] User logged out or no user. Resetting component state.");
@@ -145,11 +145,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
       setSuggestedAnswerChirho(null);
-      setArchivedConversationsChirho([]); // Clear archived from UI state
+      setArchivedConversationsChirho([]);
       setIsLoadingPersonaChirho(false);
       setIsCelebrationModeActiveChirho(false);
-      setIsInitialLoadAttemptedChirho(false); // Allow re-attempt if user logs in again
-      setCurrentConversationLanguageChirho(lang); // Reset conversation lang to current UI lang
+      setIsInitialLoadAttemptedChirho(false);
+      setCurrentConversationLanguageChirho(lang);
     }
   }, [currentUserChirho, loadingAuthChirho, lang]);
 
@@ -167,11 +167,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
     const activeData: ActiveConversationDataChirho = {
       personaChirho: currentPersonaToSave,
-      messagesChirho: currentMessagesToSave,
+      messagesChirho: currentMessagesToSave.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null })), // Ensure null if undefined
       difficultyLevelChirho: currentDifficultyToSave,
       currentConversationLanguageChirho: currentLangToSave,
       dynamicPersonaImageChirho: currentDynamicImgToSave,
-      lastSaved: Date.now(), 
+      lastSaved: Date.now(),
     };
     const result = await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, activeData);
     if (!result.success) {
@@ -204,7 +204,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         personaDetailsChirho: personaToArchive.personaDetailsChirho,
         personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
         difficultyLevelChirho: difficultyLevelChirho,
-        messagesChirho: messagesToArchive.map(msg => ({...msg})), // Deep copy messages
+        messagesChirho: messagesToArchive.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })), // Ensure null if undefined
         convincedChirho: convincedStatus,
         conversationLanguageChirho: archiveLang,
       };
@@ -236,19 +236,22 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     setUserInputChirho("");
     setSuggestedAnswerChirho(null);
     setIsCelebrationModeActiveChirho(false);
+    
+    const currentPersonaSnapshot = personaChirho ? { ...personaChirho } : null;
+    const currentMessagesSnapshot = messagesChirho.length > 0 ? [...messagesChirho] : [];
+    const currentConversationLanguageSnapshot = currentConversationLanguageChirho;
 
-    // Archive current active conversation if it exists, has more than initial message, and we are NOT continuing this exact conversation
-    if (personaChirho && messagesChirho.length > 1 && (!conversationToContinue || conversationToContinue.id !== personaChirho.encounterTitleChirho + personaChirho.personaNameChirho)) {
+
+    if (currentPersonaSnapshot && currentMessagesSnapshot.length > 1 && (!conversationToContinue || conversationToContinue.id !== (currentPersonaSnapshot.encounterTitleChirho + currentPersonaSnapshot.personaNameChirho))) {
       console.log("[AIPersonasPage] Archiving previous active session before loading new/continued one.");
-      await archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false, currentConversationLanguageChirho);
+      await archiveCurrentConversationChirho(currentPersonaSnapshot, currentMessagesSnapshot, convincedStatusOverride ?? false, currentConversationLanguageSnapshot);
     }
     
-    // Always clear previous active session from Firestore *before* loading/starting a new one.
     await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid);
-
 
     if (conversationToContinue) {
       console.log("[AIPersonasPage] Continuing conversation with:", conversationToContinue.personaNameChirho);
+      justContinuedConversationRef.current = true;
       const restoredPersona: GenerateAiPersonaOutputChirho = {
         personaNameChirho: conversationToContinue.personaNameChirho,
         personaDetailsChirho: conversationToContinue.personaDetailsChirho,
@@ -259,11 +262,13 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       };
       setPersonaChirho(restoredPersona);
       setCurrentConversationLanguageChirho(conversationToContinue.conversationLanguageChirho); 
-      setMessagesChirho(conversationToContinue.messagesChirho.map(msg => ({ ...msg }))); 
+      
+      const restoredMessages = conversationToContinue.messagesChirho.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null }));
+      setMessagesChirho(restoredMessages); 
 
       let lastImageUrl: string | null = null;
-      if (conversationToContinue.messagesChirho.length > 0) {
-          const lastMsgWithImage = [...conversationToContinue.messagesChirho].reverse().find(msg => msg.imageUrlChirho);
+      if (restoredMessages.length > 0) {
+          const lastMsgWithImage = [...restoredMessages].reverse().find(msg => msg.imageUrlChirho);
           lastImageUrl = lastMsgWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho || null;
       } else {
         lastImageUrl = conversationToContinue.initialPersonaImageChirho || null;
@@ -274,7 +279,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setIsHistoryDialogOpenChirho(false); 
       setSelectedArchivedConversationChirho(null);
       
-      await saveCurrentActiveConversation(restoredPersona, conversationToContinue.messagesChirho, lastImageUrl, conversationToContinue.difficultyLevelChirho, conversationToContinue.conversationLanguageChirho);
+      await saveCurrentActiveConversation(restoredPersona, restoredMessages, lastImageUrl, conversationToContinue.difficultyLevelChirho, conversationToContinue.conversationLanguageChirho);
       
       setIsLoadingPersonaChirho(false);
       toastChirho({
@@ -288,13 +293,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       return;
     }
 
-    // --- Generating a NEW persona ---
-    const newPersonaLang = lang; // Use current UI lang for new personas
+    const newPersonaLang = lang; 
     console.log("[AIPersonasPage] Loading NEW persona, difficulty:", difficultyToLoadChirho, "in language:", newPersonaLang);
     setCurrentConversationLanguageChirho(newPersonaLang); 
-    setMessagesChirho([]); // Clear messages for new persona
-    setDynamicPersonaImageChirho(null); // Clear dynamic image
-    setPersonaChirho(null); // Clear old persona state
+    setMessagesChirho([]); 
+    setDynamicPersonaImageChirho(null); 
+    setPersonaChirho(null); 
 
     if (userProfileChirho.credits <= 0) {
       toastChirho({ variant: "destructive", title: dictionary.toastOutOfCreditsTitle, description: dictionary.toastOutOfCreditsNewPersona });
@@ -335,7 +339,6 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         }];
         setMessagesChirho(initialMessages);
         
-        // Save this brand new persona as the active conversation
         await saveCurrentActiveConversation(newPersona, initialMessages, newPersona.personaImageChirho, difficultyToLoadChirho, newPersonaLang);
 
       } else {
@@ -345,12 +348,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       toastChirho({ variant: "destructive", title: dictionary.generalErrorTitle, description: errorChirho.message || dictionary.generalUnexpectedError });
     }
     setIsLoadingPersonaChirho(false);
-  }, [toastChirho, currentUserChirho, userProfileChirho, dictionary, lang, archiveCurrentConversationChirho, updateLocalUserProfileChirho, personaChirho, messagesChirho, currentConversationLanguageChirho, saveCurrentActiveConversation]);
+  }, [toastChirho, currentUserChirho, userProfileChirho, dictionary, lang, archiveCurrentConversationChirho, updateLocalUserProfileChirho, saveCurrentActiveConversation, messagesChirho, personaChirho, currentConversationLanguageChirho]);
 
-  // Effect for initial load: Fetch active session or start new persona, and fetch history
   useEffect(() => {
     if (!loadingAuthChirho && currentUserChirho && !isInitialLoadAttemptedChirho) {
-      setIsInitialLoadAttemptedChirho(true); // Mark that initial load is being attempted
+      setIsInitialLoadAttemptedChirho(true); 
 
       const initialLoad = async () => {
         console.log("[AIPersonasPage] Attempting initial load for user:", currentUserChirho.uid);
@@ -361,10 +363,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           console.log("[AIPersonasPage] Active conversation found, restoring state.");
           const activeData = activeConvResult.data;
           setPersonaChirho(activeData.personaChirho);
-          setMessagesChirho(activeData.messagesChirho.map(msg => ({...msg})));
+          setMessagesChirho(activeData.messagesChirho.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })));
           setDynamicPersonaImageChirho(activeData.dynamicPersonaImageChirho);
           setDifficultyLevelChirho(activeData.difficultyLevelChirho);
           setCurrentConversationLanguageChirho(activeData.currentConversationLanguageChirho);
+          justContinuedConversationRef.current = true; // Mark that we just loaded an active session
           toastChirho({ title: dictionary.toastConversationContinuedTitle, description: (dictionary.toastConversationContinuedDescription).replace("{nameOrTitle}", activeData.personaChirho.personaNameKnownToUserChirho ? activeData.personaChirho.personaNameChirho : (activeData.personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle)) });
         } else {
           console.log("[AIPersonasPage] No active conversation, loading new persona. Error (if any):", activeConvResult.error);
@@ -386,7 +389,6 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       initialLoad();
     }
   }, [currentUserChirho, loadingAuthChirho, isInitialLoadAttemptedChirho, loadNewPersonaChirho, toastChirho, dictionary, difficultyLevelChirho]);
-
 
   useEffect(() => {
     if (scrollAreaRefChirho.current) {
@@ -415,7 +417,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
     let currentDynamicImageForResponse = dynamicPersonaImageChirho || personaChirho.personaImageChirho;
     if (!currentDynamicImageForResponse) {
-      currentDynamicImageForResponse = personaChirho.personaImageChirho; // Should ideally always exist if personaChirho does
+      currentDynamicImageForResponse = personaChirho.personaImageChirho; 
     }
 
     if (userProfileChirho.credits <= 0) {
@@ -454,14 +456,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         if (!creditDecrementResult.success) {
           toastChirho({ variant: "destructive", title: dictionary.toastCreditErrorTitle, description: creditDecrementResult.error || dictionary.toastCreditErrorDescription });
           if (creditDecrementResult.error === "Insufficient credits.") setIsBuyCreditsDialogOpenChirho(true);
-          // User still sees the AI response for this turn even if credit decrement fails
         }
         if (creditDecrementResult.newCredits !== undefined) {
           updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
         }
 
-        // Image update logic
-        if (aiResponseData.visualContextForNextImageChirho && currentDynamicImageForResponse && personaChirho) { // Added personaChirho check for safety
+        if (aiResponseData.visualContextForNextImageChirho && currentDynamicImageForResponse && personaChirho) { 
           console.log("Attempting to update persona image with visual context:", aiResponseData.visualContextForNextImageChirho);
           setIsUpdatingImageChirho(true);
           const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
@@ -492,13 +492,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         setAnimatingMessageIdChirho(newPersonaMessageChirho.id);
         setTimeout(() => setAnimatingMessageIdChirho(null), ANIMATION_TOTAL_DURATION_CHIRHO);
 
-        // Save active conversation after AI responds and UI updates
-        if(personaChirho) { // Ensure personaChirho is not null
+        if(personaChirho) {
           await saveCurrentActiveConversation(personaChirho, finalMessagesForSave, imageForPersonaMessage, difficultyLevelChirho, currentConversationLanguageChirho);
         }
 
 
-        if (aiResponseData.convincedChirho && personaChirho) { // Added personaChirho check
+        if (aiResponseData.convincedChirho && personaChirho) { 
           toastChirho({
             title: dictionary.personaConvincedToastTitle,
             description: (dictionary.personaConvincedToastDescription).replace(
@@ -508,8 +507,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             duration: 7000,
           });
           await archiveCurrentConversationChirho(personaChirho, finalMessagesForSave, true, currentConversationLanguageChirho);
-          await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid); // Clear active session
-          setIsCelebrationModeActiveChirho(true); // Trigger celebration mode
+          await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid); 
+          setIsCelebrationModeActiveChirho(true); 
         }
       } else {
         toastChirho({ variant: "destructive", title: dictionary.errorSendingMessageTitle, description: resultChirho.error || dictionary.errorSendingMessageDescription });
@@ -545,11 +544,16 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     setIsFetchingSuggestionChirho(true);
     setSuggestedAnswerChirho(null);
 
+    const conversationHistorySummary = messagesChirho
+        .slice(-5) // Take last 5 messages
+        .map(m => `${m.sender === 'user' ? (userProfileChirho.displayName || 'User') : displayNameForSuggestion}: ${m.text}`)
+        .join('\n');
+
     const suggestionInputChirho: SuggestEvangelisticResponseInputChirho = {
       personaLastResponseChirho: lastPersonaMessageChirho.text,
       personaActualNameForContextChirho: actualPersonaName,
       personaDisplayNameForUserChirho: displayNameForSuggestion,
-      conversationHistoryChirho: messagesChirho.slice(-5).map(m => `${m.sender === 'user' ? (userProfileChirho.displayName || 'User') : displayNameForSuggestion}: ${m.text}`).join('\n'),
+      conversationHistoryChirho: conversationHistorySummary,
       languageChirho: currentConversationLanguageChirho,
     };
 
@@ -622,11 +626,10 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   }
 
   if (!currentUserChirho && !loadingAuthChirho) {
-    // This component shouldn't reach here if AppLayoutChirho's redirect logic is working
     return <div className="flex items-center justify-center h-full"><p>{dictionary.redirectingToLogin || "Redirecting to login..."}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
   
-  if (!userProfileChirho && currentUserChirho) { // User is authenticated, but profile is still loading
+  if (!userProfileChirho && currentUserChirho) { 
     return (
       <div className="flex items-center justify-center h-full">
         <p>{dictionary.loadingUserProfile || "Loading profile..."}</p>
@@ -635,7 +638,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     );
   }
 
-  if (!userProfileChirho || !dictionary) { // Fallback if something is really wrong
+  if (!userProfileChirho || !dictionary) { 
      return <div className="flex items-center justify-center h-full"><p>{dictionary.generalUnexpectedError || "An error occurred."}</p></div>;
   }
 
@@ -645,7 +648,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       ? (dictionary.generatingPersonaMessage || "Generating new encounter...")
       : personaChirho
         ? (personaChirho.personaNameKnownToUserChirho ? (dictionary.personaCardTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))
-        : dictionary.errorGeneratingPersonaTitle;
+        : (dictionary.errorGeneratingPersonaTitle || "Error Loading Persona");
 
   const chatWithNameForHeader = personaChirho
     ? (personaChirho.personaNameKnownToUserChirho && personaChirho.personaNameChirho ? (dictionary.chatWithTitleKnown).replace("{name}", personaChirho.personaNameChirho) : (personaChirho.encounterTitleChirho || dictionary.thePerson))
@@ -798,6 +801,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                             variant="default"
                             onClick={() => {
                                 if (selectedArchivedConversationChirho) {
+                                    setIsHistoryDialogOpenChirho(false);
                                     loadNewPersonaChirho(selectedArchivedConversationChirho.difficultyLevelChirho, false, selectedArchivedConversationChirho);
                                 }
                             }}
@@ -849,13 +853,13 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                 {(dynamicPersonaImageChirho || personaChirho.personaImageChirho) && (
                   <Image
                     src={dynamicPersonaImageChirho || personaChirho.personaImageChirho!}
-                    alt={dictionary.personaImageAlt.replace("{nameOrTitle}", personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))}
+                    alt={(dictionary.personaImageAlt || "AI Persona: {nameOrTitle}").replace("{nameOrTitle}", personaChirho.personaNameKnownToUserChirho ? personaChirho.personaNameChirho : (personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle))}
                     fill
                     style={{ objectFit: "cover" }}
                     data-ai-hint="portrait person"
                     key={dynamicPersonaImageChirho || personaChirho.personaImageChirho}
                     priority={true}
-                    unoptimized={false}
+                    unoptimized={false} 
                   />
                 )}
                 {isUpdatingImageChirho && (
@@ -876,8 +880,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             </>
           ) : (
             <Alert variant="destructive">
-              <AlertTitle>{dictionary.errorGeneratingPersonaTitle}</AlertTitle>
-              <AlertDescription>{dictionary.errorGeneratingPersonaDescription}</AlertDescription>
+              <AlertTitle>{dictionary.errorGeneratingPersonaTitle || "Error Loading Persona"}</AlertTitle>
+              <AlertDescription>{dictionary.errorGeneratingPersonaDescription || "Could not load a new persona. Please try again."}</AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -965,8 +969,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                         title={msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                     >
                       {msgChirho.imageUrlChirho ? (
-                        <AvatarImage src={msgChirho.imageUrlChirho} alt={dictionary.personaAvatarAlt} />
-                      ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null )}
+                        <AvatarImage src={msgChirho.imageUrlChirho} alt={(dictionary.personaAvatarAlt || "Persona avatar")} />
+                      ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={(dictionary.personaInitialAvatarAlt || "Persona initial avatar")} /> : null )}
                       <AvatarFallback className="bg-accent text-accent-foreground">
                         {!(msgChirho.imageUrlChirho || personaChirho?.personaImageChirho) && (personaChirho?.personaNameChirho ? personaChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5"/>)}
                       </AvatarFallback>
@@ -999,8 +1003,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                  <div className="flex items-end gap-2 justify-start">
                     <Avatar className="h-8 w-8">
                        {dynamicPersonaImageChirho ? (
-                         <AvatarImage src={dynamicPersonaImageChirho} alt={dictionary.personaAvatarAlt} />
-                       ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null ) }
+                         <AvatarImage src={dynamicPersonaImageChirho} alt={(dictionary.personaAvatarAlt || "Persona avatar")} />
+                       ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={(dictionary.personaInitialAvatarAlt || "Persona initial avatar")} /> : null ) }
                        <AvatarFallback className="bg-accent text-accent-foreground">
                          {!(dynamicPersonaImageChirho || personaChirho?.personaImageChirho) && <Bot className="h-5 w-5" />}
                        </AvatarFallback>
@@ -1022,7 +1026,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                         <span className="sr-only">{dictionary.dismissSuggestionButtonTitle}</span>
                     </Button>
                 </AlertTitle>
-                <AlertDescription className="mt-1 text-sm whitespace-pre-wrap">
+                <AlertDescription className="mt-1 text-sm whitespace-pre-wrap break-words">
                     {suggestedAnswerChirho}
                 </AlertDescription>
                  <Button
@@ -1043,7 +1047,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
              <Alert variant="destructive" className="m-4">
                 <AlertTitle>{dictionary.outOfCreditsAlertTitle}</AlertTitle>
                 <AlertDescription>
-                  {dictionary.outOfCreditsAlertDescription.replace("{nameOrTitle}", chatWithNameForHeader)}
+                  {(dictionary.outOfCreditsAlertDescription || "You've used all your message credits. Please get more to continue chatting with {nameOrTitle}.").replace("{nameOrTitle}", chatWithNameForHeader)}
                   <Button className="mt-2 w-full" size="sm" onClick={() => setIsBuyCreditsDialogOpenChirho(true)}>
                     <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Credits & Support"}
                   </Button>
