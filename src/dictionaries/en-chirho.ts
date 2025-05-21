@@ -33,6 +33,7 @@ const dictionaryChirho = {
     languageSelectorLabel: "Select Language:",
     languageEnglish: "English",
     languageSpanish: "Español",
+    footerLoveJesusSoftwareLinkText: "Love Jesus Software",
   },
   loginPage: {
     title: 'Welcome to Evangelism Quest ☧',

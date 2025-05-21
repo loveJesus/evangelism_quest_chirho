@@ -46,7 +46,8 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
     } else {
       setSelectedLangChirho(currentUrlLang);
     }
-  }, [currentUrlLang, pathnameChirho, routerChirho]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUrlLang, pathnameChirho]); // Removed routerChirho as it causes infinite loop with some setups
 
 
   const handleLanguageChangeChirho = (newLang: string) => {
@@ -152,7 +153,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
                     </a>
                 </Button>
                 <Button variant="outline" asChild>
-                    <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">
+                    <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer"> {/* Replace with actual video URL */}
                         <Youtube className="mr-2 h-4 w-4" /> {dictionary.watchDemoLink}
                     </a>
                 </Button>
@@ -192,6 +193,16 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
         )}
         <p>{dictionary.footerVerse}</p>
         <p>&copy; {new Date().getFullYear()} {dictionary.footerCopyright}</p>
+        <p>
+          <a 
+            href="https://loveJesus.software" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            {dictionary.footerLoveJesusSoftwareLinkText}
+          </a>
+        </p>
       </footer>
     </div>
   );
