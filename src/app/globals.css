@@ -103,11 +103,11 @@ body {
 /* Avatar Pulse and Shrink Animation */
 @keyframes avatar-pulse-shrink-chirho {
   0% {
-    transform: scale(1.6); /* Start slightly larger */
+    transform: scale(3.0); /* Start significantly larger */
     opacity: 0.7;
   }
   70% { /* Hold larger size for a bit longer */
-    transform: scale(1.6);
+    transform: scale(3.0);
     opacity: 1;
   }
   100% { /* Shrink to normal size */
