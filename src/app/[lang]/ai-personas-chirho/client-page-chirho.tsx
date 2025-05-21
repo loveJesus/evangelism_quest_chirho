@@ -742,12 +742,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                       </Button>
                       <Card className="mb-2 p-3">
                         <div className="flex items-center gap-3">
-                           <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80" onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)} title={dictionary.historyArchivedPersonaAvatarTitle}>
+                           <Avatar className="h-12 w-12 cursor-pointer hover:opacity-80" onClick={() => handleImagePopupChirho(selectedArchivedConversationChirho.initialPersonaImageChirho)} title={dictionary.historyArchivedPersonaAvatarTitle}>
                               {selectedArchivedConversationChirho.initialPersonaImageChirho ? (
                                 <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt={dictionary.historyArchivedPersonaAvatarAlt} />
                               ) : null }
                               <AvatarFallback className="bg-primary text-primary-foreground">
-                                {selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5" />}
+                                {selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-7 w-7" />}
                               </AvatarFallback>
                             </Avatar>
                           <div>
@@ -766,7 +766,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                             >
                               {msgChirho.sender === "persona" && (
                                  <Avatar
-                                    className={`h-8 w-8 ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
+                                    className={`h-12 w-12 ${msgChirho.imageUrlChirho ? "cursor-pointer hover:opacity-80" : ""}`}
                                     onClick={() => handleImagePopupChirho(msgChirho.imageUrlChirho)}
                                     title={msgChirho.imageUrlChirho ? dictionary.viewMessageImageTitle : ""}
                                  >
@@ -774,7 +774,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                                         <AvatarImage src={msgChirho.imageUrlChirho} alt={dictionary.personaAvatarAlt} />
                                     ) : (selectedArchivedConversationChirho.initialPersonaImageChirho ? <AvatarImage src={selectedArchivedConversationChirho.initialPersonaImageChirho} alt={dictionary.personaInitialAvatarAlt} /> : null)}
                                     <AvatarFallback className="bg-accent text-accent-foreground">
-                                      {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && (selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5"/>)}
+                                      {!(msgChirho.imageUrlChirho || selectedArchivedConversationChirho.initialPersonaImageChirho) && (selectedArchivedConversationChirho.personaNameChirho ? selectedArchivedConversationChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-7 w-7"/>)}
                                     </AvatarFallback>
                                 </Avatar>
                               )}
@@ -788,9 +788,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                                 <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                               </div>
                               {msgChirho.sender === "user" && (
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-12 w-12">
                                   <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                      <User className="h-5 w-5" />
+                                      <User className="h-7 w-7" />
                                   </AvatarFallback>
                                 </Avatar>
                               )}
@@ -963,7 +963,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                   {msgChirho.sender === "persona" && (
                     <Avatar
                         className={cn(
-                            'h-8 w-8',
+                            'h-12 w-12', // Increased size
                             msgChirho.imageUrlChirho ? 'cursor-pointer hover:opacity-80' : '',
                             msgChirho.id === animatingMessageIdChirho ? 'avatar-animate-pulse-shrink-chirho' : ''
                         )}
@@ -974,7 +974,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                         <AvatarImage src={msgChirho.imageUrlChirho} alt={(dictionary.personaAvatarAlt || "Persona avatar")} />
                       ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={(dictionary.personaInitialAvatarAlt || "Persona initial avatar")} /> : null )}
                       <AvatarFallback className="bg-accent text-accent-foreground">
-                        {!(msgChirho.imageUrlChirho || personaChirho?.personaImageChirho) && (personaChirho?.personaNameChirho ? personaChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-5 w-5"/>)}
+                        {!(msgChirho.imageUrlChirho || personaChirho?.personaImageChirho) && (personaChirho?.personaNameChirho ? personaChirho.personaNameChirho.charAt(0).toUpperCase() : <Bot className="h-7 w-7"/>)}
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -993,9 +993,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                     <p className="text-sm whitespace-pre-wrap">{msgChirho.text}</p>
                   </div>
                   {msgChirho.sender === "user" && (
-                     <Avatar className="h-8 w-8">
+                     <Avatar className="h-12 w-12"> {/* Increased size */}
                        <AvatarFallback className="bg-secondary text-secondary-foreground">
-                          <User className="h-5 w-5" />
+                          <User className="h-7 w-7" /> {/* Increased size */}
                        </AvatarFallback>
                     </Avatar>
                   )}
@@ -1003,12 +1003,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
               ))}
               {(isSendingMessageChirho || isUpdatingImageChirho) && messagesChirho[messagesChirho.length-1]?.sender === 'user' && !isCelebrationModeActiveChirho && (
                  <div className="flex items-end gap-2 justify-start">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-12 w-12"> {/* Increased size */}
                        {dynamicPersonaImageChirho ? (
                          <AvatarImage src={dynamicPersonaImageChirho} alt={(dictionary.personaAvatarAlt || "Persona avatar")} />
                        ) : (personaChirho?.personaImageChirho ? <AvatarImage src={personaChirho.personaImageChirho} alt={(dictionary.personaInitialAvatarAlt || "Persona initial avatar")} /> : null ) }
                        <AvatarFallback className="bg-accent text-accent-foreground">
-                         {!(dynamicPersonaImageChirho || personaChirho?.personaImageChirho) && <Bot className="h-5 w-5" />}
+                         {!(dynamicPersonaImageChirho || personaChirho?.personaImageChirho) && <Bot className="h-7 w-7" />} {/* Increased size */}
                        </AvatarFallback>
                     </Avatar>
                     <div className="max-w-[70%] rounded-lg p-3 shadow bg-card border">
