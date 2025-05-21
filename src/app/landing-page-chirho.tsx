@@ -47,7 +47,6 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
       setSelectedLangChirho(currentUrlLang);
     }
 
-    // Basic referral logging
     if (typeof window !== "undefined" && document.referrer) {
       try {
         const referrerUrl = new URL(document.referrer);
@@ -166,7 +165,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
                     </a>
                 </Button>
                 <Button variant="outline" asChild>
-                    <a href="https://www.youtube.com/watch?v=fzxisBagXSw" target="_blank" rel="noopener noreferrer">
+                    <a href={dictionary.watchDemoVideoUrl} target="_blank" rel="noopener noreferrer">
                         <Youtube className="mr-2 h-4 w-4" /> {dictionary.watchDemoLink}
                     </a>
                 </Button>
@@ -211,6 +210,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
           <a 
             href="https://loveJesus.software" 
             target="_blank" 
+            rel="noopener noreferrer"
             className="hover:text-primary transition-colors"
           >
             {dictionary.footerLoveJesusSoftwareLinkText}
