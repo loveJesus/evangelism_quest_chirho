@@ -211,7 +211,6 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
           <a 
             href="https://loveJesus.software" 
             target="_blank" 
-            rel="noopener noreferrer"
             className="hover:text-primary transition-colors"
           >
             {dictionary.footerLoveJesusSoftwareLinkText}

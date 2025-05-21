@@ -187,7 +187,7 @@ export default function SettingsClientPageChirho({ dictionary: fullDictionary, l
               {dictionary.supportDeveloperDescription || "Evangelism Quest is a passion project. If you find this tool helpful and would like to support its continued development or require web/app development services, please feel free to reach out or visit my portfolio."}
             </p>
             <Button variant="outline" asChild className="w-full sm:w-auto">
-              <a href="https://loveJesus.software" target="_blank" rel="noopener noreferrer">
+              <a href="https://loveJesus.software" target="_blank" >
                 {dictionary.visitPortfolioButton || "Visit my Portfolio"} <ExternalLink className="ml-2 h-4 w-4" />
               </a>
             </Button>
