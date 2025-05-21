@@ -17,6 +17,7 @@ import {
   saveActiveConversationToFirestoreChirho,
   fetchActiveConversationFromFirestoreChirho,
   clearActiveConversationFromFirestoreChirho,
+  addFreeCreditsChirho as addFreeCreditsActionChirho, // New import
   type ActiveConversationDataChirho
 } from "@/lib/actions-chirho";
 import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
@@ -29,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, PartyPopper } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, PartyPopper, Gift, ExternalLink } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -61,7 +62,7 @@ export interface MessageChirho {
   sender: "user" | "persona";
   text: string;
   id: string;
-  imageUrlChirho?: string | null;
+  imageUrlChirho?: string | null; // Firebase Storage URL
 }
 
 export interface ArchivedConversationChirho {
@@ -81,6 +82,9 @@ export interface ArchivedConversationChirho {
 }
 
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
+const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
+const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
+
 
 interface AIPersonasClientPagePropsChirho {
   dictionary: DictionaryChirho;
@@ -109,6 +113,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const [selectedArchivedConversationChirho, setSelectedArchivedConversationChirho] = useState<ArchivedConversationChirho | null>(null);
   const [isHistoryDialogOpenChirho, setIsHistoryDialogOpenChirho] = useState<boolean>(false);
   const [isBuyCreditsDialogOpenChirho, setIsBuyCreditsDialogOpenChirho] = useState<boolean>(false);
+  const [isAddingFreeCreditsChirho, setIsAddingFreeCreditsChirho] = useState(false);
+
 
   const [imagePopupUrlChirho, setImagePopupUrlChirho] = useState<string | null>(null);
   const [isImagePopupOpenChirho, setIsImagePopupOpenChirho] = useState<boolean>(false);
@@ -147,8 +153,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
   // Update current conversation language based on UI language
   useEffect(() => {
-    setCurrentConversationLanguageChirho(lang);
-  }, [lang]);
+    // Only set if not actively in a conversation or if starting fresh
+    if (!personaChirho || messagesChirho.length <= 1) { 
+      setCurrentConversationLanguageChirho(lang);
+    }
+  }, [lang, personaChirho, messagesChirho.length]);
 
   const saveCurrentActiveConversation = useCallback(async (
     currentPersona: GenerateAiPersonaOutputChirho | null = personaChirho,
@@ -167,7 +176,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       difficultyLevelChirho: currentDifficulty,
       currentConversationLanguageChirho: currentLang,
       dynamicPersonaImageChirho: currentDynamicImg,
-      lastSaved: Date.now(), 
+      lastSaved: Date.now(), // Use client timestamp for lastSaved field on the object
     };
     const result = await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, activeData);
     if (!result.success) {
@@ -188,7 +197,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     convincedStatus: boolean,
     archiveLang: string
   ) => {
-    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) {
+    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) { // Only archive if more than initial message
       console.log(`[AIPersonasPage] Archiving current active conversation for ${personaToArchive.personaNameChirho} (convinced: ${convincedStatus})`);
       const archiveEntry: ArchivedConversationChirho = {
         id: Date.now().toString() + "_" + Math.random().toString(36).substring(2, 9),
@@ -199,7 +208,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         encounterTitleChirho: personaToArchive.encounterTitleChirho,
         personaDetailsChirho: personaToArchive.personaDetailsChirho,
         personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
-        difficultyLevelChirho: difficultyLevelChirho,
+        difficultyLevelChirho: difficultyLevelChirho, // Use current difficulty level
         messagesChirho: messagesToArchive, 
         convincedChirho: convincedStatus,
         conversationLanguageChirho: archiveLang,
@@ -211,10 +220,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       } else {
         toastChirho({ variant: "destructive", title: dictionary.toastArchiveErrorTitle, description: archiveResult.error || dictionary.toastArchiveErrorDescription });
       }
-      await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid);
+      // Do not clear active session here, it's cleared when a new one starts or on logout
     } else {
       console.log("[AIPersonasPage] Skipping archive: No current user, persona, or insufficient messages.");
-      if (currentUserChirho) await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid);
     }
   }, [currentUserChirho, difficultyLevelChirho, dictionary, toastChirho]);
 
@@ -235,11 +243,12 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     setSuggestedAnswerChirho(null);
     setIsCelebrationModeActiveChirho(false);
 
+    // Archive current active conversation if it exists and has more than initial system message
     if (personaChirho && messagesChirho.length > 1 && !conversationToContinue) {
       console.log("[AIPersonasPage] Archiving previous active session before loading new/continued one.");
       await archiveCurrentConversationChirho(personaChirho, messagesChirho, convincedStatusOverride ?? false, currentConversationLanguageChirho);
     }
-
+    await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid); // Clear active after archiving/before loading new
 
     if (conversationToContinue) {
       console.log("[AIPersonasPage] Continuing conversation with:", conversationToContinue.personaNameChirho);
@@ -253,7 +262,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       };
       setPersonaChirho(restoredPersona);
       setCurrentConversationLanguageChirho(conversationToContinue.conversationLanguageChirho); 
-      setMessagesChirho(conversationToContinue.messagesChirho.map(msg => ({ ...msg })));
+      setMessagesChirho(conversationToContinue.messagesChirho.map(msg => ({ ...msg }))); // Ensure new array for messages
 
       let lastImageUrl: string | null = null;
       if (conversationToContinue.messagesChirho.length > 0) {
@@ -352,6 +361,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           setDynamicPersonaImageChirho(activeData.dynamicPersonaImageChirho);
           setDifficultyLevelChirho(activeData.difficultyLevelChirho);
           setCurrentConversationLanguageChirho(activeData.currentConversationLanguageChirho);
+          toastChirho({ title: dictionary.toastConversationContinuedTitle, description: (dictionary.toastConversationContinuedDescription).replace("{nameOrTitle}", activeData.personaChirho.personaNameKnownToUserChirho ? activeData.personaChirho.personaNameChirho : (activeData.personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle)) });
         } else {
           console.log("[AIPersonasPage] No active conversation, loading new persona. Error (if any):", activeConvResult.error);
           await loadNewPersonaChirho(difficultyLevelChirho, false, null);
@@ -517,7 +527,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
     const actualPersonaName = (personaChirho.personaNameChirho && personaChirho.personaNameChirho.trim() !== "")
                               ? personaChirho.personaNameChirho
-                              : "Character";
+                              : "Character"; 
 
     const displayNameForSuggestion = personaChirho.personaNameKnownToUserChirho ? actualPersonaName : (personaChirho.encounterTitleChirho || dictionary.thePerson);
 
@@ -569,6 +579,25 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
     setIsLoadingHistoryChirho(false);
   };
+
+  const handleAddFreeCreditsChirho = async () => {
+    if (!currentUserChirho || !userProfileChirho) return;
+    if (userProfileChirho.credits >= FREE_CREDITS_THRESHOLD_CHIRHO) {
+      // This case should ideally be prevented by disabling the button
+      toastChirho({ variant: "default", title: "Info", description: "Free credits are available when your balance is below 50." });
+      return;
+    }
+    setIsAddingFreeCreditsChirho(true);
+    const result = await addFreeCreditsActionChirho(currentUserChirho.uid, FREE_CREDITS_ADD_AMOUNT_CHIRHO);
+    if (result.success && result.newCredits !== undefined) {
+      updateLocalUserProfileChirho({ credits: result.newCredits });
+      toastChirho({ title: dictionary.creditsDialog?.toastFreeCreditsAddedTitle || "Free Credits Added!", description: dictionary.creditsDialog?.toastFreeCreditsAddedDescription || `Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits.` });
+    } else {
+      toastChirho({ variant: "destructive", title: dictionary.creditsDialog?.toastErrorAddingFreeCreditsTitle || "Error", description: result.error || dictionary.creditsDialog?.toastErrorAddingFreeCreditsDescription || "Could not add free credits." });
+    }
+    setIsAddingFreeCreditsChirho(false);
+  };
+
 
   const handleImagePopupChirho = (imageUrl: string | null | undefined) => {
     if (imageUrl) {
@@ -753,8 +782,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                             variant="default"
                             onClick={() => {
                                 if (selectedArchivedConversationChirho) {
-                                    setIsHistoryDialogOpenChirho(false);
                                     loadNewPersonaChirho(selectedArchivedConversationChirho.difficultyLevelChirho, false, selectedArchivedConversationChirho);
+                                    setIsHistoryDialogOpenChirho(false); // Close dialog after initiating continue
                                 }
                             }}
                             disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho || isCelebrationModeActiveChirho}
@@ -842,22 +871,40 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                 <Dialog open={isBuyCreditsDialogOpenChirho} onOpenChange={setIsBuyCreditsDialogOpenChirho}>
                     <DialogTrigger asChild>
                     <Button variant="outline" className="w-full" disabled={isLoadingPersonaChirho || isSendingMessageChirho || isUpdatingImageChirho}>
-                        <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Get More Message Credits"}
+                        <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Credits & Support"}
                     </Button>
                     </DialogTrigger>
                     <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{dictionary.creditsDialog?.title || "Get More Message Credits"}</DialogTitle>
+                        <DialogTitle>{dictionary.creditsDialog?.title || "Message Credits & Support"}</DialogTitle>
                         <DialogDescription>
-                        {dictionary.creditsDialog?.description || "Choose a package to continue your conversations. (Payment integration is a demo)."}
+                        {dictionary.creditsDialog?.description || "Manage your message credits or support the project."}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <Card className="p-4 hover:shadow-lg transition-shadow">
-                          <CardTitle className="text-lg">{dictionary.creditsDialog?.standardPackageTitle || "Standard Believer Pack"}</CardTitle>
-                          <CardDescription>{dictionary.creditsDialog?.standardPackageDescription || "100 credits for $5.00. (Actual payment not implemented)"}</CardDescription>
-                          <Button className="mt-2 w-full" disabled={true}>{dictionary.creditsDialog?.buyNowButtonDisabled || "Buy Now (Disabled)"}</Button>
+                          <CardTitle className="text-lg">{dictionary.creditsDialog?.donationTitle || "Support Evangelism Quest"}</CardTitle>
+                          <CardDescription>{dictionary.creditsDialog?.donationDescription || "Our operational cost is roughly $5 per 100 messages. Please consider supporting the ongoing development and server costs."}</CardDescription>
+                          <Button asChild className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white">
+                            <a href="https://www.paypal.com/paypalme/brianloveJesus" target="_blank" rel="noopener noreferrer">
+                                {dictionary.creditsDialog?.donationButtonLabel || "Donate via PayPal"} <ExternalLink className="ml-2 h-4 w-4" />
+                            </a>
+                          </Button>
                         </Card>
+                        {userProfileChirho && userProfileChirho.credits < FREE_CREDITS_THRESHOLD_CHIRHO && (
+                           <Card className="p-4 hover:shadow-lg transition-shadow">
+                             <CardTitle className="text-lg">{dictionary.creditsDialog?.addFreeCreditsButtonLabel || "Get 25 Free Credits"}</CardTitle>
+                             <CardDescription>{dictionary.creditsDialog?.addFreeCreditsInfo || "Available if your balance is below 50 credits."}</CardDescription>
+                             <Button 
+                                className="mt-2 w-full" 
+                                onClick={handleAddFreeCreditsChirho}
+                                disabled={isAddingFreeCreditsChirho || userProfileChirho.credits >= FREE_CREDITS_THRESHOLD_CHIRHO}
+                             >
+                               {isAddingFreeCreditsChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+                               {dictionary.creditsDialog?.addFreeCreditsButtonLabel || "Get 25 Free Credits"}
+                             </Button>
+                           </Card>
+                        )}
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
@@ -972,7 +1019,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                 <AlertDescription>
                   {dictionary.outOfCreditsAlertDescription.replace("{nameOrTitle}", chatWithNameForHeader)}
                   <Button className="mt-2 w-full" size="sm" onClick={() => setIsBuyCreditsDialogOpenChirho(true)}>
-                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Get More Message Credits"}
+                    <CreditCard className="mr-2 h-4 w-4" /> {dictionary.creditsDialog?.getMoreCreditsButton || "Credits & Support"}
                   </Button>
                 </AlertDescription>
              </Alert>

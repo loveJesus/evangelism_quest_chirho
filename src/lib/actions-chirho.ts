@@ -52,6 +52,8 @@ import type { ArchivedConversationChirho as ClientArchivedConversationChirho, Me
 const INITIAL_FREE_CREDITS_CHIRHO = 50;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
 const ACTIVE_CONVERSATION_DOC_ID_CHIRHO = "current_active_conversation_v1";
+const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
+const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
 
 
 export interface ActiveConversationDataChirho {
@@ -59,8 +61,8 @@ export interface ActiveConversationDataChirho {
   messagesChirho: MessageChirho[];
   difficultyLevelChirho: number;
   currentConversationLanguageChirho: string;
-  dynamicPersonaImageChirho: string | null;
-  lastSaved: any;
+  dynamicPersonaImageChirho: string | null; // This will store the latest image URL of the persona
+  lastSaved: any; // Firestore serverTimestamp or JS Date.now() on client for optimistic update
 }
 
 
@@ -120,17 +122,18 @@ export async function initializeUserChirho(userId: string, email: string | null,
       };
       await setDoc(userDocRef, newProfileData);
       console.log("[Action initializeUserChirho] New user profile CREATED in Firestore for:", userId, "with data:", newProfileData);
-      // Fetch after set to get server-generated timestamps converted
-      const newlySetDocSnap = await getDoc(userDocRef);
+      const newlySetDocSnap = await getDoc(userDocRef); // Re-fetch to get server timestamps converted
       const fetchedData = newlySetDocSnap.data();
       if (fetchedData) {
         userProfileData = {
             ...fetchedData,
-            uid: userId,
+            uid: userId, // Ensure UID is part of the profile object
             createdAt: fetchedData.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : Date.now(),
             lastLogin: fetchedData.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now(),
         } as UserProfileChirho;
+         console.log("[Action initializeUserChirho] Profile data after creation and re-fetch:", userProfileData);
       } else {
+        console.error("[Action initializeUserChirho] Failed to fetch newly created profile for:", userId);
         throw new Error("Failed to fetch newly created profile.");
       }
 
@@ -141,34 +144,43 @@ export async function initializeUserChirho(userId: string, email: string | null,
         lastLogin: serverTimestamp(),
       };
 
+      // Only update displayName if it's changed or was generic
       if (displayName && displayName.trim() !== "" &&
-          (!existingData.displayName || existingData.displayName === "User" ||
-           (existingData.email && existingData.displayName === existingData.email.split('@')[0]) ||
+          (!existingData.displayName || existingData.displayName === "User" || 
+           (existingData.email && existingData.displayName === existingData.email.split('@')[0]) || 
            existingData.displayName !== displayName)) {
         updates.displayName = displayName;
       }
-
+      // Only update photoURL if it's changed
       if (photoURL && existingData.photoURL !== photoURL) {
         updates.photoURL = photoURL;
       }
-
+      // Only update email if it's changed (less common for auth changes to trigger this way)
       if (email && existingData.email !== email) {
         updates.email = email;
       }
 
-      await updateDoc(userDocRef, updates);
-      console.log("[Action initializeUserChirho] User profile UPDATED in Firestore for:", userId, "with updates:", updates);
-      const updatedDocSnap = await getDoc(userDocRef);
+      if (Object.keys(updates).length > 1) { // more than just lastLogin
+         await updateDoc(userDocRef, updates);
+         console.log("[Action initializeUserChirho] User profile UPDATED in Firestore for:", userId, "with updates:", updates);
+      } else {
+         await updateDoc(userDocRef, { lastLogin: serverTimestamp() }); // Just update lastLogin
+         console.log("[Action initializeUserChirho] User profile lastLogin UPDATED in Firestore for:", userId);
+      }
+      
+      const updatedDocSnap = await getDoc(userDocRef); // Re-fetch to get server timestamps converted
       const fetchedData = updatedDocSnap.data();
        if (fetchedData) {
         userProfileData = {
-            ...existingData,
-            ...fetchedData,
-            uid: userId,
-            createdAt: (fetchedData.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : existingData.createdAt),
+            ...existingData, // Spread existing data first
+            ...fetchedData,  // Then updated server data (like lastLogin as Timestamp)
+            uid: userId, // Ensure UID
+            createdAt: (fetchedData.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : existingData.createdAt), // Keep original createdAt if already millis
             lastLogin: (fetchedData.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now()),
         } as UserProfileChirho;
+        console.log("[Action initializeUserChirho] Profile data after update and re-fetch:", userProfileData);
       } else {
+        console.error("[Action initializeUserChirho] Failed to fetch updated profile for:", userId);
         throw new Error("Failed to fetch updated profile.");
       }
     }
@@ -229,7 +241,32 @@ export async function decrementUserCreditsChirho(userId: string, amount: number 
   }
 }
 
-// Removed addTestCreditsChirho function for security
+export async function addFreeCreditsChirho(userId: string): Promise<{ success: boolean; newCredits?: number; error?: string }> {
+  if (!userId) {
+    return { success: false, error: "User ID is required for adding free credits." };
+  }
+  const userDocRef = doc(dbChirho, "users", userId);
+  try {
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) {
+      return { success: false, error: "User profile not found." };
+    }
+    const currentCredits = userDocSnap.data()?.credits || 0;
+    if (currentCredits >= FREE_CREDITS_THRESHOLD_CHIRHO) {
+      return { success: false, error: `Free credits only available if balance is below ${FREE_CREDITS_THRESHOLD_CHIRHO}.`, newCredits: currentCredits };
+    }
+    await updateDoc(userDocRef, {
+      credits: increment(FREE_CREDITS_ADD_AMOUNT_CHIRHO)
+    });
+    const newCredits = (await getDoc(userDocRef)).data()?.credits;
+    console.log(`[Action addFreeCreditsChirho] Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits for user ${userId}. New balance: ${newCredits}`);
+    return { success: true, newCredits };
+  } catch (error: any) {
+    console.error("[Action addFreeCreditsChirho] Error adding free credits:", error);
+    return { success: false, error: error.message || "Failed to add free credits." };
+  }
+}
+
 
 export async function generateNewPersonaChirho(input: GenerateAiPersonaInputChirho, userId: string): Promise<{ success: boolean; data?: GenerateAiPersonaOutputChirho; error?: string; }> {
   try {
@@ -319,14 +356,23 @@ export async function saveActiveConversationToFirestoreChirho(userId: string, ac
     return { success: false, error: "Active conversation data with persona is required."};
   }
 
-  const activeConvCollectionRef = collection(dbChirho, "users", userId, "activeConversationData");
-  const activeConvDocRef = doc(activeConvCollectionRef, ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
+  const activeConvDocRef = doc(dbChirho, "users", userId, "activeConversationData", ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
 
   try {
+    // Ensure all fields are serializable for Firestore
     const dataToSave = {
       ...activeData,
-      lastSaved: serverTimestamp()
+      lastSaved: serverTimestamp(), // Use server timestamp for accurate last saved time
+      messagesChirho: activeData.messagesChirho.map(msg => ({ // Ensure messages are plain objects
+        ...msg,
+        imageUrlChirho: msg.imageUrlChirho || null
+      })),
+      personaChirho: { // Ensure persona is a plain object
+        ...activeData.personaChirho,
+        personaImageChirho: activeData.personaChirho.personaImageChirho || ""
+      }
     };
+
     await setDoc(activeConvDocRef, dataToSave);
     console.log(`[Action saveActiveConversationToFirestoreChirho] Successfully saved for user ${userId}. Persona: ${dataToSave.personaChirho.personaNameChirho}, Msgs: ${dataToSave.messagesChirho.length}`);
     return { success: true };
@@ -347,18 +393,15 @@ export async function fetchActiveConversationFromFirestoreChirho(userId: string)
     const docSnap = await getDoc(activeConvDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Convert Firestore Timestamps to milliseconds for client-side serializability
-      const messagesWithMillis = data.messagesChirho.map((msg: MessageChirho) => ({
-        ...msg,
-        // Assuming 'timestamp' field might be on messages too, though not explicitly in your interface yet
-      }));
-
       const activeData: ActiveConversationDataChirho = {
         personaChirho: data.personaChirho,
-        messagesChirho: messagesWithMillis,
+        messagesChirho: data.messagesChirho.map((msg: any) => ({
+             ...msg,
+             imageUrlChirho: msg.imageUrlChirho || null
+         })),
         difficultyLevelChirho: data.difficultyLevelChirho,
         currentConversationLanguageChirho: data.currentConversationLanguageChirho,
-        dynamicPersonaImageChirho: data.dynamicPersonaImageChirho,
+        dynamicPersonaImageChirho: data.dynamicPersonaImageChirho || data.personaChirho?.personaImageChirho || null,
         lastSaved: data.lastSaved instanceof Timestamp ? data.lastSaved.toMillis() : data.lastSaved,
       };
       console.log(`[Action fetchActiveConversationFromFirestoreChirho] Successfully fetched for user ${userId}. Persona: ${activeData.personaChirho.personaNameChirho}, Msgs: ${activeData.messagesChirho.length}`);
@@ -385,7 +428,6 @@ export async function clearActiveConversationFromFirestoreChirho(userId: string)
     console.log(`[Action clearActiveConversationFromFirestoreChirho] Successfully cleared for user ${userId}`);
     return { success: true };
   } catch (error: any) {
-    // Firestore's deleteDoc doesn't typically error if the doc doesn't exist, but good to log if other errors occur.
     if ((error as any).code !== 'not-found') {
         console.error(`[Action clearActiveConversationFromFirestoreChirho] Error clearing for user ${userId}:`, error);
         return { success: false, error: (error as Error).message || "Failed to clear active conversation." };
@@ -413,25 +455,29 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
     const dataToSave = {
         ...conversationData,
-        timestamp: Timestamp.fromMillis(conversationData.timestamp), // Convert JS timestamp to Firestore Timestamp
-        archivedAtServer: serverTimestamp(), // Add a server-side timestamp for archiving
+        timestamp: Timestamp.fromMillis(conversationData.timestamp), 
+        archivedAtServer: serverTimestamp(), 
+        messagesChirho: conversationData.messagesChirho.map(msg => ({
+            ...msg,
+            imageUrlChirho: msg.imageUrlChirho || null // Ensure null if undefined
+        })),
+        initialPersonaImageChirho: conversationData.initialPersonaImageChirho || null,
     };
 
     await setDoc(newConvDocRef, dataToSave);
-    console.log(`[Action archiveConversationToFirestoreChirho] Successfully archived conversation ${conversationData.id} for user ${userId}`);
+    console.log(`[Action archiveConversationToFirestoreChirho] Successfully archived conversation ${conversationData.id} for user ${userId}.`);
 
-    // Pruning logic: Keep only the MAX_ARCHIVED_CONVERSATIONS_CHIRHO most recent.
     const q = query(userConversationsRef, orderBy("timestamp", "desc"));
     const snapshot = await getDocs(q);
 
     if (snapshot.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
       console.log(`[Action archiveConversationToFirestoreChirho] Pruning. Found ${snapshot.docs.length} conversations, limit is ${MAX_ARCHIVED_CONVERSATIONS_CHIRHO}.`);
       const batch = writeBatch(dbChirho);
-      const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); // Oldest ones are at the end
+      const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO); 
 
       docsToDelete.forEach(docToDelete => {
         batch.delete(docToDelete.ref);
-        console.log(`[Action archiveConversationToFirestoreChirho] Marking for deletion: old conversation ${docToDelete.id} (timestamp: ${docToDelete.data().timestamp?.toMillis()}) for user ${userId}`);
+        console.log(`[Action archiveConversationToFirestoreChirho] Marking for deletion: old conversation ${docToDelete.id} for user ${userId}`);
       });
       await batch.commit();
       console.log(`[Action archiveConversationToFirestoreChirho] Pruning complete for user ${userId}. Deleted ${docsToDelete.length} conversations.`);
@@ -469,14 +515,14 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
         personaDetailsChirho: data.personaDetailsChirho,
         personaNameKnownToUserChirho: data.personaNameKnownToUserChirho,
         difficultyLevelChirho: data.difficultyLevelChirho,
-        messagesChirho: data.messagesChirho.map((msg: any) => ({ // Ensure imageUrlChirho is handled
+        messagesChirho: data.messagesChirho.map((msg: any) => ({ 
             id: msg.id,
             sender: msg.sender,
             text: msg.text,
             imageUrlChirho: msg.imageUrlChirho || null
         })),
         convincedChirho: data.convincedChirho,
-        conversationLanguageChirho: data.conversationLanguageChirho || 'en', // Default to 'en' if not present
+        conversationLanguageChirho: data.conversationLanguageChirho || 'en', 
         archivedAtServerMillis: data.archivedAtServer instanceof Timestamp
                                 ? data.archivedAtServer.toMillis()
                                 : (typeof data.archivedAtServer === 'number' ? data.archivedAtServer : undefined),
