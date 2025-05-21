@@ -1,4 +1,4 @@
-
+/* For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -102,24 +102,31 @@ body {
 
 /* Avatar Pulse and Shrink Animation */
 @keyframes avatar-pulse-shrink-chirho {
-  0%, 77% { /* 0s to ~1.73s of 2.25s total */
-    transform: scale(1.5);
+  0% {
+    transform: scale(1.6); /* Start slightly larger */
+    opacity: 0.7;
   }
-  100% { /* ~1.73s to 2.25s */
+  70% { /* Hold larger size for a bit longer */
+    transform: scale(1.6);
+    opacity: 1;
+  }
+  100% { /* Shrink to normal size */
     transform: scale(1);
+    opacity: 1;
   }
 }
 
 .avatar-animate-pulse-shrink-chirho {
   animation: avatar-pulse-shrink-chirho 2.25s ease-out forwards;
+  transform-origin: center; /* Ensure scaling happens from the center */
 }
 
 /* Text Fade-In Animation (Delayed) */
 @keyframes text-fade-in-delayed-chirho {
-  0%, 88% { /* 0s to ~1.98s of 2.25s total */
+  0%, 80% { /* Delay opacity change slightly longer */
     opacity: 0;
   }
-  100% { /* ~1.98s to 2.25s */
+  100% {
     opacity: 1;
   }
 }

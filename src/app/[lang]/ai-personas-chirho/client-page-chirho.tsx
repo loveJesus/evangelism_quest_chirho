@@ -167,7 +167,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
     const activeData: ActiveConversationDataChirho = {
       personaChirho: currentPersonaToSave,
-      messagesChirho: currentMessagesToSave.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null })), // Ensure null if undefined
+      messagesChirho: currentMessagesToSave.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null })), 
       difficultyLevelChirho: currentDifficultyToSave,
       currentConversationLanguageChirho: currentLangToSave,
       dynamicPersonaImageChirho: currentDynamicImgToSave,
@@ -204,7 +204,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         personaDetailsChirho: personaToArchive.personaDetailsChirho,
         personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
         difficultyLevelChirho: difficultyLevelChirho,
-        messagesChirho: messagesToArchive.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })), // Ensure null if undefined
+        messagesChirho: messagesToArchive.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })), 
         convincedChirho: convincedStatus,
         conversationLanguageChirho: archiveLang,
       };
@@ -367,7 +367,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           setDynamicPersonaImageChirho(activeData.dynamicPersonaImageChirho);
           setDifficultyLevelChirho(activeData.difficultyLevelChirho);
           setCurrentConversationLanguageChirho(activeData.currentConversationLanguageChirho);
-          justContinuedConversationRef.current = true; // Mark that we just loaded an active session
+          justContinuedConversationRef.current = true; 
           toastChirho({ title: dictionary.toastConversationContinuedTitle, description: (dictionary.toastConversationContinuedDescription).replace("{nameOrTitle}", activeData.personaChirho.personaNameKnownToUserChirho ? activeData.personaChirho.personaNameChirho : (activeData.personaChirho.encounterTitleChirho || dictionary.aNewEncounterTitle)) });
         } else {
           console.log("[AIPersonasPage] No active conversation, loading new persona. Error (if any):", activeConvResult.error);
@@ -545,7 +545,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     setSuggestedAnswerChirho(null);
 
     const conversationHistorySummary = messagesChirho
-        .slice(-5) // Take last 5 messages
+        .slice(-5) 
         .map(m => `${m.sender === 'user' ? (userProfileChirho.displayName || 'User') : displayNameForSuggestion}: ${m.text}`)
         .join('\n');
 
@@ -626,6 +626,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   }
 
   if (!currentUserChirho && !loadingAuthChirho) {
+    // This case should ideally be handled by AppLayoutChirho redirecting or showing a message.
+    // If it reaches here, the page component's redirect logic will take over.
     return <div className="flex items-center justify-center h-full"><p>{dictionary.redirectingToLogin || "Redirecting to login..."}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
   
@@ -659,7 +661,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const noCreditsChirho = userProfileChirho.credits <= 0;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,100px)-2rem)] max-h-[calc(100vh-var(--header-height,100px)-2rem)]">
+    <div className="flex flex-col lg:flex-row gap-6 h-full"> {/* Changed to h-full for mobile scroll fix */}
       <Card className="lg:w-1/3 flex-shrink-0 overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
@@ -1017,7 +1019,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             </div>
           </ScrollArea>
           {suggestedAnswerChirho && !isCelebrationModeActiveChirho && (
-            <Alert variant="default" className="m-4 border-accent shadow-md overflow-hidden">
+            <Alert variant="default" className="mx-4 my-2 border-accent shadow-md overflow-hidden w-auto"> {/* Adjusted margins */}
                 <Lightbulb className="h-4 w-4 text-accent" />
                 <AlertTitle className="flex justify-between items-center">
                     {dictionary.suggestedAnswerAlertTitle}
@@ -1099,7 +1101,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             isOpenChirho={isImagePopupOpenChirho}
             onCloseChirho={() => setIsImagePopupOpenChirho(false)}
             imageUrlChirho={imagePopupUrlChirho}
-            dictionary={dictionary}
+            dictionary={fullDictionary.aiPersonasPage} // Pass the correct sub-dictionary
         />
       )}
 
