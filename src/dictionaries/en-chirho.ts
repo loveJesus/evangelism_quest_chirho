@@ -115,7 +115,7 @@ const dictionaryChirho = {
         donationDescription: "Our operational cost is roughly $5 per 100 messages. Please consider supporting the ongoing development and server costs.",
         donationButtonLabel: "Donate via PayPal",
         addFreeCreditsButtonLabel: "Get 25 Free Credits",
-        addFreeCreditsInfo: "Available if your balance is below 50 credits.",
+        addFreeCreditsInfo: "Available if your balance is below 50 credits.", // New key
         getMoreCreditsButton: 'Credits & Support',
         closeButton: 'Close',
         toastCreditsAddedTitle: 'Credits Added',

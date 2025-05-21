@@ -17,7 +17,7 @@ import {
   saveActiveConversationToFirestoreChirho,
   fetchActiveConversationFromFirestoreChirho,
   clearActiveConversationFromFirestoreChirho,
-  addFreeCreditsChirho as addFreeCreditsActionChirho, // New import
+  addFreeCreditsChirho as addFreeCreditsActionChirho,
   type ActiveConversationDataChirho
 } from "@/lib/actions-chirho";
 import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
@@ -272,7 +272,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setDynamicPersonaImageChirho(lastImageUrl);
       setDifficultyLevelChirho(conversationToContinue.difficultyLevelChirho);
 
-      setIsHistoryDialogOpenChirho(false);
+      setIsHistoryDialogOpenChirho(false); // Close dialog on continue
       setSelectedArchivedConversationChirho(null);
 
       await saveCurrentActiveConversation(restoredPersona, conversationToContinue.messagesChirho, lastImageUrl, conversationToContinue.difficultyLevelChirho, conversationToContinue.conversationLanguageChirho);
@@ -583,15 +583,14 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const handleAddFreeCreditsChirho = async () => {
     if (!currentUserChirho || !userProfileChirho) return;
     if (userProfileChirho.credits >= FREE_CREDITS_THRESHOLD_CHIRHO) {
-      // This case should ideally be prevented by disabling the button
-      toastChirho({ variant: "default", title: "Info", description: "Free credits are available when your balance is below 50." });
+      toastChirho({ variant: "default", title: dictionary.creditsDialog?.title || "Credits Info", description: dictionary.creditsDialog?.addFreeCreditsInfo || "Free credits are available when your balance is below 50." });
       return;
     }
     setIsAddingFreeCreditsChirho(true);
-    const result = await addFreeCreditsActionChirho(currentUserChirho.uid, FREE_CREDITS_ADD_AMOUNT_CHIRHO);
+    const result = await addFreeCreditsActionChirho(currentUserChirho.uid);
     if (result.success && result.newCredits !== undefined) {
       updateLocalUserProfileChirho({ credits: result.newCredits });
-      toastChirho({ title: dictionary.creditsDialog?.toastFreeCreditsAddedTitle || "Free Credits Added!", description: dictionary.creditsDialog?.toastFreeCreditsAddedDescription || `Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits.` });
+      toastChirho({ title: dictionary.creditsDialog?.toastFreeCreditsAddedTitle || "Free Credits Added!", description: (dictionary.creditsDialog?.toastFreeCreditsAddedDescription || `Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits.`).replace('{amount}', FREE_CREDITS_ADD_AMOUNT_CHIRHO.toString()) });
     } else {
       toastChirho({ variant: "destructive", title: dictionary.creditsDialog?.toastErrorAddingFreeCreditsTitle || "Error", description: result.error || dictionary.creditsDialog?.toastErrorAddingFreeCreditsDescription || "Could not add free credits." });
     }
@@ -611,6 +610,8 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   }
 
   if (!currentUserChirho && !loadingAuthChirho) {
+    // This state should ideally be brief as the useEffect hook will trigger a redirect.
+    // AppLayoutChirho also handles showing a redirecting message if it renders.
     return <div className="flex items-center justify-center h-full"><p>{dictionary.redirectingToLogin}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
 
@@ -891,10 +892,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                             </a>
                           </Button>
                         </Card>
-                        {userProfileChirho && userProfileChirho.credits < FREE_CREDITS_THRESHOLD_CHIRHO && (
+                        {userProfileChirho && (
                            <Card className="p-4 hover:shadow-lg transition-shadow">
                              <CardTitle className="text-lg">{dictionary.creditsDialog?.addFreeCreditsButtonLabel || "Get 25 Free Credits"}</CardTitle>
-                             <CardDescription>{dictionary.creditsDialog?.addFreeCreditsInfo || "Available if your balance is below 50 credits."}</CardDescription>
                              <Button 
                                 className="mt-2 w-full" 
                                 onClick={handleAddFreeCreditsChirho}
@@ -903,6 +903,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                                {isAddingFreeCreditsChirho ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
                                {dictionary.creditsDialog?.addFreeCreditsButtonLabel || "Get 25 Free Credits"}
                              </Button>
+                              {userProfileChirho.credits >= FREE_CREDITS_THRESHOLD_CHIRHO && (
+                                <CardDescription className="mt-2 text-xs text-muted-foreground">
+                                  {dictionary.creditsDialog?.addFreeCreditsInfo || "Available if your balance is below 50 credits."}
+                                </CardDescription>
+                              )}
                            </Card>
                         )}
                     </div>
@@ -1064,12 +1069,14 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         </CardContent>
       </Card>
 
-      <DynamicImagePopupDialogChirho
-        isOpenChirho={isImagePopupOpenChirho}
-        onCloseChirho={() => setIsImagePopupOpenChirho(false)}
-        imageUrlChirho={imagePopupUrlChirho}
-        dictionary={dictionary}
-      />
+      { typeof window !== 'undefined' && (
+        <DynamicImagePopupDialogChirho
+            isOpenChirho={isImagePopupOpenChirho}
+            onCloseChirho={() => setIsImagePopupOpenChirho(false)}
+            imageUrlChirho={imagePopupUrlChirho}
+            dictionary={dictionary}
+        />
+      )}
 
     </div>
   );

@@ -46,8 +46,21 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
     } else {
       setSelectedLangChirho(currentUrlLang);
     }
+
+    // Basic referral logging
+    if (typeof window !== "undefined" && document.referrer) {
+      try {
+        const referrerUrl = new URL(document.referrer);
+        const currentHost = window.location.hostname;
+        if (referrerUrl.hostname.includes("evangelism.quest") && referrerUrl.hostname !== currentHost) {
+          console.log("Referral detected from evangelism.quest:", document.referrer);
+        }
+      } catch (e) {
+        // console.warn("Could not parse referrer URL:", document.referrer, e);
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUrlLang, pathnameChirho]); // Removed routerChirho as it causes infinite loop with some setups
+  }, [currentUrlLang, pathnameChirho]);
 
 
   const handleLanguageChangeChirho = (newLang: string) => {
@@ -153,7 +166,7 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
                     </a>
                 </Button>
                 <Button variant="outline" asChild>
-                    <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer"> {/* Replace with actual video URL */}
+                    <a href="https://www.youtube.com/watch?v=fzxisBagXSw" target="_blank" rel="noopener noreferrer">
                         <Youtube className="mr-2 h-4 w-4" /> {dictionary.watchDemoLink}
                     </a>
                 </Button>
@@ -192,8 +205,9 @@ export default function LandingPageChirho({ lang: currentUrlLang, dictionary }: 
           </div>
         )}
         <p>{dictionary.footerVerse}</p>
-        <p>&copy; {new Date().getFullYear()} {dictionary.footerCopyright}</p>
         <p>
+          &copy; {new Date().getFullYear()} {dictionary.footerCopyright}
+          <span className="mx-1">|</span>
           <a 
             href="https://loveJesus.software" 
             target="_blank" 
