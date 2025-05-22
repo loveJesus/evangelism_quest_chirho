@@ -47,7 +47,7 @@ body {
 
     /* Font scaling */
     --font-scale-factor: 1;
-    --header-height: 56px; /* h-14 from AppLayoutChirho */
+    --header-height: 56px; /* Actual height of h-14 header in AppLayoutChirho */
   }
 
   .dark {
