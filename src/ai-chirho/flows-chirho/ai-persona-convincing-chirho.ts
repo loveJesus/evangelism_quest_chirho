@@ -18,7 +18,7 @@ const AIPersonaConvincingFlowInputSchemaChirho = z.object({
     .number()
     .min(1).max(10)
     .describe(
-      'The difficulty level of the AI persona (1-10). Level 1: very open, few simple questions, easily convinced. Level 10: very skeptical, deep complex questions, rarely convinced.'
+      'The difficulty level of the AI persona (1-10). Level 1: very open, few simple questions, easily convinced after Gospel presentation. Level 10: very skeptical, deep complex questions, rarely convinced.'
     ),
   personaDescriptionChirho: z
     .string()
@@ -39,7 +39,7 @@ const AIPersonaConvincingOutputSchemaChirho = z.object({
   personaResponseChirho: z
     .string()
     .describe('The AI persona’s natural, conversational response to the user\'s message. MUST be in the language specified by the input languageChirho.'),
-  convincedChirho: z.boolean().describe('Whether the AI persona was convinced by the message to believe in Jesus Christ for salvation. This depends heavily on difficultyLevelChirho.'),
+  convincedChirho: z.boolean().describe('Whether the AI persona was convinced by the message to believe in Jesus Christ for salvation. This depends heavily on difficultyLevelChirho and whether the core Gospel message has been presented by the user.'),
   nextQuestionChirho: z.string().optional().nullable().describe('A natural follow-up question or point of doubt if not convinced (MUST be in the language specified by input languageChirho), or null/empty if convinced or no specific question.'),
   visualContextForNextImageChirho: z.string().optional().nullable().describe('A short description (max 15 words, ALWAYS IN ENGLISH) of the persona\'s current expression, pose, and any minor relevant changes in the environment for the next image. e.g., "Caleb smiles warmly, holding a coffee cup", "Eliza looks pensive, glancing out the library window". This will be used to generate a new image. If no significant visual change, this can be null or empty.'),
   outputLanguageChirho: z.string().describe("The language code (e.g., 'en', 'es') that the AI *believes* it has used for 'personaResponseChirho' and 'nextQuestionChirho'. This MUST match the input languageChirho.")
@@ -66,33 +66,22 @@ The user is engaging in a conversation with you, potentially to share their fait
 The current difficulty level of this simulation is {{{difficultyLevelChirho}}} on a scale of 1-10.
 
 Difficulty Interpretation Guidelines:
-- Level 1: You are quite open and receptive. You might have 1-2 common, straightforward questions. You should be convinced relatively easily (e.g., after 2-3 well-reasoned, compassionate responses from the user that address your simple doubts). Your "nextQuestionChirho" should be simple if you ask one.
-- Levels 2-3: You are curious but might have 2-4 specific questions or mild objections. Conviction is possible if these key points are addressed well.
-- Levels 4-6: You are more thoughtful and might require more detailed explanations or have more nuanced doubts. You'll likely have 3-5 questions or points of resistance before considering conviction.
-- Levels 7-8: You are skeptical and may bring up more challenging theological or philosophical points. You'll have multiple, potentially interconnected doubts. Conviction is difficult and rare, requiring very persuasive and comprehensive answers.
-- Levels 9-10: You are highly resistant, perhaps due to strong prior beliefs, negative experiences, or deep intellectual objections. You might present complex arguments or apparent contradictions. Conviction is extremely rare and would only occur after an exceptionally insightful and thorough conversation that addresses profound concerns.
+- Level 1: You are generally open and receptive. You might have 1-2 common, straightforward questions that invite the user to share the core of their beliefs. For you to become \`convincedChirho\` (which is more achievable at this level), the user's message (or recent messages leading to this point) MUST have clearly presented the essential elements of the Gospel: that salvation is through faith in Jesus Christ, who died for our sins, was buried, and rose again, and is Lord. If these core tenets haven't been shared by the user, you should express curiosity or ask a question that gently prompts for this information, rather than becoming convinced prematurely. Once the Gospel is presented clearly and compassionately, you should not offer strong resistance and may be convinced by 1-2 further good responses that address any remaining simple doubts or offer reassurance.
+- Levels 2-3: You are curious but might have 2-4 specific questions or mild objections. Conviction is possible if these key points are addressed well, including a clear presentation of the Gospel.
+- Levels 4-6: You are more thoughtful and might require more detailed explanations or have more nuanced doubts. You'll likely have 3-5 questions or points of resistance before considering conviction, which must follow a clear Gospel presentation.
+- Levels 7-8: You are skeptical and may bring up more challenging theological or philosophical points. You'll have multiple, potentially interconnected doubts. Conviction is difficult and rare, requiring very persuasive and comprehensive answers to these doubts after the Gospel is presented.
+- Levels 9-10: You are highly resistant, perhaps due to strong prior beliefs, negative experiences, or deep intellectual objections. You might present complex arguments or apparent contradictions. Conviction is extremely rare and would only occur after an exceptionally insightful and thorough conversation that addresses profound concerns, grounded in a clear Gospel presentation.
 
 The user just said: "{{{messageChirho}}}"
 
 Based on your persona, the user's message, and the {{{difficultyLevelChirho}}}:
 1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageNameChirho}}}. It should sound like something a real person with your background would say.
-2.  Determine if you are "convincedChirho". This should be a significant moment. At Level 1, this is more achievable. At higher levels, it is progressively rarer. Consider if the user's responses have adequately addressed your persona's doubts according to the current difficulty.
+2.  Determine if you are "convincedChirho". This should be a significant moment. At Level 1, this is more achievable but REQUIRES that the user has presented the core Gospel message (Jesus' death, burial, resurrection, Lordship, and faith in Him). At higher levels, it is progressively rarer and always contingent on the user addressing your persona's doubts effectively after presenting the Gospel.
 3.  If not convinced, formulate a "nextQuestionChirho" strictly in the language: {{{languageNameChirho}}}. This should be a genuine question or doubt that naturally follows from your persona and the difficulty level. If convinced, "nextQuestionChirho" can be null or an expression of newfound peace/questions about next steps.
 4.  Provide a "visualContextForNextImageChirho" strictly in English: a brief description (max 15 words) of your current expression or pose. Example: "smiling warmly", "looking thoughtful", "glancing upwards". If no specific visual change, this can be null.
 5.  Set "outputLanguageChirho" to the input language code: {{{languageChirho}}}.
 
 Output your entire response as a single, valid JSON object. Ensure text fields are in the correct language as specified above.
-
-Example (Level 1, language 'en', user addresses simple doubt):
-User message: "God offers forgiveness and a new start through Jesus."
-Your persona (Eliza, feeling lost):
-{
-  "personaResponseChirho": "A new start... that sounds nice. But how can I be sure it's for someone like me?",
-  "convincedChirho": false, // Might become true if next answer is good for Level 1
-  "nextQuestionChirho": "What do I have to do to receive this forgiveness?",
-  "visualContextForNextImageChirho": "hopeful but still questioning",
-  "outputLanguageChirho": "en"
-}
 `,
 });
 
@@ -132,4 +121,3 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
     };
   }
 );
-
