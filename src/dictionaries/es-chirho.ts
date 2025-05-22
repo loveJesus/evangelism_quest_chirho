@@ -152,6 +152,7 @@ const dictionaryChirho = {
     toastCannotSuggestTitle: 'No se Puede Sugerir',
     toastCannotSuggestNoMessage: 'No se encontró mensaje de la persona para basar una sugerencia.',
     toastCannotSuggestEmptyMessage: 'El último mensaje de la persona está vacío.',
+    toastCannotSuggestNoPersonaName: 'No se puede generar sugerencia: Falta el nombre de la Persona.',
     toastSuggestionFailedTitle: 'Sugerencia Fallida',
     toastSuggestionFailedDescription: 'No se pudo obtener una sugerencia. Por favor, inténtalo de nuevo.',
     toastSuggestionErrorTitle: 'Error de Sugerencia',
@@ -160,6 +161,8 @@ const dictionaryChirho = {
     generalUnexpectedError: "Ocurrió un error inesperado.",
     toastActiveSaveErrorTitle: "Error al Guardar",
     toastActiveSaveErrorDescription: "No se pudo guardar el progreso del chat actual: ",
+    scrollToTopButtonTitle: "Desplazar Arriba",
+    scrollToBottomButtonTitle: "Desplazar Abajo",
   },
   contextualGuidancePage: {
     pageTitle: 'Guía Contextual ☧',

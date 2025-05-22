@@ -152,6 +152,7 @@ const dictionaryChirho = {
     toastCannotSuggestTitle: 'Cannot Suggest',
     toastCannotSuggestNoMessage: 'No persona message found to base a suggestion on.',
     toastCannotSuggestEmptyMessage: 'The last persona message is empty.',
+    toastCannotSuggestNoPersonaName: 'Cannot generate suggestion: Persona name is missing.',
     toastSuggestionFailedTitle: 'Suggestion Failed',
     toastSuggestionFailedDescription: 'Could not fetch a suggestion. Please try again.',
     toastSuggestionErrorTitle: 'Suggestion Error',
@@ -160,6 +161,8 @@ const dictionaryChirho = {
     generalUnexpectedError: "An unexpected error occurred.",
     toastActiveSaveErrorTitle: "Save Error",
     toastActiveSaveErrorDescription: "Could not save current chat progress: ",
+    scrollToTopButtonTitle: "Scroll to Top",
+    scrollToBottomButtonTitle: "Scroll to Bottom",
   },
   contextualGuidancePage: {
     pageTitle: 'Contextual Guidance ☧',

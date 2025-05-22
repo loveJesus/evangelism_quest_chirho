@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, PartyPopper, Gift, ExternalLink } from "lucide-react";
+import { Send, User, Bot, RefreshCw, Loader2, Info, Lightbulb, XCircle, History, ArrowLeft, Trash2, CreditCard, MessageCircleMore, PartyPopper, Gift, ExternalLink, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useToastChirho } from "@/hooks/use-toast-chirho";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils-chirho";
+import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 
 const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
 
@@ -97,6 +98,7 @@ interface AIPersonasClientPagePropsChirho {
 export default function AIPersonasClientPageChirho({ dictionary: fullDictionary, lang }: AIPersonasClientPagePropsChirho) {
   const dictionary = fullDictionary.aiPersonasPage;
   const { currentUserChirho, userProfileChirho, loadingAuthChirho, updateLocalUserProfileChirho, routerChirho, currentLangChirho: authContextLang } = useAuthChirho();
+  const isMobileChirho = useIsMobileChirho();
 
   const [personaChirho, setPersonaChirho] = useState<GenerateAiPersonaOutputChirho | null>(null);
   const [dynamicPersonaImageChirho, setDynamicPersonaImageChirho] = useState<string | null>(null);
@@ -125,6 +127,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const [isImagePopupOpenChirho, setIsImagePopupOpenChirho] = useState<boolean>(false);
   const [isLoadingHistoryChirho, setIsLoadingHistoryChirho] = useState(false);
 
+  const [showScrollToTopButtonChirho, setShowScrollToTopButtonChirho] = useState<boolean>(false);
+  const [showScrollToBottomButtonChirho, setShowScrollToBottomButtonChirho] = useState<boolean>(false);
+
   const { toastChirho } = useToastChirho();
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
@@ -146,11 +151,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
       setSuggestedAnswerChirho(null);
-      setArchivedConversationsChirho([]); 
+      setArchivedConversationsChirho([]);
       setIsLoadingPersonaChirho(false);
       setIsCelebrationModeActiveChirho(false);
-      setCurrentConversationLanguageChirho(lang); 
-      setIsInitialLoadAttemptedChirho(false); 
+      setCurrentConversationLanguageChirho(lang);
+      setIsInitialLoadAttemptedChirho(false);
     }
   }, [currentUserChirho, loadingAuthChirho, lang, isInitialLoadAttemptedChirho]);
 
@@ -172,7 +177,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       difficultyLevelChirho: currentDifficultyToSave,
       currentConversationLanguageChirho: currentLangToSave,
       dynamicPersonaImageChirho: currentDynamicImgToSave,
-      lastSaved: Date.now(), 
+      lastSaved: Date.now(),
     };
     const result = await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, activeData);
     if (!result.success) {
@@ -193,7 +198,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     convincedStatus: boolean,
     archiveLang: string
   ) => {
-    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) { 
+    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) {
       console.log(`[AIPersonasPage] Archiving conversation with ${personaToArchive.personaNameChirho} (convinced: ${convincedStatus}) in lang ${archiveLang}`);
       const archiveEntry: ArchivedConversationChirho = {
         id: Date.now().toString() + "_" + Math.random().toString(36).substring(2, 9),
@@ -224,7 +229,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
   const loadNewPersonaChirho = useCallback(async (
     difficultyToLoadChirho: number,
-    convincedStatusOverride?: boolean, 
+    convincedStatusOverride?: boolean,
     conversationToContinue?: ArchivedConversationChirho | null
   ) => {
     if (!currentUserChirho || !userProfileChirho) {
@@ -257,7 +262,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         personaDetailsChirho: conversationToContinue.personaDetailsChirho,
         meetingContextChirho: conversationToContinue.meetingContextChirho,
         encounterTitleChirho: conversationToContinue.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle,
-        personaImageChirho: conversationToContinue.initialPersonaImageChirho || "", 
+        personaImageChirho: conversationToContinue.initialPersonaImageChirho || "",
         personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
       };
       setPersonaChirho(restoredPersona);
@@ -326,16 +331,16 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         }
 
         setPersonaChirho(newPersona);
-        setDynamicPersonaImageChirho(newPersona.personaImageChirho); 
+        setDynamicPersonaImageChirho(newPersona.personaImageChirho);
         const initialMessageTextChirho = newPersona.meetingContextChirho
           ? (dictionary.initialMeetingMessage).replace("{context}", newPersona.meetingContextChirho)
-          : "Hello! I'm ready to talk."; 
+          : "Hello! I'm ready to talk.";
 
         const initialMessages: MessageChirho[] = [{
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: newPersona.personaImageChirho 
+          imageUrlChirho: newPersona.personaImageChirho
         }];
         setMessagesChirho(initialMessages);
 
@@ -415,12 +420,34 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
   }, [selectedArchivedConversationChirho]);
 
+   // Scroll event listener for mobile scroll buttons
+  useEffect(() => {
+    if (!isMobileChirho || !scrollAreaRefChirho.current) {
+      setShowScrollToTopButtonChirho(false);
+      setShowScrollToBottomButtonChirho(false);
+      return;
+    }
+
+    const viewport = scrollAreaRefChirho.current.querySelector('div[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      setShowScrollToTopButtonChirho(viewport.scrollTop > 200);
+      setShowScrollToBottomButtonChirho(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight > 200);
+    };
+
+    viewport.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, [isMobileChirho, messagesChirho.length]); // Re-evaluate on messagesChirho.length if scrollHeight might change
+
 
   const handleSendMessageChirho = async () => {
     if (!userInputChirho.trim() || !personaChirho || !currentUserChirho || !userProfileChirho) return;
 
     let currentDynamicImageForResponse = dynamicPersonaImageChirho || personaChirho.personaImageChirho;
-    if (!currentDynamicImageForResponse) { 
+    if (!currentDynamicImageForResponse) {
       currentDynamicImageForResponse = personaChirho.personaImageChirho;
     }
 
@@ -447,7 +474,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     };
 
     let aiResponseData: AIPersonaConvincingOutputChirho | null = null;
-    let imageForPersonaMessage = currentDynamicImageForResponse; 
+    let imageForPersonaMessage = currentDynamicImageForResponse;
 
     try {
       const resultChirho = await sendMessageToPersonaChirho(convincingInputChirho);
@@ -488,7 +515,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           sender: "persona",
           text: aiResponseData.personaResponseChirho,
           id: (Date.now() + 1).toString(),
-          imageUrlChirho: imageForPersonaMessage 
+          imageUrlChirho: imageForPersonaMessage
         };
 
         const finalMessagesForSave = [...updatedMessagesWithUser, newPersonaMessageChirho];
@@ -496,7 +523,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         setAnimatingMessageIdChirho(newPersonaMessageChirho.id);
         setTimeout(() => setAnimatingMessageIdChirho(null), ANIMATION_TOTAL_DURATION_CHIRHO);
 
-        if(personaChirho) { 
+        if(personaChirho) {
           await saveCurrentActiveConversation(personaChirho, finalMessagesForSave, imageForPersonaMessage, difficultyLevelChirho, currentConversationLanguageChirho);
         }
 
@@ -516,11 +543,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         }
       } else {
         toastChirho({ variant: "destructive", title: dictionary.errorSendingMessageTitle, description: resultChirho.error || dictionary.errorSendingMessageDescription });
-        setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); 
+        setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
       }
     } catch (errorChirho: any) {
       toastChirho({ variant: "destructive", title: dictionary.generalErrorTitle, description: errorChirho.message || dictionary.generalUnexpectedError });
-      setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); 
+      setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id));
     }
     setIsSendingMessageChirho(false);
   };
@@ -538,6 +565,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       toastChirho({ variant: "destructive", title: dictionary.toastCannotSuggestTitle, description: dictionary.toastCannotSuggestEmptyMessage });
       return;
     }
+    if (!personaChirho.personaNameChirho || personaChirho.personaNameChirho.trim() === "") {
+      toastChirho({ variant: "destructive", title: dictionary.toastCannotSuggestTitle, description: dictionary.toastCannotSuggestNoPersonaName});
+      return;
+    }
+
 
     const actualPersonaName = (personaChirho.personaNameChirho && personaChirho.personaNameChirho.trim() !== "")
                               ? personaChirho.personaNameChirho
@@ -660,7 +692,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const noCreditsChirho = userProfileChirho.credits <= 0;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-full"> 
+    <div className="flex flex-col lg:flex-row gap-6 h-full">
       <Card className="lg:w-1/3 flex-shrink-0 lg:sticky lg:top-[calc(var(--header-height)+1.5rem)] max-h-[calc(100vh-var(--header-height)-3rem)] overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
@@ -805,7 +837,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                             variant="default"
                             onClick={() => {
                                 if (selectedArchivedConversationChirho) {
-                                    setIsHistoryDialogOpenChirho(false); 
+                                    setIsHistoryDialogOpenChirho(false);
                                     loadNewPersonaChirho(selectedArchivedConversationChirho.difficultyLevelChirho, false, selectedArchivedConversationChirho);
                                 }
                             }}
@@ -944,7 +976,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
          )}
       </Card>
 
-      <Card className="flex-grow flex flex-col shadow-xl max-h-full lg:max-h-[calc(100vh-var(--header-height)-3rem)]">
+      <Card className="flex-grow flex flex-col shadow-xl max-h-full lg:max-h-[calc(100vh-var(--header-height)-3rem)] relative">
         <CardHeader>
           <CardTitle>{chatWithNameForHeader}</CardTitle>
           <CardDescription className="flex items-center gap-1">
@@ -1099,6 +1131,39 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             </div>
           )}
         </CardContent>
+         {/* Scroll to Top/Bottom Buttons for Mobile */}
+        {isMobileChirho && (
+          <div className="absolute bottom-20 right-4 space-y-2 z-20">
+            {showScrollToTopButtonChirho && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full shadow-lg"
+                onClick={() => {
+                  const viewport = scrollAreaRefChirho.current?.querySelector('div[data-radix-scroll-area-viewport]') as HTMLElement | null;
+                  if (viewport) viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                title={dictionary.scrollToTopButtonTitle || "Scroll to Top"}
+              >
+                <ArrowUpCircle className="h-5 w-5" />
+              </Button>
+            )}
+            {showScrollToBottomButtonChirho && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full shadow-lg"
+                onClick={() => {
+                  const viewport = scrollAreaRefChirho.current?.querySelector('div[data-radix-scroll-area-viewport]') as HTMLElement | null;
+                  if (viewport) viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+                }}
+                title={dictionary.scrollToBottomButtonTitle || "Scroll to Bottom"}
+              >
+                <ArrowDownCircle className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
 
       { typeof window !== 'undefined' && (
