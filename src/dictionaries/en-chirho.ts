@@ -55,7 +55,7 @@ const dictionaryChirho = {
     pageTitle: 'Evangelism Quest',
     personaCardTitleLoading: 'Loading Persona...',
     personaCardTitleKnown: 'AI Persona: {name}',
-    aNewEncounterTitle: 'A New Encounter', // Used if encounterTitleChirho is missing
+    aNewEncounterTitle: 'A New Encounter',
     generatingPersonaMessage: "Generating new encounter...",
     generatingPersonaDescription: "Please wait a moment while we prepare your next conversation.",
     errorGeneratingPersonaTitle: 'Error Generating Persona',
@@ -108,7 +108,7 @@ const dictionaryChirho = {
     creditsDialog: {
         title: 'Message Credits & Support',
         description: 'Manage your message credits or support the project.',
-        getMoreCreditsButton: 'Credits & Support', // Text for the button opening this dialog
+        getMoreCreditsButton: 'Free Credits',
         donationTitle: "Support Evangelism Quest",
         donationDescription: "Our operational cost is roughly $5 per 100 messages. Please consider supporting the ongoing development and server costs.",
         donationButtonLabel: "Donate via PayPal",
