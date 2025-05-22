@@ -104,14 +104,14 @@ body {
 /* Avatar Entrance Animation */
 @keyframes avatar-entrance-chirho {
   0% {
-    transform: scale(5.0) translateX(8rem); /* Start large and shifted right */
+    transform: scale(5.0) translateX(3rem); /* Start large and shifted right */
     opacity: 0;
   }
   10% {
     opacity: 0.7; /* Fade in */
   }
   70% {
-    transform: scale(5.0) translateX(8rem); /* Hold large and shifted */
+    transform: scale(5.0) translateX(3rem); /* Hold large and shifted */
     opacity: 1;
   }
   100% {
@@ -129,11 +129,11 @@ body {
 @keyframes text-bubble-entrance-chirho {
   0%, 80% { /* Delay opacity and position change */
     opacity: 0;
-    transform: translateX(8rem);
+    transform: translateX(3rem);
   }
   81% {
       opacity: 0; /* Start fade-in */
-      transform: translateX(8rem);
+      transform: translateX(3rem);
   }
   100% {
     opacity: 1;

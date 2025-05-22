@@ -129,7 +129,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
   const scrollAreaRefChirho = useRef<HTMLDivElement>(null);
   const archivedChatScrollAreaRefChirho = useRef<HTMLDivElement>(null);
 
-  // Redirect to login if not authenticated (runs if this page is accessed directly without auth)
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loadingAuthChirho && !currentUserChirho && routerChirho) {
         const targetLang = authContextLang || lang || defaultLocale;
@@ -146,7 +146,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setMessagesChirho([]);
       setDynamicPersonaImageChirho(null);
       setSuggestedAnswerChirho(null);
-      setArchivedConversationsChirho([]);
+      setArchivedConversationsChirho([]); // Clear archived conversations from state too
       setIsLoadingPersonaChirho(false);
       setIsCelebrationModeActiveChirho(false);
       setCurrentConversationLanguageChirho(lang); // Reset language to current UI lang
@@ -172,7 +172,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       difficultyLevelChirho: currentDifficultyToSave,
       currentConversationLanguageChirho: currentLangToSave,
       dynamicPersonaImageChirho: currentDynamicImgToSave,
-      lastSaved: Date.now(),
+      lastSaved: Date.now(), // Client-side timestamp for 'lastSaved' if not using serverTimestamp for this field
     };
     const result = await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, activeData);
     if (!result.success) {
@@ -193,19 +193,19 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     convincedStatus: boolean,
     archiveLang: string
   ) => {
-    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) { 
-      console.log(`[AIPersonasPage] Archiving conversation with ${personaToArchive.personaNameChirho} (convinced: ${convincedStatus})`);
+    if (currentUserChirho && personaToArchive && messagesToArchive.length > 1) { // Only archive if more than initial message
+      console.log(`[AIPersonasPage] Archiving conversation with ${personaToArchive.personaNameChirho} (convinced: ${convincedStatus}) in lang ${archiveLang}`);
       const archiveEntry: ArchivedConversationChirho = {
         id: Date.now().toString() + "_" + Math.random().toString(36).substring(2, 9),
         timestamp: Date.now(),
         personaNameChirho: personaToArchive.personaNameChirho,
-        initialPersonaImageChirho: personaToArchive.personaImageChirho, 
+        initialPersonaImageChirho: personaToArchive.personaImageChirho, // This is a Firebase Storage URL
         meetingContextChirho: personaToArchive.meetingContextChirho,
         encounterTitleChirho: personaToArchive.encounterTitleChirho,
         personaDetailsChirho: personaToArchive.personaDetailsChirho,
         personaNameKnownToUserChirho: personaToArchive.personaNameKnownToUserChirho,
         difficultyLevelChirho: difficultyLevelChirho, 
-        messagesChirho: messagesToArchive.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })), 
+        messagesChirho: messagesToArchive.map(msg => ({...msg, imageUrlChirho: msg.imageUrlChirho || null })), // These are Firebase Storage URLs
         convincedChirho: convincedStatus,
         conversationLanguageChirho: archiveLang,
       };
@@ -217,14 +217,14 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         toastChirho({ variant: "destructive", title: dictionary.toastArchiveErrorTitle, description: archiveResult.error || dictionary.toastArchiveErrorDescription });
       }
     } else {
-      console.log("[AIPersonasPage] Skipping archive: No current user, persona, or insufficient messages.");
+      console.log("[AIPersonasPage] Skipping archive: No current user, persona, or insufficient messages for archiving.");
     }
   }, [currentUserChirho, difficultyLevelChirho, dictionary, toastChirho]);
 
 
   const loadNewPersonaChirho = useCallback(async (
     difficultyToLoadChirho: number,
-    convincedStatusOverride?: boolean, 
+    convincedStatusOverride?: boolean, // Used when archiving before continuing/new
     conversationToContinue?: ArchivedConversationChirho | null
   ) => {
     if (!currentUserChirho || !userProfileChirho) {
@@ -242,9 +242,13 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     const currentMessagesSnapshot = messagesChirho.length > 0 ? [...messagesChirho] : [];
     const currentConversationLanguageSnapshot = currentConversationLanguageChirho;
 
-    if (currentPersonaSnapshot && currentMessagesSnapshot.length > 1 && (!conversationToContinue || conversationToContinue.id !== (currentPersonaSnapshot.encounterTitleChirho + currentPersonaSnapshot.personaNameChirho))) {
-      console.log("[AIPersonasPage] Archiving previous active session before loading new/continued one.");
-      await archiveCurrentConversationChirho(currentPersonaSnapshot, currentMessagesSnapshot, convincedStatusOverride ?? false, currentConversationLanguageSnapshot);
+    // Archive current active session IF it exists, has messages, and we're not just continuing the *same* one
+    if (currentPersonaSnapshot && currentMessagesSnapshot.length > 1) {
+        // Check if we're continuing a different conversation or starting a new one
+        if (!conversationToContinue || (conversationToContinue && conversationToContinue.id !== (currentPersonaSnapshot.encounterTitleChirho + currentPersonaSnapshot.personaNameChirho))) {
+            console.log("[AIPersonasPage] Archiving previous active session before loading new/continued one.");
+            await archiveCurrentConversationChirho(currentPersonaSnapshot, currentMessagesSnapshot, convincedStatusOverride ?? false, currentConversationLanguageSnapshot);
+        }
     }
     
     await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid);
@@ -256,7 +260,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         personaDetailsChirho: conversationToContinue.personaDetailsChirho,
         meetingContextChirho: conversationToContinue.meetingContextChirho,
         encounterTitleChirho: conversationToContinue.encounterTitleChirho || dictionary.historyArchivedDefaultEncounterTitle,
-        personaImageChirho: conversationToContinue.initialPersonaImageChirho || "", 
+        personaImageChirho: conversationToContinue.initialPersonaImageChirho || "", // The initial image URL
         personaNameKnownToUserChirho: conversationToContinue.personaNameKnownToUserChirho,
       };
       setPersonaChirho(restoredPersona);
@@ -265,9 +269,10 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       const restoredMessages = conversationToContinue.messagesChirho.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null }));
       setMessagesChirho(restoredMessages); 
 
+      // Set dynamic image to the last message's image or the initial image
       let lastImageUrl: string | null = null;
       if (restoredMessages.length > 0) {
-          const lastMsgWithImage = [...restoredMessages].reverse().find(msg => msg.imageUrlChirho);
+          const lastMsgWithImage = [...restoredMessages].reverse().find(msg => msg.sender === 'persona' && msg.imageUrlChirho);
           lastImageUrl = lastMsgWithImage?.imageUrlChirho || conversationToContinue.initialPersonaImageChirho || null;
       } else {
         lastImageUrl = conversationToContinue.initialPersonaImageChirho || null;
@@ -278,6 +283,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       setIsHistoryDialogOpenChirho(false); 
       setSelectedArchivedConversationChirho(null);
       
+      // Save this continued conversation as the new active one
       await saveCurrentActiveConversation(restoredPersona, restoredMessages, lastImageUrl, conversationToContinue.difficultyLevelChirho, conversationToContinue.conversationLanguageChirho);
       
       setIsLoadingPersonaChirho(false);
@@ -292,6 +298,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       return;
     }
 
+    // --- Start a brand new persona ---
     const newPersonaLang = lang; 
     console.log("[AIPersonasPage] Loading NEW persona, difficulty:", difficultyToLoadChirho, "in language:", newPersonaLang);
     setCurrentConversationLanguageChirho(newPersonaLang); 
@@ -308,7 +315,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
     try {
       const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique.`;
-      const genResult = await generateNewPersonaActionChirho({ personaDescriptionChirho: personaThemeDescriptionChirho, languageChirho: newPersonaLang });
+      const genResult = await generateNewPersonaActionChirho({ personaDescriptionChirho: personaThemeDescriptionChirho, languageChirho: newPersonaLang }, currentUserChirho.uid);
 
       if (genResult.success && genResult.data) {
         const newPersona = genResult.data;
@@ -325,19 +332,20 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         }
 
         setPersonaChirho(newPersona);
-        setDynamicPersonaImageChirho(newPersona.personaImageChirho); 
+        setDynamicPersonaImageChirho(newPersona.personaImageChirho); // This is now a Firebase Storage URL
         const initialMessageTextChirho = newPersona.meetingContextChirho
           ? (dictionary.initialMeetingMessage).replace("{context}", newPersona.meetingContextChirho)
-          : "Hello! I'm ready to talk.";
+          : "Hello! I'm ready to talk."; // Fallback, should not usually happen
 
         const initialMessages: MessageChirho[] = [{
           sender: "persona",
           text: initialMessageTextChirho,
           id: Date.now().toString(),
-          imageUrlChirho: newPersona.personaImageChirho 
+          imageUrlChirho: newPersona.personaImageChirho // Store Firebase Storage URL
         }];
         setMessagesChirho(initialMessages);
         
+        // Save this new persona session as active
         await saveCurrentActiveConversation(newPersona, initialMessages, newPersona.personaImageChirho, difficultyToLoadChirho, newPersonaLang);
 
       } else {
@@ -400,7 +408,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         });
       }
     }
-  }, [messagesChirho.length, suggestedAnswerChirho]); // Added suggestedAnswerChirho
+  }, [messagesChirho.length, suggestedAnswerChirho]);
 
   // Scroll archived chat to bottom
   useEffect(() => {
@@ -419,7 +427,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     if (!userInputChirho.trim() || !personaChirho || !currentUserChirho || !userProfileChirho) return;
 
     let currentDynamicImageForResponse = dynamicPersonaImageChirho || personaChirho.personaImageChirho;
-    if (!currentDynamicImageForResponse) {
+    if (!currentDynamicImageForResponse) { // Should not happen with Firebase Storage URLs
       currentDynamicImageForResponse = personaChirho.personaImageChirho; 
     }
 
@@ -446,7 +454,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     };
 
     let aiResponseData: AIPersonaConvincingOutputChirho | null = null;
-    let imageForPersonaMessage = currentDynamicImageForResponse; 
+    let imageForPersonaMessage = currentDynamicImageForResponse; // Start with current image
 
     try {
       const resultChirho = await sendMessageToPersonaChirho(convincingInputChirho);
@@ -459,6 +467,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         if (!creditDecrementResult.success) {
           toastChirho({ variant: "destructive", title: dictionary.toastCreditErrorTitle, description: creditDecrementResult.error || dictionary.toastCreditErrorDescription });
           if (creditDecrementResult.error === "Insufficient credits.") setIsBuyCreditsDialogOpenChirho(true);
+          // Still proceed to show AI response for this turn if credits just ran out
         }
         if (creditDecrementResult.newCredits !== undefined) {
           updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
@@ -487,7 +496,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           sender: "persona",
           text: aiResponseData.personaResponseChirho,
           id: (Date.now() + 1).toString(),
-          imageUrlChirho: imageForPersonaMessage 
+          imageUrlChirho: imageForPersonaMessage // This will be the updated Firebase Storage URL or the previous one
         };
 
         const finalMessagesForSave = [...updatedMessagesWithUser, newPersonaMessageChirho];
@@ -495,7 +504,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         setAnimatingMessageIdChirho(newPersonaMessageChirho.id);
         setTimeout(() => setAnimatingMessageIdChirho(null), ANIMATION_TOTAL_DURATION_CHIRHO);
 
-        if(personaChirho) {
+        if(personaChirho) { // Save active conversation after AI response
           await saveCurrentActiveConversation(personaChirho, finalMessagesForSave, imageForPersonaMessage, difficultyLevelChirho, currentConversationLanguageChirho);
         }
 
@@ -515,11 +524,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         }
       } else {
         toastChirho({ variant: "destructive", title: dictionary.errorSendingMessageTitle, description: resultChirho.error || dictionary.errorSendingMessageDescription });
-        setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); 
+        setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); // Remove user's optimistic message
       }
     } catch (errorChirho: any) {
       toastChirho({ variant: "destructive", title: dictionary.generalErrorTitle, description: errorChirho.message || dictionary.generalUnexpectedError });
-      setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); 
+      setMessagesChirho((prevMessagesChirho) => prevMessagesChirho.filter(mChirho => mChirho.id !== newUserMessageChirho.id)); // Remove user's optimistic message
     }
     setIsSendingMessageChirho(false);
   };
@@ -631,6 +640,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
   // Handling unauthenticated users (redirect is in useEffect, this provides interim UI)
   if (!currentUserChirho) {
+    // The AppLayoutChirho now handles its own full-page redirect message.
+    // This component can return null or a minimal placeholder if AppLayoutChirho handles it.
+    // However, having a fallback here is safe.
     return <div className="flex items-center justify-center h-full"><p>{dictionary.redirectingToLogin || "Redirecting to login..."}</p><Loader2 className="h-8 w-8 animate-spin text-primary ml-2" /></div>;
   }
   
@@ -662,7 +674,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-full"> {/* Main container for two cards */}
-      <Card className="lg:w-1/3 flex-shrink-0 lg:sticky lg:top-[calc(var(--header-height)_+_1.5rem)] max-h-[calc(100vh_-_var(--header-height)_-_3rem)] overflow-y-auto shadow-xl">
+      <Card className="lg:w-1/3 flex-shrink-0 lg:sticky lg:top-[calc(var(--header-height)+1.5rem)] max-h-[calc(100vh-var(--header-height)-3rem)] overflow-y-auto shadow-xl">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             {personaDisplayNameForCard}
@@ -789,6 +801,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                               </div>
                               {msgChirho.sender === "user" && (
                                 <Avatar className="h-12 w-12">
+                                   {currentUserChirho?.photoURL ? (
+                                    <AvatarImage src={currentUserChirho.photoURL} alt={userProfileChirho?.displayName || "User"} />
+                                  ) : null}
                                   <AvatarFallback className="bg-secondary text-secondary-foreground">
                                       <User className="h-7 w-7" />
                                   </AvatarFallback>
@@ -994,6 +1009,9 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
                   </div>
                   {msgChirho.sender === "user" && (
                      <Avatar className="h-12 w-12">
+                       {currentUserChirho?.photoURL ? (
+                        <AvatarImage src={currentUserChirho.photoURL} alt={userProfileChirho?.displayName || "User"} />
+                       ) : null}
                        <AvatarFallback className="bg-secondary text-secondary-foreground">
                           <User className="h-7 w-7" />
                        </AvatarFallback>
