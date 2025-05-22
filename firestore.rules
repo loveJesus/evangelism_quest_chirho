@@ -1,20 +1,33 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Users Collection
+    // - Allows an authenticated user to read and write to their own profile document.
+    // - Creation (signup) is covered by write.
+    // - Ensures users cannot access or modify other users' profiles.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Rule for the active conversation document
-      // The document ID is 'current_active_conversation_v1'
-      match /activeConversationData/{docId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId && docId == 'current_active_conversation_v1';
-      }
-
-      // Rule for the archivedConversations subcollection
+      // Archived Conversations Subcollection
+      // - Allows an authenticated user to read, write (create/update), and delete
+      //   their own archived conversation documents.
       match /archivedConversations/{conversationId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Active Conversation Data Subcollection
+      // - Allows an authenticated user to read, write (create/update), and delete
+      //   their own active conversation document.
+      // - The document ID is currently "current_active_conversation_v1".
+      match /activeConversationData/{activeConvDocId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId && activeConvDocId == "current_active_conversation_v1";
+      }
     }
+
+    // Add rules for other collections if you have them.
+    // By default, all other paths are denied access.
   }
 }

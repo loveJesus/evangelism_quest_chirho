@@ -30,7 +30,7 @@ const dictionaryChirho = {
     loading: 'Cargando...',
     viewSourceLink: "Ver Código Fuente en GitHub",
     watchDemoLink: "Ver Video Demostrativo",
-    watchDemoVideoUrl: "https://youtu.be/C7Z02Cvttig",
+    watchDemoVideoUrl: "https://youtu.be/wEVGyUqbMGA",
     languageSelectorLabel: "Seleccionar Idioma:",
     languageEnglish: "Inglés",
     languageSpanish: "Español",
