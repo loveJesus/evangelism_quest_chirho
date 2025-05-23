@@ -61,7 +61,7 @@ Your primary goal is to create a NEW and UNIQUE character each time.
     *   **CRITICAL: DO NOT REPEAT names like Caleb, Kai, Zephyr, Zephyrine, or any other names you might have used in recent generations. Always try for something fresh unless specifically hinted.**
 2.  **Persona Details ("personaDetailsChirho")**:
     *   Craft a detailed backstory (a few paragraphs) strictly in the language: ${languageNameChirho}. This backstory is for the AI to understand its role and should allow for discovery through conversation.
-    *   It MUST explicitly state the persona's **sex** using terms equivalent to "a man" or "a woman" in the specified language ${languageNameChirho} (e.g., for English: "a man", "a woman"; for Español: "un hombre", "una mujer"). Ensure you vary between generating male and female personas.
+    *   It MUST explicitly state the persona's **sex** as either **"male"** or **"female"** (or the equivalent in ${languageNameChirho}, e.g., for English: "a man named John", "a woman named Sarah"; for Español: "un hombre llamado Juan", "una mujer llamada Sara"). You must generate both male and female personas with variety.
     *   It MUST explicitly state an approximate **age or age range** (e.g., "in her early 20s", "a man in his mid-40s", "around 60 years old" or equivalent in ${languageNameChirho}).
     *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in ${languageNameChirho}.
     *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of ${languageNameChirho}.
@@ -116,12 +116,11 @@ Ensure the output is a single, valid JSON object and nothing else.`;
       if (!parsedPersonaDataChirho.personaNameChirho || !parsedPersonaDataChirho.personaDetailsChirho || !parsedPersonaDataChirho.meetingContextChirho || !parsedPersonaDataChirho.encounterTitleChirho || typeof parsedPersonaDataChirho.personaNameKnownToUserChirho !== 'boolean') {
         throw new Error("Parsed JSON is missing required fields (name, details, context, title, or nameKnown) or personaNameKnownToUserChirho is not a boolean.");
       }
-       // Check for sex/age in details
-       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(man|woman|male|female|hombre|mujer|masculino|femenino)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad|\d+\s*years old|\d+\s*años)/i)) {
-        console.warn("Generated personaDetailsChirho might be missing explicit sex (man/woman) or age information, or it's phrased unexpectedly. Details:", parsedPersonaDataChirho.personaDetailsChirho.substring(0,100) + "...");
+       if (!parsedPersonaDataChirho.personaDetailsChirho.match(/(man|woman|male|female|hombre|mujer)/i) || !parsedPersonaDataChirho.personaDetailsChirho.match(/(age|edad|\d+\s*years old|\d+\s*años)/i)) {
+        console.warn("[Generate Persona Flow] Generated personaDetailsChirho might be missing explicit sex (male/female) or age information, or it's phrased unexpectedly. Details:", parsedPersonaDataChirho.personaDetailsChirho.substring(0,100) + "...");
       }
     } catch (e: any) {
-      console.error("Failed to parse persona data JSON:", personaDataResultChirho.text, e);
+      console.error("[Generate Persona Flow] Failed to parse persona data JSON:", personaDataResultChirho.text, e);
       const fallbackName = input.languageChirho === 'es' ? "Jordan (Alternativo) Chirho" : "Jordan (Fallback) Chirho";
       const fallbackDetails = input.languageChirho === 'es' 
         ? "Jordan Chirho es una persona reflexiva, de sexo femenino, de unos 30 años, que se enfrenta a algunas de las preguntas comunes de la vida. Está abierta a la discusión pero requiere un compromiso sincero. Esta es una persona alternativa debido a un error de generación: " + e.message
@@ -147,7 +146,7 @@ The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtl
 The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances (male and female). Photorealistic style.`;
 
     const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      model: 'googleai/gemini-2.0-flash-exp', // Corrected model identifier
       prompt: imagePromptChirho,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
@@ -162,7 +161,7 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
     
     const imageUrlChirho = imageResultChirho.media?.url;
     if (!imageUrlChirho) {
-        console.error("Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
+        console.error("[Generate Persona Flow] Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
         // Fallback data URI for a 1x1 transparent PNG
         const placeholderDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
         return {

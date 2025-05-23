@@ -8,7 +8,7 @@
  * - UpdatePersonaVisualsOutputChirho - The return type for the function.
  */
 
-import {ai} from '@/ai-chirho/genkit-chirho'; // Updated import
+import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
 
 const UpdatePersonaVisualsInputSchemaChirho = z.object({
@@ -26,7 +26,7 @@ const UpdatePersonaVisualsInputSchemaChirho = z.object({
   newVisualPromptChirho: z
     .string()
     .describe(
-      "Prompt describing the persona's current expression, pose, or minor environmental changes for the new image."
+      "Prompt describing the persona's current expression, pose, or minor environmental changes for the new image. MUST be in English."
     ),
 });
 export type UpdatePersonaVisualsInputChirho = z.infer<
@@ -46,7 +46,7 @@ export type UpdatePersonaVisualsOutputChirho = z.infer<
 
 export async function updatePersonaVisualsChirho(
   input: UpdatePersonaVisualsInputChirho
-): Promise<UpdatePersonaVisualsOutputSchemaChirho> {
+): Promise<UpdatePersonaVisualsOutputChirho> {
   return updatePersonaVisualsFlowChirho(input);
 }
 
@@ -63,7 +63,7 @@ const updatePersonaVisualsFlowChirho = ai.defineFlow(
     newVisualPromptChirho,
   }) => {
     const imageGenPromptChirho = [
-      {media: {url: baseImageUriChirho}}, // Gemini might be able to fetch public URLs
+      {media: {url: baseImageUriChirho}}, 
       {
         text: `You are an image generation AI. You have been given a base image of a character named ${personaNameChirho}. Their original meeting context was: "${originalMeetingContextChirho}".
 Your task is to generate a *new* 512x512 image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
@@ -71,14 +71,14 @@ The new image should only reflect changes in their expression, pose, or minor en
 Do NOT change the character into someone else. Do NOT drastically change the setting. Focus on their expression and pose. Help the changes keep the conversation engaging (in a pure, non-sensual) way.
 Ensure the updated image remains modest, appropriate for all audiences, photorealistic, and strictly avoids any revealing attire, cleavage, or suggestive elements.
 
-New Visual Prompt (expression, pose, minor changes): "${newVisualPromptChirho}"
+New Visual Prompt (expression, pose, minor changes, MUST BE IN ENGLISH): "${newVisualPromptChirho}"
 
 Generate the updated image.`,
       },
     ];
 
     const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      model: 'googleai/gemini-2.0-flash-exp', // Corrected model identifier
       prompt: imageGenPromptChirho,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
@@ -94,7 +94,7 @@ Generate the updated image.`,
     const imageUrlChirho = imageResultChirho.media?.url;
     if (!imageUrlChirho) {
       console.error(
-        'Image regeneration failed to return a URL. Inputs:',
+        '[Update Persona Visuals Flow] Image regeneration failed to return a URL. Inputs:',
         {baseImageUriShorthandChirho: baseImageUriChirho.substring(0,50) + "...", personaNameChirho, originalMeetingContextChirho, newVisualPromptChirho}
       );
       throw new Error('Image regeneration failed for persona.');
