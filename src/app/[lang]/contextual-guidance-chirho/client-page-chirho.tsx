@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { fetchContextualGuidanceChirho } from "@/lib/actions-chirho"; 
+import { fetchContextualGuidanceActionChirho } from "@/lib/actions-chirho"; 
 import type { ContextualGuidanceOutputChirho } from "@/ai-chirho/flows-chirho/contextual-guidance-chirho"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +57,7 @@ export default function ContextualGuidanceClientPageChirho({ dictionary: fullDic
     setErrorChirho(null);
     setGuidanceChirho(null);
 
-    const resultChirho = await fetchContextualGuidanceChirho({ topicChirho: dataChirho.topicChirho, languageChirho: lang });
+    const resultChirho = await fetchContextualGuidanceActionChirho({ topicChirho: dataChirho.topicChirho, languageChirho: lang });
     if (resultChirho.success && resultChirho.data) {
       setGuidanceChirho(resultChirho.data);
     } else {
