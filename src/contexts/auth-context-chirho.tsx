@@ -21,8 +21,8 @@ export interface UserProfileChirho {
   displayName?: string | null;
   photoURL?: string | null;
   credits: number;
-  createdAt: any;
-  lastLogin?: any;
+  createdAt: any; // Could be Firestore Timestamp or number (millis)
+  lastLogin?: any; // Could be Firestore Timestamp or number (millis)
 }
 
 interface AuthContextTypeChirho {
@@ -68,26 +68,38 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
           console.log("[AuthContext] User authenticated, initializing/updating profile:", user.uid);
           const initResult = await initializeUserActionChirho(user.uid, user.email, user.displayName, user.photoURL);
 
-          if (initResult.success && initResult.profile) {
+          if (!initResult.success) {
+            console.error("[AuthContext] Failed to initialize user profile from server action:", initResult.error);
+            toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: initResult.error || dictionary.toastProfileStillNotFound });
+            setUserProfileChirho(null); 
+          } else if (initResult.profile) {
             setUserProfileChirho(initResult.profile);
-            console.log("[AuthContext] User profile initialized/updated and set:", initResult.profile);
+            console.log("[AuthContext] User profile initialized/updated via server action and set:", initResult.profile);
           } else {
-            console.error("[AuthContext] Failed to initialize or fetch user profile after auth:", initResult.error || "Profile data missing in init result.");
-            toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: initResult.error || dictionary.toastProfileSetupErrorDescription });
-            setUserProfileChirho(null);
+             // Fallback: if initResult was success but no profile (shouldn't happen if action is robust), try fetching
+            const fetchedProfile = await fetchUserProfileChirho(user.uid);
+            if (fetchedProfile) {
+              setUserProfileChirho(fetchedProfile);
+              console.log("[AuthContext] User profile fetched separately and set:", fetchedProfile);
+            } else {
+              console.error("[AuthContext] Profile still not found after successful initialization attempt for user:", user.uid);
+              toastChirho({ variant: "destructive", title: dictionary.toastProfileErrorTitle, description: dictionary.toastProfileStillNotFound });
+              setUserProfileChirho(null);
+            }
           }
-        } catch (error: any) {
-          console.error("[AuthContext] Error during post-auth user processing:", error);
-          toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: error.message || dictionary.toastProfileSetupErrorDescription });
+        } catch (error: any) { // Catch errors from initializeUserActionChirho or fetchUserProfileChirho
+          console.error("Error during post-auth user processing:", error);
+          const errorMessage = (error instanceof Error) ? error.message : dictionary.toastProfileSetupErrorDescription;
+          toastChirho({ variant: "destructive", title: dictionary.toastProfileSetupErrorTitle, description: errorMessage });
           setUserProfileChirho(null);
         }
       } else {
-        const uidToClear = currentUserChirho?.uid; // Capture UID before currentUserChirho is nulled
+        const uidToClear = currentUserChirho?.uid; 
         setCurrentUserChirho(null);
         setUserProfileChirho(null);
-        if (uidToClear) { // If there was a logged-in user, try to clear their active session
+        if (uidToClear) { 
           console.log("[AuthContext] User logged out. Clearing active session for UID:", uidToClear);
-          clearActiveConversationFromFirestoreChirho(uidToClear).then(result => {
+          clearActiveConversationFromFirestoreChirho(uidToClear).then(result => { // Server action
             if (!result.success) {
               console.warn("[AuthContext] Failed to clear active conversation on logout for user:", uidToClear, "Error:", result.error);
             } else {
@@ -100,8 +112,7 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
       setLoadingAuthChirho(false);
     });
     return () => unsubscribeChirho();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toastChirho, dictionary]); // Removed currentUserChirho from dep array to avoid re-triggering clear on its own change
+  }, [toastChirho, dictionary]); // Removed currentUserChirho to avoid loop on its own change
 
   const fetchUserProfileChirho = async (userId: string): Promise<UserProfileChirho | null> => {
      const result = await fetchUserProfileFromServerChirho(userId);
@@ -114,7 +125,7 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
   };
 
   const logInWithGoogleChirho = async () => {
-    setLoadingAuthChirho(true); // Ensure loading state is true during the process
+    setLoadingAuthChirho(true); 
     try {
       const provider = new GoogleAuthProvider();
       console.log("[AuthContext] Attempting Google Sign-In. Firebase App Options for authChirho instance:", authChirho.app.options);
@@ -125,7 +136,6 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
         return;
       }
       await signInWithPopup(authChirho, provider);
-      // onAuthStateChanged will handle profile loading and navigation
     } catch (error: any) {
       console.error("[AuthContext] Google Sign-In Error:", error);
       if (error.code === 'auth/popup-blocked' ||
@@ -152,7 +162,6 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
       }
       setLoadingAuthChirho(false);
     }
-    // Do not set loadingAuthChirho to false here if successful, onAuthStateChanged will handle it.
   };
 
   const logInWithEmailChirho = async (email: string, pass: string) => {
@@ -182,15 +191,15 @@ export const AuthProviderChirho = ({ children, lang, dictionary }: AuthProviderP
     const uidToClear = currentUserChirho.uid;
     try {
       await firebaseSignOut(authChirho);
-      // Note: onAuthStateChanged will handle setting currentUserChirho and userProfileChirho to null
-      // and also call clearActiveConversationFromFirestoreChirho.
+      // onAuthStateChanged will set currentUserChirho & userProfileChirho to null.
+      // It will also call clearActiveConversationFromFirestoreChirho.
       if (routerChirho) {
           routerChirho.push(`/${currentLangChirho}/login-chirho`);
       }
       toastChirho({ title: dictionary.toastLoggedOutTitle, description: dictionary.toastLoggedOutDescription });
     } catch (error: any) {
       console.error("[AuthContext] Logout Error:", error);
-      toastChirho({ variant: "destructive", title: dictionary.toastLogoutFailedTitle, description: error.message });
+      toastChirho({ variant: "destructive", title: dictionary.toastLogoutFailedTitle, description: (error as Error).message || "Logout failed" });
     }
   };
 

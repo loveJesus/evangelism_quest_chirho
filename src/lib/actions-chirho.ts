@@ -45,14 +45,14 @@ import {
   deleteDoc,
   type FirestoreError
 } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho';
-import type { ArchivedConversationChirho as ClientArchivedConversationChirho, MessageChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho';
+import type { ArchivedConversationChirho, MessageChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho';
 
 
 const INITIAL_FREE_CREDITS_CHIRHO = 50;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
-const ACTIVE_CONVERSATION_DOC_ID_CHIRHO = "current_active_conversation_v1"; // Ensure this matches the ID used in rules
+const ACTIVE_CONVERSATION_DOC_ID_CHIRHO = "current_active_conversation_v1";
 const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
 const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
 
@@ -63,7 +63,7 @@ export interface ActiveConversationDataChirho {
   difficultyLevelChirho: number;
   currentConversationLanguageChirho: string;
   dynamicPersonaImageChirho: string | null;
-  lastSaved: any;
+  lastSaved: any; // serverTimestamp or number
 }
 
 
@@ -73,7 +73,7 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
     return { success: false, error: "User ID, image data, and image name are required." };
   }
    if (!imageDataUri.startsWith('data:image')) {
-    if (imageDataUri.startsWith('http')) { // Already a public URL, likely Firebase Storage
+    if (imageDataUri.startsWith('http')) { 
         console.warn("[Storage Action] uploadImageToStorageChirho received an HTTP URL, assuming already uploaded:", imageDataUri.substring(0, 70) + "...");
         return { success: true, downloadURL: imageDataUri };
     }
@@ -84,7 +84,6 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
   try {
     const storagePath = `userImages/${userId}/${imageName}.png`;
     const storageRefVal = ref(storageChirho, storagePath);
-    // console.log(`[Storage Action] Attempting to upload to: ${storagePath}`);
     await uploadString(storageRefVal, imageDataUri, 'data_url');
     const downloadURL = await getDownloadURL(storageRefVal);
     console.log(`[Storage Action] Image uploaded successfully for user ${userId}, image ${imageName}. URL: ${downloadURL}`);
@@ -102,12 +101,11 @@ export async function uploadImageToStorageChirho(userId: string, imageDataUri: s
   }
 }
 
-
 export async function initializeUserChirho(
   userId: string,
   email: string | null,
-  displayName?: string | null,
-  photoURL?: string | null
+  displayNameFromAuth?: string | null,
+  photoURLFromAuth?: string | null
 ): Promise<{ success: boolean; error?: string; profile?: UserProfileChirho }> {
   console.log("[Action initializeUserChirho] Called for user:", userId);
   if (!userId) {
@@ -117,28 +115,20 @@ export async function initializeUserChirho(
   }
 
   const userDocRef = doc(dbChirho, "users", userId);
-  let userProfileData: UserProfileChirho | undefined;
+  let userProfileDataToReturn: UserProfileChirho | undefined;
 
   try {
-    let userDocSnap;
-    try {
-      console.log("[Action initializeUserChirho] Attempting to get user document for:", userId);
-      userDocSnap = await getDoc(userDocRef);
-      console.log("[Action initializeUserChirho] User document snapshot exists for", userId, ":", userDocSnap.exists());
-    } catch (getDocError: any) {
-      const firestoreError = getDocError as FirestoreError;
-      const errorMsg = `Error getting user document in initializeUserChirho for ${userId}: ${firestoreError.message} (Code: ${firestoreError.code})`;
-      console.error(errorMsg, firestoreError);
-      return { success: false, error: errorMsg };
-    }
+    console.log("[Action initializeUserChirho] Attempting to get user document for:", userId);
+    const userDocSnap = await getDoc(userDocRef);
+    console.log("[Action initializeUserChirho] User document snapshot exists for", userId, ":", userDocSnap.exists());
 
     if (!userDocSnap.exists()) {
       console.log("[Action initializeUserChirho] User document does not exist, creating new profile for:", userId);
       const newProfileData = {
         uid: userId,
         email: email,
-        displayName: displayName || email?.split('@')[0] || "User",
-        photoURL: photoURL || null,
+        displayName: displayNameFromAuth || email?.split('@')[0] || "User",
+        photoURL: photoURLFromAuth || null,
         credits: INITIAL_FREE_CREDITS_CHIRHO,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
@@ -146,74 +136,71 @@ export async function initializeUserChirho(
       try {
         await setDoc(userDocRef, newProfileData);
         console.log("[Action initializeUserChirho] New user profile CREATED in Firestore for:", userId);
-        // Re-fetch to get server timestamps converted and confirm write
-        const newlySetDocSnap = await getDoc(userDocRef); // This getDoc should succeed if setDoc did
-        const fetchedData = newlySetDocSnap.data();
-        if (fetchedData) {
-          userProfileData = {
-            ...fetchedData,
-            uid: userId,
-            createdAt: fetchedData.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : Date.now(),
-            lastLogin: fetchedData.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now(),
-          } as UserProfileChirho;
+        // Fetch the newly created doc to get server-generated timestamps
+        const newlySetDocSnap = await getDoc(userDocRef);
+        if (newlySetDocSnap.exists()) {
+            const data = newlySetDocSnap.data();
+            userProfileDataToReturn = {
+                ...data,
+                uid: userId,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+                lastLogin: data.lastLogin instanceof Timestamp ? data.lastLogin.toMillis() : Date.now(),
+            } as UserProfileChirho;
         } else {
-          // This case should ideally not be reached if setDoc was successful and newlySetDocSnap was fetched.
-          throw new Error("Failed to fetch newly created profile after setDoc.");
+             throw new Error("Failed to fetch newly created profile after setDoc.");
         }
       } catch (setDocError: any) {
         const firestoreError = setDocError as FirestoreError;
         const errorMsg = `Error creating new user profile for ${userId}: ${firestoreError.message} (Code: ${firestoreError.code})`;
-        console.error(errorMsg, firestoreError);
+        console.error("[Action initializeUserChirho]", errorMsg, firestoreError);
         return { success: false, error: errorMsg };
       }
     } else {
       console.log("[Action initializeUserChirho] User document exists, UPDATING profile for:", userId);
-      const existingData = userDocSnap.data() as UserProfileChirho;
-      const updates: Record<string, any> = { // Using Record<string, any> for flexibility
+      const existingData = userDocSnap.data() as UserProfileChirho; // Assume it matches UserProfileChirho for structure
+      const updates: Record<string, any> = {
         lastLogin: serverTimestamp(),
       };
-      if (email && existingData.email !== email) {
+      // Only update if changed from auth provider, to prevent overwriting user's potential custom display name from within app
+      if (displayNameFromAuth && existingData.displayName !== displayNameFromAuth) {
+        updates.displayName = displayNameFromAuth;
+      }
+      if (photoURLFromAuth && existingData.photoURL !== photoURLFromAuth) {
+        updates.photoURL = photoURLFromAuth;
+      }
+       if (email && existingData.email !== email) { // In case email changes (e.g. via Firebase Console or if primary changes)
         updates.email = email;
-      }
-      if (displayName && displayName.trim() !== "" && existingData.displayName !== displayName) {
-        updates.displayName = displayName;
-      }
-      if (photoURL && existingData.photoURL !== photoURL) {
-        updates.photoURL = photoURL;
       }
 
       try {
         await updateDoc(userDocRef, updates);
         console.log("[Action initializeUserChirho] User profile UPDATED in Firestore for:", userId, "with updates:", Object.keys(updates));
-        // Re-fetch to get server timestamps converted
-        const updatedDocSnap = await getDoc(userDocRef); // This getDoc should succeed if updateDoc did
-        const fetchedData = updatedDocSnap.data();
-        if (fetchedData) {
-          userProfileData = {
-            ...existingData, // Spread existing client-side data first
-            ...fetchedData,  // Then updated server data (like lastLogin as Timestamp)
-            uid: userId, // Ensure UID
-            // Keep original createdAt if it's already in millis, otherwise convert if it's a Timestamp
-            createdAt: (existingData.createdAt instanceof Timestamp ? existingData.createdAt.toMillis() : typeof existingData.createdAt === 'number' ? existingData.createdAt : (fetchedData.createdAt instanceof Timestamp ? fetchedData.createdAt.toMillis() : Date.now())),
-            lastLogin: fetchedData.lastLogin instanceof Timestamp ? fetchedData.lastLogin.toMillis() : Date.now(),
-          } as UserProfileChirho;
+        const updatedDocSnap = await getDoc(userDocRef);
+         if (updatedDocSnap.exists()) {
+            const data = updatedDocSnap.data();
+            userProfileDataToReturn = {
+                ...data,
+                uid: userId,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : (existingData.createdAt || Date.now()), // Preserve original createdAt
+                lastLogin: data.lastLogin instanceof Timestamp ? data.lastLogin.toMillis() : Date.now(),
+            } as UserProfileChirho;
         } else {
-           throw new Error("Failed to fetch updated profile after updateDoc.");
+            throw new Error("Failed to fetch updated profile after updateDoc.");
         }
       } catch (updateDocError: any) {
         const firestoreError = updateDocError as FirestoreError;
         const errorMsg = `Error updating user profile for ${userId}: ${firestoreError.message} (Code: ${firestoreError.code})`;
-        console.error(errorMsg, firestoreError);
+        console.error("[Action initializeUserChirho]", errorMsg, firestoreError);
         return { success: false, error: errorMsg };
       }
     }
-    console.log("[Action initializeUserChirho] Successfully initialized/updated profile:", userProfileData);
-    return { success: true, profile: userProfileData };
+    console.log("[Action initializeUserChirho] Successfully initialized/updated profile. Returning:", userProfileDataToReturn);
+    return { success: true, profile: userProfileDataToReturn };
 
-  } catch (error: any) { // General catch for unexpected errors (e.g., issues not directly from Firestore calls)
-    const firestoreError = error as FirestoreError; // Attempt to cast for code/message
-    const errorMsg = `Unexpected error in initializeUserChirho for ${userId}: ${firestoreError.message || error.toString()} (Code: ${firestoreError.code || 'UNKNOWN'})`;
-    console.error(errorMsg, error);
+  } catch (error: any) { // Catch error from the initial getDoc
+    const firestoreError = error as FirestoreError;
+    const errorMsg = `Error getting user document in initializeUserChirho for ${userId}: ${firestoreError.message} (Code: ${firestoreError.code})`;
+    console.error("[Action initializeUserChirho]", errorMsg, firestoreError);
     return { success: false, error: errorMsg };
   }
 }
@@ -244,7 +231,6 @@ export async function fetchUserProfileFromServerChirho(userId: string): Promise<
   }
 }
 
-
 export async function decrementUserCreditsChirho(userId: string, amount: number = 1): Promise<{ success: boolean; newCredits?: number; error?: string; }> {
   if (!userId) return { success: false, error: "User ID is required." };
   const userDocRef = doc(dbChirho, "users", userId);
@@ -253,7 +239,7 @@ export async function decrementUserCreditsChirho(userId: string, amount: number 
     if (!userDocSnap.exists()) {
       return { success: false, error: "User profile not found for credit decrement." };
     }
-    const currentCredits = userDocSnap.data()?.credits ?? 0; // Default to 0 if undefined
+    const currentCredits = userDocSnap.data()?.credits ?? 0; 
     if (currentCredits < amount) {
       return { success: false, error: "Insufficient credits.", newCredits: currentCredits };
     }
@@ -299,7 +285,7 @@ export async function addFreeCreditsChirho(userId: string): Promise<{ success: b
   }
 }
 
-
+// --- Genkit Flow Wrappers ---
 export async function generateNewPersonaChirho(input: GenerateAiPersonaInputChirho, userId: string): Promise<{ success: boolean; data?: GenerateAiPersonaOutputChirho; error?: string; }> {
   try {
     console.log(`[Action generateNewPersonaChirho] Generating persona for user ${userId}, lang: ${input.languageChirho}`);
@@ -314,7 +300,6 @@ export async function generateNewPersonaChirho(input: GenerateAiPersonaInputChir
         console.log(`[Action generateNewPersonaChirho] Initial image uploaded: ${resultChirho.personaImageChirho}`);
       } else {
         console.warn("[Action generateNewPersonaChirho] Failed to upload initial persona image to Firebase Storage, using data URI as fallback. Error:", uploadResult.error);
-        // Keep data URI if upload fails, but log a warning
       }
     }
     return { success: true, data: resultChirho };
@@ -368,7 +353,7 @@ export async function updatePersonaImageChirho(input: UpdatePersonaVisualsInputC
 }
 
 export async function fetchSuggestedResponseChirho(input: SuggestEvangelisticResponseInputChirho): Promise<{ success: boolean; data?: SuggestEvangelisticResponseOutputChirho; error?: string; }> {
-  console.log("[Action fetchSuggestedResponseChirho] Server action received input:", input);
+  console.log("[Server Action] fetchSuggestedResponseChirho received client input:", input);
   try {
     const resultChirho = await suggestEvangelisticResponseChirho(input);
     return { success: true, data: resultChirho };
@@ -392,15 +377,20 @@ export async function saveActiveConversationToFirestoreChirho(userId: string, ac
   const activeConvDocRef = doc(dbChirho, "users", userId, "activeConversationData", ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
 
   try {
+    // Ensure all parts of activeData are serializable and default if necessary
     const dataToSave: ActiveConversationDataChirho = {
-      ...activeData,
-      lastSaved: serverTimestamp(),
-      messagesChirho: activeData.messagesChirho.map(msg => ({ ...msg, imageUrlChirho: msg.imageUrlChirho || null })),
       personaChirho: {
         ...activeData.personaChirho,
-        personaImageChirho: activeData.personaChirho.personaImageChirho || ""
+        personaImageChirho: activeData.personaChirho.personaImageChirho || "", // ensure string
       },
+      messagesChirho: activeData.messagesChirho.map(msg => ({
+        ...msg,
+        imageUrlChirho: msg.imageUrlChirho || null, // ensure null if undefined
+      })),
+      difficultyLevelChirho: activeData.difficultyLevelChirho || 1,
+      currentConversationLanguageChirho: activeData.currentConversationLanguageChirho || 'en',
       dynamicPersonaImageChirho: activeData.dynamicPersonaImageChirho || null,
+      lastSaved: serverTimestamp(),
     };
 
     await setDoc(activeConvDocRef, dataToSave);
@@ -425,7 +415,6 @@ export async function fetchActiveConversationFromFirestoreChirho(userId: string)
     const docSnap = await getDoc(activeConvDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Ensure all fields are correctly typed and default if necessary
       const personaChirho = data.personaChirho || {};
       const messagesChirho = (data.messagesChirho || []).map((msg: any) => ({
              ...msg,
@@ -439,7 +428,7 @@ export async function fetchActiveConversationFromFirestoreChirho(userId: string)
             meetingContextChirho: personaChirho.meetingContextChirho || "No context.",
             encounterTitleChirho: personaChirho.encounterTitleChirho || "Encounter",
             personaImageChirho: personaChirho.personaImageChirho || "",
-            personaNameKnownToUserChirho: personaChirho.personaNameKnownToUserChirho === true, // Ensure boolean
+            personaNameKnownToUserChirho: personaChirho.personaNameKnownToUserChirho === true, 
         },
         messagesChirho: messagesChirho,
         difficultyLevelChirho: data.difficultyLevelChirho || 1,
@@ -474,10 +463,9 @@ export async function clearActiveConversationFromFirestoreChirho(userId: string)
     return { success: true };
   } catch (error: any) {
     const firestoreError = error as FirestoreError;
-    // Don't error if the document simply wasn't found (it might have been cleared already)
     if (firestoreError.code === 'not-found') {
         console.log(`[Action clearActiveConversationFromFirestoreChirho] Active conversation document already cleared or never existed for user ${userId}`);
-        return { success: true }; // Still a success in this context
+        return { success: true }; 
     }
     const errorMsg = `Error clearing active conversation for user ${userId}: ${firestoreError.message} (Code: ${firestoreError.code})`;
     console.error(`[Action clearActiveConversationFromFirestoreChirho] ${errorMsg}`, firestoreError);
@@ -486,7 +474,7 @@ export async function clearActiveConversationFromFirestoreChirho(userId: string)
 }
 
 // --- Archived Conversation Actions ---
-export async function archiveConversationToFirestoreChirho(userId: string, conversationData: ClientArchivedConversationChirho): Promise<{ success: boolean; error?: string }> {
+export async function archiveConversationToFirestoreChirho(userId: string, conversationData: ArchivedConversationChirho): Promise<{ success: boolean; error?: string }> {
   if (!userId) {
     console.error("[Action archiveConversationToFirestoreChirho] User ID is required.");
     return { success: false, error: "User ID is required." };
@@ -501,10 +489,9 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
 
   try {
     const newConvDocRef = doc(userConversationsRef, conversationData.id);
-    // Convert client-side timestamp back to Firestore Timestamp for reliable server-side ordering
     const dataToSave = {
         ...conversationData,
-        timestamp: Timestamp.fromMillis(conversationData.timestamp),
+        timestamp: Timestamp.fromMillis(conversationData.timestamp), // Ensure server-compatible timestamp
         archivedAtServer: serverTimestamp(),
         messagesChirho: conversationData.messagesChirho.map(msg => ({
             ...msg,
@@ -516,14 +503,12 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
     await setDoc(newConvDocRef, dataToSave);
     console.log(`[Action archiveConversationToFirestoreChirho] Successfully archived conversation ${conversationData.id} for user ${userId}.`);
 
-    // Pruning logic: keep only the latest MAX_ARCHIVED_CONVERSATIONS_CHIRHO
-    const q = query(userConversationsRef, orderBy("timestamp", "desc")); // Newest first
+    const q = query(userConversationsRef, orderBy("timestamp", "desc")); 
     const snapshot = await getDocs(q);
 
     if (snapshot.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
       console.log(`[Action archiveConversationToFirestoreChirho] Pruning. Found ${snapshot.docs.length} conversations, limit is ${MAX_ARCHIVED_CONVERSATIONS_CHIRHO}.`);
       const batch = writeBatch(dbChirho);
-      // Docs are ordered newest to oldest, so slice off the end to get the oldest ones
       const docsToDelete = snapshot.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
 
       docsToDelete.forEach(docToDelete => {
@@ -544,7 +529,7 @@ export async function archiveConversationToFirestoreChirho(userId: string, conve
   }
 }
 
-export async function fetchArchivedConversationsFromFirestoreChirho(userId: string): Promise<{ success: boolean; data?: ClientArchivedConversationChirho[]; error?: string }> {
+export async function fetchArchivedConversationsFromFirestoreChirho(userId: string): Promise<{ success: boolean; data?: ArchivedConversationChirho[]; error?: string }> {
   if (!userId) {
     console.error("[Action fetchArchivedConversationsFromFirestoreChirho] User ID is required.");
     return { success: false, error: "User ID is required." };
@@ -558,7 +543,7 @@ export async function fetchArchivedConversationsFromFirestoreChirho(userId: stri
     const snapshot = await getDocs(q);
     const conversations = snapshot.docs.map(docSnapshot => {
       const data = docSnapshot.data();
-      const clientData: ClientArchivedConversationChirho = {
+      const clientData: ArchivedConversationChirho = {
         id: data.id,
         timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toMillis() : data.timestamp,
         personaNameChirho: data.personaNameChirho,
@@ -620,5 +605,3 @@ export async function clearArchivedConversationsFromFirestoreChirho(userId: stri
     return { success: false, error: errorMsg };
   }
 }
-
-    

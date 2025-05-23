@@ -4,30 +4,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users Collection
-    // - Allows an authenticated user to read and write to their own profile document.
-    // - Creation (signup) is covered by write.
-    // - Ensures users cannot access or modify other users' profiles.
+    // Users collection
     match /users/{userId} {
+      // Allow a user to read and write their own profile document.
+      // 'create' is implicitly covered by 'write'.
+      // 'delete' of user profiles is typically handled by admin processes or specific functions, not directly by users.
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Archived Conversations Subcollection
-      // - Allows an authenticated user to read, write (create/update), and delete
-      //   their own archived conversation documents.
+      // Archived conversations subcollection
       match /archivedConversations/{conversationId} {
+        // Allow a user to read, create, update, and delete their own archived conversations.
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
 
-      // Active Conversation Data Subcollection
-      // - Allows an authenticated user to read, write (create/update), and delete
-      //   their own active conversation document.
-      // - The document ID is currently "current_active_conversation_v1".
+      // Active conversation data subcollection (document ID is fixed as 'current_active_conversation_v1')
       match /activeConversationData/{activeConvDocId} {
+         // Allow a user to read, write (create/update), and delete their own active conversation document.
+         // Ensure they can only interact with the specific document ID we use.
         allow read, write, delete: if request.auth != null && request.auth.uid == userId && activeConvDocId == "current_active_conversation_v1";
       }
     }
 
-    // Add rules for other collections if you have them.
-    // By default, all other paths are denied access.
+    // Other collections (if any) would go here with their own rules.
+    // Example:
+    // match /publicContent/{docId} {
+    //   allow read: if true; // Anyone can read public content
+    //   allow write: if false; // No one can write (or only admins via Admin SDK)
+    // }
   }
 }
