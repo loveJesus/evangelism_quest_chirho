@@ -1,25 +1,27 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /users/{userId} {
-      // Allow creation if the document ID matches the uid field in the resource being created.
-      // This allows a server process (like a Server Action using client SDK) to create the user's initial document
-      // if it knows the userId and includes it in the data.
-      allow create: if request.resource.data.uid == userId;
+      // Allow a user to create their own document if they are authenticated and the document ID matches their UID,
+      // and the data being written also includes their UID.
+      // This is typically handled client-side after signup or by a trusted server process (like Admin SDK in a Cloud Function).
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
 
       // Allow authenticated users to read, update, and delete their own profile.
       allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
 
-      // Rules for subcollections
-      match /archivedConversations/{conversationId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      }
+    match /users/{userId}/archivedConversations/{conversationId} {
+      // User can manage their own archived conversations
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    }
 
-      // Rule for the specific active conversation document
-      match /activeConversationData/{activeConvDocId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId && activeConvDocId == "current_active_conversation_v1";
-      }
+    match /users/{userId}/activeConversationData/{activeConvDocId} {
+      // User can manage their own active conversation document (specifically the one named "current_active_conversation_v1")
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId && activeConvDocId == "current_active_conversation_v1";
     }
   }
 }
