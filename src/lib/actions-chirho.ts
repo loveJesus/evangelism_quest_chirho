@@ -1,7 +1,9 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use server";
 
-import * as adminChirho from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { Timestamp as AdminTimestamp, FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
 
@@ -15,9 +17,9 @@ import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/gen
 import type { MessageChirho, ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho'; // Adjusted path if client-page-chirho moved
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho';
 
-let adminAppChirho: adminChirho.app.App | undefined;
-let adminDbChirho: adminChirho.firestore.Firestore | undefined;
-let adminStorageChirho: adminChirho.storage.Storage | undefined;
+let adminAppChirho: any;
+let adminDbChirho: any;
+let adminStorageChirho: any;
 
 const INITIAL_FREE_CREDITS_CHIRHO = 50;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
@@ -26,7 +28,7 @@ const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
 const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
 
 try {
-  if (adminChirho.apps.length === 0) {
+  if (getApps().length === 0) {
     console.log("[Admin Action Init] No Firebase Admin apps initialized. Attempting to initialize default app...");
     let serviceAccountCredentials;
     try {
@@ -47,19 +49,19 @@ try {
       // Depending on strictness, you might throw an error here too.
     }
 
-    adminAppChirho = adminChirho.initializeApp({
-      credential: adminChirho.credential.cert(serviceAccountCredentials),
-      storageBucket: storageBucketEnvChirho // Use the env variable
+    adminAppChirho = initializeApp({
+      credential: cert(serviceAccountCredentials),
+      storageBucket: storageBucketEnvChirho
     });
     console.log("[Admin Action Init] Default Firebase Admin app INITIALIZED. App Name:", adminAppChirho.name);
   } else {
-    adminAppChirho = adminChirho.app(); // Get the default app if already initialized
+    adminAppChirho = getApps()[0]; // Get the default app if already initialized
     console.log("[Admin Action Init] Firebase Admin app already exists. Retrieved default app. App Name:", adminAppChirho.name);
   }
 
   if (adminAppChirho) {
-    adminDbChirho = adminChirho.firestore(adminAppChirho);
-    adminStorageChirho = adminChirho.storage(adminAppChirho);
+    adminDbChirho = getFirestore(adminAppChirho);
+    adminStorageChirho = getStorage(adminAppChirho);
     console.log("[Admin Action Init] Firestore and Storage services obtained from Admin app.");
   } else {
     console.error("[Admin Action Init] CRITICAL: Firebase Admin app instance is undefined after initialization attempts. Firestore and Storage services will not be available.");
