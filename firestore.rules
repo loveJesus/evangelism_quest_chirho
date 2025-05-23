@@ -1,40 +1,24 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users collection
-    // User profile documents.
-    // - Admin SDK (e.g., in initializeUserChirho server action) handles initial creation.
-    // - Authenticated users can read and update their own profile.
     match /users/{userIdChirho} {
+      // Admin SDK handles creation. Client can read/update/delete their own profile.
       allow read, update, delete: if request.auth != null && request.auth.uid == userIdChirho;
-      // Create is primarily handled by Admin SDK. A client-side create could be:
-      // allow create: if request.auth != null && request.auth.uid == userIdChirho && request.resource.data.uid == userIdChirho;
-      // For simplicity if Admin SDK is sole creator, direct create rule for client is not strictly needed.
-      // However, keeping a restrictive one does no harm.
+      // Allow create by an authenticated user for their own profile if needed,
+      // but primary creation path is via Admin SDK in initializeUserChirho.
       allow create: if request.auth != null && request.auth.uid == userIdChirho && request.resource.data.uid == userIdChirho;
     }
 
-    // Archived conversations subcollection
-    // Users can manage their own archived conversations.
     match /users/{userIdChirho}/archivedConversations/{conversationIdChirho} {
       allow read, write, delete: if request.auth != null && request.auth.uid == userIdChirho;
     }
 
-    // Active conversation data document
-    // Users can manage their own single active conversation document.
-    // The document ID is fixed to "current_active_conversation_v1" by the application.
-    match /users/{userIdChirho}/activeConversationData/{activeConvDocIdChirho} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userIdChirho && activeConvDocIdChirho == "current_active_conversation_v1";
+    // Rule for the specific active conversation document
+    match /users/{userIdChirho}/activeConversationData/current_active_conversation_v1 {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userIdChirho;
     }
-
-    // Add other collection rules here if needed
-    // Example:
-    // match /publicGlobalData/{docId} {
-    //   allow read: if true; // Allow anyone to read public data
-    //   allow write: if false; // No one can write directly
-    // }
   }
 }
+
+    

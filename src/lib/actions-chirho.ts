@@ -4,12 +4,16 @@
 import * as adminChirho from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { Timestamp as AdminTimestamp, FieldValue as AdminFieldValue } from 'firebase-admin/firestore';
+
+// IMPORTANT: serviceAccountChirho.json MUST be in the ROOT of your project for the require path to work.
+// It also MUST be added to your .gitignore file.
+// The path '../../serviceAccountChirho.json' is relative to this file (src/lib/actions-chirho.ts)
+// So, it expects serviceAccountChirho.json to be at the project root.
+
 import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
-import type { MessageChirho, ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho';
+import type { MessageChirho, ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho'; // Adjusted path if client-page-chirho moved
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho';
 
-// --- Firebase Admin SDK Initialization ---
-let serviceAccountChirho: adminChirho.ServiceAccount | undefined;
 let adminAppChirho: adminChirho.app.App | undefined;
 let adminDbChirho: adminChirho.firestore.Firestore | undefined;
 let adminStorageChirho: adminChirho.storage.Storage | undefined;
@@ -21,38 +25,35 @@ const FREE_CREDITS_ADD_AMOUNT_CHIRHO = 25;
 const FREE_CREDITS_THRESHOLD_CHIRHO = 50;
 
 try {
-  // Check if running in a Node.js environment where `require` is available
-  if (typeof require !== 'undefined') {
-    serviceAccountChirho = require('../../serviceAccountChirho.json');
-    console.log("[Admin Action Init] serviceAccountChirho.json loaded successfully.");
-  } else {
-    console.warn("[Admin Action Init] `require` is not available. Assuming service account JSON is handled by environment variables (e.g., GOOGLE_APPLICATION_CREDENTIALS) or service account already configured for this environment.");
-    // For environments like Firebase Functions or Cloud Run, service account might be auto-configured.
-    // If GOOGLE_APPLICATION_CREDENTIALS env var is set pointing to the JSON file, it might also work.
-  }
-
   if (adminChirho.apps.length === 0) {
     console.log("[Admin Action Init] No Firebase Admin apps initialized. Attempting to initialize default app...");
-    if (serviceAccountChirho) {
-      adminAppChirho = adminChirho.initializeApp({
-        credential: adminChirho.credential.cert(serviceAccountChirho),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      });
-      console.log("[Admin Action Init] Default Firebase Admin app INITIALIZED with service account JSON. App Name:", adminAppChirho.name);
-    } else {
-      // Attempt to initialize without explicit credentials, relying on ADC or pre-configured environment
-      adminAppChirho = adminChirho.initializeApp({
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      });
-      console.log("[Admin Action Init] Default Firebase Admin app INITIALIZED (likely via ADC or environment). App Name:", adminAppChirho.name);
+    let serviceAccountCredentials;
+    try {
+      // Assuming this file is in src/lib/, so ../../ goes to the project root.
+      serviceAccountCredentials = require('../../../serviceAccountChirho.json'); 
+      console.log("[Admin Action Init] serviceAccountChirho.json loaded successfully via require.");
+    } catch (loadError: any) {
+      console.error(`[Admin Action Init] FAILED to load serviceAccountChirho.json. 
+        Ensure the file exists at the project root and is named correctly (case-sensitive).
+        Current working directory: ${process.cwd()}. Attempted path relative to actions-chirho.ts: ../../../serviceAccountChirho.json
+        Error: ${loadError.message}`);
+      throw new Error("Failed to load service account credentials. Admin SDK cannot be initialized.");
     }
+
+    const storageBucketEnvChirho = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (!storageBucketEnvChirho) {
+      console.error("[Admin Action Init] CRITICAL: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not defined. Storage operations will fail if they rely on this for bucket name.");
+      // Depending on strictness, you might throw an error here too.
+    }
+
+    adminAppChirho = adminChirho.initializeApp({
+      credential: adminChirho.credential.cert(serviceAccountCredentials),
+      storageBucket: storageBucketEnvChirho // Use the env variable
+    });
+    console.log("[Admin Action Init] Default Firebase Admin app INITIALIZED. App Name:", adminAppChirho.name);
   } else {
     adminAppChirho = adminChirho.app(); // Get the default app if already initialized
     console.log("[Admin Action Init] Firebase Admin app already exists. Retrieved default app. App Name:", adminAppChirho.name);
-  }
-
-  if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
-    console.error("CRITICAL ERROR: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not defined in environment variables. Storage operations will fail.");
   }
 
   if (adminAppChirho) {
@@ -60,16 +61,18 @@ try {
     adminStorageChirho = adminChirho.storage(adminAppChirho);
     console.log("[Admin Action Init] Firestore and Storage services obtained from Admin app.");
   } else {
-    console.error("[Admin Action Init] CRITICAL: Firebase Admin app instance is undefined after initialization attempts. Firestore and Storage services will not be available for server actions.");
+    console.error("[Admin Action Init] CRITICAL: Firebase Admin app instance is undefined after initialization attempts. Firestore and Storage services will not be available.");
   }
 
 } catch (e: any) {
-  console.error("[Admin Action Init] CRITICAL ERROR initializing Firebase Admin SDK in actions-chirho.ts:", e.message, e.stack);
-  // If initialization fails, adminDbChirho and adminStorageChirho will remain undefined.
-  // Subsequent calls to actions using them will fail, which is expected.
+  console.error("[Admin Action Init] OVERALL CRITICAL ERROR initializing Firebase Admin SDK in actions-chirho.ts:", e.message, e.stack);
 }
-// --- End Firebase Admin SDK Initialization ---
 
+
+interface FirestoreArchivedConversationChirho extends Omit<ClientArchivedConversationChirho, 'timestamp' | 'archivedAtServerMillis'> {
+  timestamp: adminChirho.firestore.Timestamp;
+  archivedAtServer: adminChirho.firestore.Timestamp;
+}
 
 export interface ActiveConversationDataChirho {
   personaChirho: GenerateAiPersonaOutputChirho;
@@ -77,115 +80,118 @@ export interface ActiveConversationDataChirho {
   difficultyLevelChirho: number;
   currentConversationLanguageChirho: string;
   dynamicPersonaImageChirho: string | null;
-  lastSaved: any; 
+  lastSaved: adminChirho.firestore.Timestamp | adminChirho.firestore.FieldValue;
 }
 
-interface FirestoreArchivedConversationChirho extends Omit<ClientArchivedConversationChirho, 'timestamp' | 'archivedAtServerMillis'> {
-  timestamp: AdminTimestamp;
-  archivedAtServer: AdminTimestamp;
-}
 
 export async function initializeUserChirho(
   userIdChirho: string,
   emailChirho: string | null,
   displayNameChirho?: string | null,
   photoURLChirho?: string | null
-): Promise<{ success: boolean; error?: string; profile?: UserProfileChirho, profileExists?: boolean }> {
-  console.log(`[Admin Action initializeUserChirho] Called for user: ${userIdChirho}. Email: ${emailChirho}`);
+): Promise<{ success: boolean; error?: string; profile?: UserProfileChirho; profileExists?: boolean }> {
+  console.log(`[Admin SDK Action initializeUserChirho] Called for user: ${userIdChirho}. Email: ${emailChirho}`);
   if (!adminDbChirho) {
-    const errorMsg = "CRITICAL: Firestore Admin SDK not initialized. Cannot initialize user.";
-    console.error("[Admin Action initializeUserChirho]", errorMsg);
-    return { success: false, error: errorMsg };
+    const errorMsgChirho = "CRITICAL: Firestore Admin SDK (adminDbChirho) not initialized. Cannot initialize user.";
+    console.error(errorMsgChirho);
+    return { success: false, error: errorMsgChirho };
   }
   if (!userIdChirho) {
     const errorMsgChirho = "User ID is required for initializeUserChirho.";
-    console.error("[Admin Action initializeUserChirho]", errorMsgChirho);
+    console.error("[Admin SDK Action initializeUserChirho]", errorMsgChirho);
     return { success: false, error: errorMsgChirho };
   }
 
   const userDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho);
+  let profileDataToReturn: UserProfileChirho;
 
   try {
-    console.log(`[Admin Action initializeUserChirho] Attempting to get document: users/${userIdChirho}`);
+    console.log(`[Admin SDK Action initializeUserChirho] Attempting to get document: users/${userIdChirho}`);
     const userDocSnapChirho = await userDocRefChirho.get();
 
     if (userDocSnapChirho.exists) {
-      console.log(`[Admin Action initializeUserChirho] Document users/${userIdChirho} exists. Attempting update.`);
+      console.log(`[Admin SDK Action initializeUserChirho] Document users/${userIdChirho} exists. Attempting update.`);
       const updatesChirho: { [key: string]: any } = {
         lastLogin: AdminFieldValue.serverTimestamp(),
-        email: emailChirho || null,
+        email: emailChirho || AdminFieldValue.delete() || null,
       };
       const existingDataChirho = userDocSnapChirho.data();
       if (displayNameChirho && existingDataChirho?.displayName !== displayNameChirho) {
         updatesChirho.displayName = displayNameChirho;
+      } else if (!displayNameChirho && typeof existingDataChirho?.displayName !== 'undefined') {
+         updatesChirho.displayName = AdminFieldValue.delete();
       }
       if (photoURLChirho && existingDataChirho?.photoURL !== photoURLChirho) {
         updatesChirho.photoURL = photoURLChirho;
+      } else if (!photoURLChirho && typeof existingDataChirho?.photoURL !== 'undefined') {
+         updatesChirho.photoURL = AdminFieldValue.delete();
       }
       
       await userDocRefChirho.update(updatesChirho);
-      console.log(`[Admin Action initializeUserChirho] User profile UPDATED for: ${userIdChirho}`);
+      console.log(`[Admin SDK Action initializeUserChirho] User profile UPDATED for: ${userIdChirho}`);
       
       const updatedDocSnapChirho = await userDocRefChirho.get(); // Re-fetch to get server-generated timestamps
       const dataChirho = updatedDocSnapChirho.data();
-      if (dataChirho) {
-        const profileChirho: UserProfileChirho = {
-          uid: userIdChirho,
-          email: dataChirho.email,
-          displayName: dataChirho.displayName,
-          photoURL: dataChirho.photoURL,
-          credits: dataChirho.credits,
-          createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis() || Date.now(),
-          lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis() || Date.now(),
-        };
-        return { success: true, profile: profileChirho, profileExists: true };
-      }
-      // Should not happen if update was successful and data exists
-      return { success: false, error: "Failed to retrieve profile data after update.", profileExists: true };
+      if (!dataChirho) throw new Error("Failed to retrieve profile data after update.");
+      
+      profileDataToReturn = {
+        uid: userIdChirho,
+        email: dataChirho.email,
+        displayName: dataChirho.displayName,
+        photoURL: dataChirho.photoURL,
+        credits: dataChirho.credits,
+        createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis(),
+        lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis(),
+      };
+      return { success: true, profile: profileDataToReturn, profileExists: true };
 
     } else {
-      console.log(`[Admin Action initializeUserChirho] Document users/${userIdChirho} does NOT exist. Attempting to create.`);
+      console.log(`[Admin SDK Action initializeUserChirho] Document users/${userIdChirho} does NOT exist. Attempting to create.`);
       const newProfileDataChirho = {
-        uid: userIdChirho, // Crucial for the 'allow create' rule if it were client-side
+        uid: userIdChirho, 
         email: emailChirho || null,
-        displayName: displayNameChirho || "Evangelism Quest User", // Provide a default display name
+        displayName: displayNameChirho || "Evangelism Quest User", 
         photoURL: photoURLChirho || null,
         credits: INITIAL_FREE_CREDITS_CHIRHO,
         createdAt: AdminFieldValue.serverTimestamp(),
         lastLogin: AdminFieldValue.serverTimestamp(),
       };
       await userDocRefChirho.set(newProfileDataChirho);
-      console.log(`[Admin Action initializeUserChirho] User profile CREATED for: ${userIdChirho}`);
+      console.log(`[Admin SDK Action initializeUserChirho] User profile CREATED for: ${userIdChirho}`);
 
-      // Fetch and convert for return after creation
       const createdDocSnapChirho = await userDocRefChirho.get();
       const dataChirho = createdDocSnapChirho.data();
-      if (dataChirho) {
-        const profileChirho: UserProfileChirho = {
-          uid: userIdChirho,
-          email: dataChirho.email,
-          displayName: dataChirho.displayName,
-          photoURL: dataChirho.photoURL,
-          credits: dataChirho.credits,
-          createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis() || Date.now(),
-          lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis() || Date.now(),
-        };
-        return { success: true, profile: profileChirho, profileExists: false };
+      if (!dataChirho) throw new Error("Failed to retrieve profile data after creation.");
+      
+      profileDataToReturn = {
+        uid: userIdChirho,
+        email: dataChirho.email,
+        displayName: dataChirho.displayName,
+        photoURL: dataChirho.photoURL,
+        credits: dataChirho.credits,
+        createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis(), 
+        lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis(),
+      };
+       if (dataChirho.createdAt instanceof AdminTimestamp) {
+        profileDataToReturn.createdAt = dataChirho.createdAt.toMillis();
       }
-       // Should not happen if create was successful and data exists
-      return { success: false, error: "Failed to retrieve profile data after creation.", profileExists: false };
+      if (dataChirho.lastLogin instanceof AdminTimestamp) {
+        profileDataToReturn.lastLogin = dataChirho.lastLogin.toMillis();
+      }
+      return { success: true, profile: profileDataToReturn, profileExists: false };
     }
   } catch (error: any) {
-    const errorMsgChirho = `Error in initializeUserChirho for ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action initializeUserChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error in initializeUserChirho for ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action initializeUserChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 
 export async function fetchUserProfileFromServerChirho(userIdChirho: string): Promise<{ success: boolean; data?: UserProfileChirho; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot fetch profile." };
   if (!userIdChirho) return { success: false, error: "User ID is required." };
+  
   const userDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho);
   try {
     const userDocSnapChirho = await userDocRefChirho.get();
@@ -208,85 +214,94 @@ export async function fetchUserProfileFromServerChirho(userIdChirho: string): Pr
       return { success: false, error: "User profile not found." };
     }
   } catch (error: any) {
-    const errorMsgChirho = `Error fetching profile for 'users/${userIdChirho}': ${error.message} (Code: ${error.code})`;
-    console.error(`[Admin Action fetchUserProfileFromServerChirho]: ${errorMsgChirho}`, error);
+    const errorMsgChirho = `Error fetching profile for 'users/${userIdChirho}': ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error(`[Admin SDK Action fetchUserProfileFromServerChirho]: ${errorMsgChirho}`, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function decrementUserCreditsChirho(userIdChirho: string, amountChirho: number = 1): Promise<{ success: boolean; newCredits?: number; error?: string; }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot decrement credits." };
   if (!userIdChirho) return { success: false, error: "User ID is required." };
+
   const userDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho);
   try {
-    const userDocSnapChirho = await userDocRefChirho.get();
-    if (!userDocSnapChirho.exists) {
-      return { success: false, error: "User profile not found for credit decrement." };
-    }
-    const currentCreditsChirho = userDocSnapChirho.data()?.credits ?? 0;
-    if (currentCreditsChirho < amountChirho) {
-      // Don't let credits go negative if decrementing by more than available.
-      // Set to 0 and report success with 0 credits.
-      await userDocRefChirho.update({ credits: 0 });
-      console.log(`[Admin Action decrementUserCreditsChirho] Credits set to 0 for ${userIdChirho} as amount ${amountChirho} exceeded balance ${currentCreditsChirho}.`);
-      return { success: true, newCredits: 0 };
-    }
-    await userDocRefChirho.update({
-      credits: AdminFieldValue.increment(-amountChirho)
+    // Transaction to ensure atomicity
+    const newCredits = await adminDbChirho.runTransaction(async (transaction) => {
+      const userDocSnap = await transaction.get(userDocRefChirho);
+      if (!userDocSnap.exists) {
+        throw new Error("User profile not found for credit decrement.");
+      }
+      const currentCredits = userDocSnap.data()?.credits ?? 0;
+      if (currentCredits < amountChirho) {
+        transaction.update(userDocRefChirho, { credits: 0 });
+        return 0;
+      }
+      transaction.update(userDocRefChirho, { credits: AdminFieldValue.increment(-amountChirho) });
+      return currentCredits - amountChirho;
     });
-    const updatedUserDocSnapChirho = await userDocRefChirho.get();
-    const newCreditsAfterDecrementChirho = updatedUserDocSnapChirho.data()?.credits;
-    console.log(`[Admin Action decrementUserCreditsChirho] Credits decremented for ${userIdChirho}. New balance: ${newCreditsAfterDecrementChirho}`);
-    return { success: true, newCredits: newCreditsAfterDecrementChirho };
+    
+    console.log(`[Admin SDK Action decrementUserCreditsChirho] Credits decremented for ${userIdChirho}. New balance: ${newCredits}`);
+    return { success: true, newCredits };
   } catch (error: any) {
-    const errorMsgChirho = `Error decrementing credits for ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action decrementUserCreditsChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error decrementing credits for ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action decrementUserCreditsChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function addFreeCreditsChirho(userIdChirho: string): Promise<{ success: boolean; newCredits?: number; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot add free credits." };
   if (!userIdChirho) {
     return { success: false, error: "User ID is required for adding free credits." };
   }
+
   const userDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho);
   try {
-    const userDocSnapChirho = await userDocRefChirho.get();
-    if (!userDocSnapChirho.exists) {
-      return { success: false, error: "User profile not found for adding free credits." };
-    }
-    const currentCreditsChirho = userDocSnapChirho.data()?.credits ?? 0;
-    if (currentCreditsChirho >= FREE_CREDITS_THRESHOLD_CHIRHO) {
-      return { success: false, error: `Free credits only available if balance is below ${FREE_CREDITS_THRESHOLD_CHIRHO}.`, newCredits: currentCreditsChirho };
-    }
-    await userDocRefChirho.update({
-      credits: AdminFieldValue.increment(FREE_CREDITS_ADD_AMOUNT_CHIRHO)
-    });
-    const newCreditsChirho = (await userDocRefChirho.get()).data()?.credits;
-    console.log(`[Admin Action addFreeCreditsChirho] Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits for user ${userIdChirho}. New balance: ${newCreditsChirho}`);
-    return { success: true, newCredits: newCreditsChirho };
+     const newCredits = await adminDbChirho.runTransaction(async (transaction) => {
+        const userDocSnap = await transaction.get(userDocRefChirho);
+        if (!userDocSnap.exists) {
+          throw new Error("User profile not found for adding free credits.");
+        }
+        const currentCredits = userDocSnap.data()?.credits ?? 0;
+        if (currentCredits >= FREE_CREDITS_THRESHOLD_CHIRHO) {
+          // Throw a specific error if condition not met, so it can be handled by the client
+          throw new Error(`Free credits only available if balance is below ${FREE_CREDITS_THRESHOLD_CHIRHO}.`);
+        }
+        transaction.update(userDocRefChirho, { credits: AdminFieldValue.increment(FREE_CREDITS_ADD_AMOUNT_CHIRHO) });
+        return currentCredits + FREE_CREDITS_ADD_AMOUNT_CHIRHO;
+     });
+    console.log(`[Admin SDK Action addFreeCreditsChirho] Added ${FREE_CREDITS_ADD_AMOUNT_CHIRHO} free credits for user ${userIdChirho}. New balance: ${newCredits}`);
+    return { success: true, newCredits };
   } catch (error: any) {
-    const errorMsgChirho = `Error adding free credits for ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action addFreeCreditsChirho]", errorMsgChirho, error);
-    return { success: false, error: errorMsgChirho };
+    const errorMsgChirho = `Error adding free credits for ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action addFreeCreditsChirho]", errorMsgChirho, error);
+    // Check if the error message is the one we threw for threshold condition
+    if (error.message.startsWith("Free credits only available")) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: "Could not add free credits due to a server error." };
   }
 }
 
 export async function uploadImageToStorageChirho(userIdChirho: string, imageDataUriChirho: string, imageNameChirho: string): Promise<{ success: boolean; downloadURL?: string; error?: string }> {
-  if (!adminStorageChirho) return { success: false, error: "Storage Admin SDK not initialized." };
+  if (!adminStorageChirho) {
+      const initErrorMsg = "CRITICAL: Storage Admin SDK (adminStorageChirho) not initialized. Cannot upload image.";
+      console.error(initErrorMsg);
+      return { success: false, error: initErrorMsg };
+  }
   if (!userIdChirho || !imageDataUriChirho || !imageNameChirho) {
     return { success: false, error: "User ID, image data, and image name are required." };
   }
   
   const bucketNameChirho = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
   if (!bucketNameChirho) {
-    const errorMsg = "Firebase Storage bucket name is not configured in environment variables.";
-    console.error("[Admin Action uploadImageToStorageChirho]", errorMsg);
+    const errorMsg = "Firebase Storage bucket name is not configured in environment variables (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).";
+    console.error("[Admin SDK Action uploadImageToStorageChirho]", errorMsg);
     return { success: false, error: errorMsg };
   }
 
-  if (imageDataUriChirho.startsWith('http')) { // Already a URL, likely from a previous upload
+  if (imageDataUriChirho.startsWith('http')) { 
     return { success: true, downloadURL: imageDataUriChirho };
   }
   if (!imageDataUriChirho.startsWith('data:image')) {
@@ -298,32 +313,39 @@ export async function uploadImageToStorageChirho(userIdChirho: string, imageData
     const storagePathChirho = `userImages/${userIdChirho}/${imageNameChirho}.png`;
     const fileChirho = bucketChirho.file(storagePathChirho);
 
-    const base64EncodedImageString = imageDataUriChirho.replace(/^data:image\/\w+;base64,/, '');
+    const match = imageDataUriChirho.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!match) {
+      return { success: false, error: "Could not parse image data URI." };
+    }
+    const mimeType = match[1];
+    const base64EncodedImageString = match[2];
     const imageBuffer = Buffer.from(base64EncodedImageString, 'base64');
 
     await fileChirho.save(imageBuffer, {
-      metadata: { contentType: 'image/png' },
-      public: true, // Make the file publicly readable by default
+      metadata: { contentType: mimeType },
+      public: true, // Makes the file publicly readable on GCS
     });
     
-    // Construct the public URL. This format is standard for public GCS files.
+    // The public URL for GCS files is predictable if `public: true` is set or rules allow public read.
+    // Note: `file.publicUrl()` is simpler and recommended if available and works for your GCS setup.
+    // However, constructing it can be more robust in some environments.
     const downloadURL = `https://storage.googleapis.com/${bucketNameChirho}/${storagePathChirho}`;
     
-    console.log(`[Admin Action uploadImageToStorageChirho] Image uploaded successfully for user ${userIdChirho}. URL: ${downloadURL}`);
+    console.log(`[Admin SDK Action uploadImageToStorageChirho] Image uploaded for user ${userIdChirho}. URL: ${downloadURL}`);
     return { success: true, downloadURL };
   } catch (error: any) {
-    const errorMsgChirho = `Error uploading image to Firebase Storage: ${error.message}`;
-    console.error("[Admin Action uploadImageToStorageChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error uploading image to Firebase Storage: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action uploadImageToStorageChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
-
 export async function saveActiveConversationToFirestoreChirho(userIdChirho: string, activeDataChirho: ActiveConversationDataChirho): Promise<{ success: boolean; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot save active conversation." };
   if (!userIdChirho || !activeDataChirho || !activeDataChirho.personaChirho) {
     return { success: false, error: "User ID and active conversation data (with persona) are required." };
   }
+  
   const activeConvDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("activeConversationData").doc(ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
   try {
     const dataToSaveChirho = {
@@ -331,88 +353,84 @@ export async function saveActiveConversationToFirestoreChirho(userIdChirho: stri
       lastSaved: AdminFieldValue.serverTimestamp(),
     };
     await activeConvDocRefChirho.set(dataToSaveChirho);
-    console.log(`[Admin Action saveActiveConversationToFirestoreChirho] Saved for user ${userIdChirho}. Persona: ${activeDataChirho.personaChirho.personaNameChirho}`);
+    console.log(`[Admin SDK Action saveActiveConversationToFirestoreChirho] Saved for user ${userIdChirho}. Persona: ${activeDataChirho.personaChirho.personaNameChirho}`);
     return { success: true };
   } catch (error: any) {
-    const errorMsgChirho = `Error saving active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error(`[Admin Action saveActiveConversationToFirestoreChirho] ${errorMsgChirho}`, error);
+    const errorMsgChirho = `Error saving active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error(`[Admin SDK Action saveActiveConversationToFirestoreChirho] ${errorMsgChirho}`, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function fetchActiveConversationFromFirestoreChirho(userIdChirho: string): Promise<{ success: boolean; data?: ActiveConversationDataChirho; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot fetch active conversation." };
   if (!userIdChirho) {
     return { success: false, error: "User ID is required for fetching active conversation." };
   }
+
   const activeConvDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("activeConversationData").doc(ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
   try {
     const docSnapChirho = await activeConvDocRefChirho.get();
     if (docSnapChirho.exists) {
       const dataChirho = docSnapChirho.data();
       if (dataChirho) {
-        // Convert Firestore Timestamps to milliseconds for client-side consumption
-        const convertedMessagesChirho = (dataChirho.messagesChirho as any[]).map(msg => ({
-          ...msg,
-          // Assuming 'timestamp' on messages might also be a server timestamp if saved that way,
-          // but more likely it's a client-generated number. Adjust if necessary.
-        }));
-
-        const activeDataChirho: ActiveConversationDataChirho = {
+        const activeDataForClientChirho: ActiveConversationDataChirho = {
           ...dataChirho,
-          messagesChirho: convertedMessagesChirho,
-          lastSaved: (dataChirho.lastSaved as AdminTimestamp)?.toMillis() || Date.now(),
-        } as ActiveConversationDataChirho;
-        console.log(`[Admin Action fetchActiveConversationFromFirestoreChirho] Fetched for user ${userIdChirho}.`);
-        return { success: true, data: activeDataChirho };
+          lastSaved: (dataChirho.lastSaved as AdminTimestamp)?.toMillis(),
+        } as ActiveConversationDataChirho; 
+        console.log(`[Admin SDK Action fetchActiveConversationFromFirestoreChirho] Fetched for user ${userIdChirho}.`);
+        return { success: true, data: activeDataForClientChirho };
       }
       return { success: false, error: "Active conversation data malformed." };
     } else {
+      console.log(`[Admin SDK Action fetchActiveConversationFromFirestoreChirho] No active conversation found for user ${userIdChirho}.`);
       return { success: false, error: "No active conversation found." };
     }
   } catch (error: any) {
-    const errorMsgChirho = `Error fetching active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error(`[Admin Action fetchActiveConversationFromFirestoreChirho] ${errorMsgChirho}`, error);
+    const errorMsgChirho = `Error fetching active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error(`[Admin SDK Action fetchActiveConversationFromFirestoreChirho] ${errorMsgChirho}`, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function clearActiveConversationFromFirestoreChirho(userIdChirho: string): Promise<{ success: boolean; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot clear active conversation." };
   if (!userIdChirho) {
     return { success: false, error: "User ID is required for clearing active conversation." };
   }
+
   const activeConvDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("activeConversationData").doc(ACTIVE_CONVERSATION_DOC_ID_CHIRHO);
   try {
     await activeConvDocRefChirho.delete();
-    console.log(`[Admin Action clearActiveConversationFromFirestoreChirho] Cleared for user ${userIdChirho}`);
+    console.log(`[Admin SDK Action clearActiveConversationFromFirestoreChirho] Cleared for user ${userIdChirho}`);
     return { success: true };
   } catch (error: any) {
-     if ((error as any).code === 5) { // Firestore 'NOT_FOUND' error code
-        console.log(`[Admin Action clearActiveConversationFromFirestoreChirho] Active conversation document already cleared or never existed for user ${userIdChirho}`);
+     if ((error as any).code === 5 || (error as any).code === 'not-found') { 
+        console.log(`[Admin SDK Action clearActiveConversationFromFirestoreChirho] Active conversation document already cleared or never existed for user ${userIdChirho}`);
         return { success: true };
     }
-    const errorMsgChirho = `Error clearing active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error(`[Admin Action clearActiveConversationFromFirestoreChirho] ${errorMsgChirho}`, error);
+    const errorMsgChirho = `Error clearing active conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error(`[Admin SDK Action clearActiveConversationFromFirestoreChirho] ${errorMsgChirho}`, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function archiveConversationToFirestoreChirho(userIdChirho: string, conversationDataChirho: ClientArchivedConversationChirho): Promise<{ success: boolean; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot archive conversation." };
   if (!userIdChirho || !conversationDataChirho) {
     return { success: false, error: "User ID and conversation data are required." };
   }
+
   const userConversationsRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("archivedConversations");
   try {
-    const newConvDocRefChirho = userConversationsRefChirho.doc(conversationDataChirho.id);
     const dataToSaveChirho: FirestoreArchivedConversationChirho = {
       ...conversationDataChirho,
-      timestamp: AdminTimestamp.fromMillis(conversationDataChirho.timestamp), // Ensure client timestamp is converted
+      timestamp: AdminTimestamp.fromMillis(conversationDataChirho.timestamp),
       archivedAtServer: AdminFieldValue.serverTimestamp() as AdminTimestamp,
     };
-    await newConvDocRefChirho.set(dataToSaveChirho);
-    console.log(`[Admin Action archiveConversationToFirestoreChirho] Archived conversation ${conversationDataChirho.id} for user ${userIdChirho}.`);
+    const docRefChirho = userConversationsRefChirho.doc(conversationDataChirho.id);
+    await docRefChirho.set(dataToSaveChirho);
+    console.log(`[Admin SDK Action archiveConversationToFirestoreChirho] Archived conversation ${docRefChirho.id} for user ${userIdChirho}.`);
 
     const querySnapshotChirho = await userConversationsRefChirho.orderBy("timestamp", "desc").get();
     if (querySnapshotChirho.docs.length > MAX_ARCHIVED_CONVERSATIONS_CHIRHO) {
@@ -420,83 +438,72 @@ export async function archiveConversationToFirestoreChirho(userIdChirho: string,
       const docsToDeleteChirho = querySnapshotChirho.docs.slice(MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
       docsToDeleteChirho.forEach(docChirho => {
         batchChirho.delete(docChirho.ref);
-        console.log(`[Admin Action archiveConversationToFirestoreChirho] Marking for deletion old conversation ${docChirho.id}`);
       });
       await batchChirho.commit();
-      console.log(`[Admin Action archiveConversationToFirestoreChirho] Pruning complete. Deleted ${docsToDeleteChirho.length} old conversations.`);
+      console.log(`[Admin SDK Action archiveConversationToFirestoreChirho] Pruning complete. Deleted ${docsToDeleteChirho.length} old conversations.`);
     }
     return { success: true };
   } catch (error: any) {
-    const errorMsgChirho = `Error archiving conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action archiveConversationToFirestoreChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error archiving conversation for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action archiveConversationToFirestoreChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function fetchArchivedConversationsFromFirestoreChirho(userIdChirho: string): Promise<{ success: boolean; data?: ClientArchivedConversationChirho[]; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot fetch archived conversations." };
   if (!userIdChirho) {
     return { success: false, error: "User ID is required." };
   }
+
   const userConversationsRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("archivedConversations");
   const qChirho = userConversationsRefChirho.orderBy("timestamp", "desc").limit(MAX_ARCHIVED_CONVERSATIONS_CHIRHO);
   try {
     const snapshotChirho = await qChirho.get();
     const conversationsChirho: ClientArchivedConversationChirho[] = snapshotChirho.docs.map(docSnapshotChirho => {
       const dataChirho = docSnapshotChirho.data() as FirestoreArchivedConversationChirho;
-      // Convert Firestore Timestamps to milliseconds for client-side consumption
-      const convertedMessagesChirho = (dataChirho.messagesChirho as any[]).map(msg => ({
-        ...msg,
-        // Assuming 'timestamp' on messages is already a number. If it's a Firestore Timestamp:
-        // timestamp: (msg.timestamp as AdminTimestamp)?.toMillis() || msg.timestamp,
-      }));
       return {
         ...dataChirho,
-        messagesChirho: convertedMessagesChirho,
-        timestamp: (dataChirho.timestamp as AdminTimestamp).toMillis(),
+        timestamp: dataChirho.timestamp.toMillis(),
         archivedAtServerMillis: (dataChirho.archivedAtServer as AdminTimestamp)?.toMillis(),
-      };
+      } as ClientArchivedConversationChirho; 
     });
-    console.log(`[Admin Action fetchArchivedConversationsFromFirestoreChirho] Fetched ${conversationsChirho.length} archived conversations for user ${userIdChirho}`);
+    console.log(`[Admin SDK Action fetchArchivedConversationsFromFirestoreChirho] Fetched ${conversationsChirho.length} archived conversations for user ${userIdChirho}`);
     return { success: true, data: conversationsChirho };
   } catch (error: any) {
-    const errorMsgChirho = `Error fetching archived conversations for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action fetchArchivedConversationsFromFirestoreChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error fetching archived conversations for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action fetchArchivedConversationsFromFirestoreChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 export async function clearArchivedConversationsFromFirestoreChirho(userIdChirho: string): Promise<{ success: boolean; error?: string }> {
-  if (!adminDbChirho) return { success: false, error: "Firestore Admin SDK not initialized." };
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot clear archived conversations." };
   if (!userIdChirho) {
     return { success: false, error: "User ID is required." };
   }
+
   const userConversationsRefChirho = adminDbChirho.collection("users").doc(userIdChirho).collection("archivedConversations");
   try {
-    const snapshotChirho = await userConversationsRefChirho.limit(500).get(); // Limit batch size for deletion
+    const snapshotChirho = await userConversationsRefChirho.limit(500).get(); 
     if (snapshotChirho.empty) {
-      console.log(`[Admin Action clearArchivedConversationsFromFirestoreChirho] No archived conversations for user ${userIdChirho}`);
+      console.log(`[Admin SDK Action clearArchivedConversationsFromFirestoreChirho] No archived conversations to clear for user ${userIdChirho}`);
       return { success: true };
     }
     const batchChirho = adminDbChirho.batch();
     snapshotChirho.docs.forEach(docChirho => batchChirho.delete(docChirho.ref));
     await batchChirho.commit();
-    // If there were more than 500, this might need to be called multiple times by the client,
-    // or a more robust batched delete implemented (e.g., via a Callable Function).
-    console.log(`[Admin Action clearArchivedConversationsFromFirestoreChirho] Cleared ${snapshotChirho.docs.length} archived conversations for user ${userIdChirho}`);
+    console.log(`[Admin SDK Action clearArchivedConversationsFromFirestoreChirho] Cleared ${snapshotChirho.docs.length} archived conversations for user ${userIdChirho}`);
     return { success: true };
   } catch (error: any) {
-    const errorMsgChirho = `Error clearing archived conversations for user ${userIdChirho}: ${error.message} (Code: ${error.code})`;
-    console.error("[Admin Action clearArchivedConversationsFromFirestoreChirho]", errorMsgChirho, error);
+    const errorMsgChirho = `Error clearing archived conversations for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action clearArchivedConversationsFromFirestoreChirho]", errorMsgChirho, error);
     return { success: false, error: errorMsgChirho };
   }
 }
 
 
 // --- Genkit Flow Wrapper Actions ---
-// These actions now use the Admin SDK enabled helper functions where appropriate,
-// especially for image uploads if the Genkit flows return data URIs.
-
 import {
   generateAiPersonaChirho as generateAiPersonaFlowChirho,
   type GenerateAiPersonaInputChirho,
@@ -536,9 +543,10 @@ export async function generateNewPersonaActionChirho(inputChirho: GenerateAiPers
       const uploadResultChirho = await uploadImageToStorageChirho(userIdChirho, resultChirho.personaImageChirho, imageNameChirho);
       if (uploadResultChirho.success && uploadResultChirho.downloadURL) {
         resultChirho.personaImageChirho = uploadResultChirho.downloadURL;
-        console.log("[Action generateNewPersonaActionChirho] Image uploaded, URL:", resultChirho.personaImageChirho);
       } else {
-        console.warn("[Action generateNewPersonaActionChirho] Failed to upload initial persona image, using data URI as fallback. Error:", uploadResultChirho.error);
+        console.warn("[Action generateNewPersonaActionChirho] Failed to upload initial persona image. Error:", uploadResultChirho.error);
+        // Decide if this is a critical failure
+        return { success: false, error: `Failed to upload persona image: ${uploadResultChirho.error}` };
       }
     }
     return { success: true, data: resultChirho };
@@ -549,7 +557,7 @@ export async function generateNewPersonaActionChirho(inputChirho: GenerateAiPers
 }
 
 export async function sendMessageToPersonaActionChirho(inputChirho: AIPersonaConvincingInputChirho): Promise<{ success: boolean; data?: AIPersonaConvincingOutputChirho; error?: string; }> {
-  console.log("[Action sendMessageToPersonaActionChirho] Called with input:", inputChirho);
+  console.log("[Action sendMessageToPersonaActionChirho] Server action received input:", inputChirho);
   try {
     const resultChirho = await aiPersonaConvincingFlowChirho(inputChirho);
     return { success: true, data: resultChirho };
@@ -571,7 +579,7 @@ export async function fetchContextualGuidanceActionChirho(inputChirho: Contextua
 }
 
 export async function updatePersonaImageActionChirho(inputChirho: UpdatePersonaVisualsInputChirho, userIdChirho: string): Promise<{ success: boolean; data?: UpdatePersonaVisualsOutputChirho; error?: string; }> {
-  console.log("[Action updatePersonaImageActionChirho] Called with input for user:", userIdChirho, "Visual prompt:", inputChirho.newVisualPromptChirho);
+  console.log("[Action updatePersonaImageActionChirho] Called for user:", userIdChirho, "Visual prompt:", inputChirho.newVisualPromptChirho);
   try {
     let resultChirho = await updatePersonaVisualsFlowChirho(inputChirho);
     if (resultChirho.updatedImageUriChirho && userIdChirho) {
@@ -579,9 +587,9 @@ export async function updatePersonaImageActionChirho(inputChirho: UpdatePersonaV
       const uploadResultChirho = await uploadImageToStorageChirho(userIdChirho, resultChirho.updatedImageUriChirho, imageNameChirho);
       if (uploadResultChirho.success && uploadResultChirho.downloadURL) {
         resultChirho.updatedImageUriChirho = uploadResultChirho.downloadURL;
-        console.log("[Action updatePersonaImageActionChirho] Image updated and uploaded, URL:", resultChirho.updatedImageUriChirho);
       } else {
-         console.warn("[Action updatePersonaImageActionChirho] Failed to upload updated persona image, using data URI as fallback. Error:", uploadResultChirho.error);
+         console.warn("[Action updatePersonaImageActionChirho] Failed to upload updated persona image. Error:", uploadResultChirho.error);
+         return { success: false, error: `Failed to upload updated persona image: ${uploadResultChirho.error}` };
       }
     }
     return { success: true, data: resultChirho };
@@ -592,7 +600,7 @@ export async function updatePersonaImageActionChirho(inputChirho: UpdatePersonaV
 }
 
 export async function fetchSuggestedResponseActionChirho(inputChirho: SuggestEvangelisticResponseInputChirho): Promise<{ success: boolean; data?: SuggestEvangelisticResponseOutputChirho; error?: string; }> {
-  console.log("[Action fetchSuggestedResponseActionChirho] Server action received client input:", inputChirho);
+  console.log("[Action fetchSuggestedResponseActionChirho] Server action received input:", inputChirho);
   try {
     const resultChirho = await suggestEvangelisticResponseFlowChirho(inputChirho);
     return { success: true, data: resultChirho };
@@ -601,3 +609,5 @@ export async function fetchSuggestedResponseActionChirho(inputChirho: SuggestEva
     return { success: false, error: error.message || "Failed to fetch suggested response." };
   }
 }
+
+    
