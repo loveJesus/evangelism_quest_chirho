@@ -4,24 +4,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      // Allow a user to create their own document if they are authenticated and the document ID matches their UID,
-      // and the data being written also includes their UID.
-      // This is typically handled client-side after signup or by a trusted server process (like Admin SDK in a Cloud Function).
-      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
-
-      // Allow authenticated users to read, update, and delete their own profile.
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+    // Users collection
+    // User profile documents.
+    // - Admin SDK (e.g., in initializeUserChirho server action) handles initial creation.
+    // - Authenticated users can read and update their own profile.
+    match /users/{userIdChirho} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userIdChirho;
+      // Create is primarily handled by Admin SDK. A client-side create could be:
+      // allow create: if request.auth != null && request.auth.uid == userIdChirho && request.resource.data.uid == userIdChirho;
+      // For simplicity if Admin SDK is sole creator, direct create rule for client is not strictly needed.
+      // However, keeping a restrictive one does no harm.
+      allow create: if request.auth != null && request.auth.uid == userIdChirho && request.resource.data.uid == userIdChirho;
     }
 
-    match /users/{userId}/archivedConversations/{conversationId} {
-      // User can manage their own archived conversations
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+    // Archived conversations subcollection
+    // Users can manage their own archived conversations.
+    match /users/{userIdChirho}/archivedConversations/{conversationIdChirho} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userIdChirho;
     }
 
-    match /users/{userId}/activeConversationData/{activeConvDocId} {
-      // User can manage their own active conversation document (specifically the one named "current_active_conversation_v1")
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId && activeConvDocId == "current_active_conversation_v1";
+    // Active conversation data document
+    // Users can manage their own single active conversation document.
+    // The document ID is fixed to "current_active_conversation_v1" by the application.
+    match /users/{userIdChirho}/activeConversationData/{activeConvDocIdChirho} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userIdChirho && activeConvDocIdChirho == "current_active_conversation_v1";
     }
+
+    // Add other collection rules here if needed
+    // Example:
+    // match /publicGlobalData/{docId} {
+    //   allow read: if true; // Allow anyone to read public data
+    //   allow write: if false; // No one can write directly
+    // }
   }
 }
