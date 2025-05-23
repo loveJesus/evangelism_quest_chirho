@@ -8,7 +8,7 @@ import { useAuthChirho } from '@/contexts/auth-context-chirho';
 import {
   generateNewPersonaActionChirho as generateNewPersonaActionChirho,
   sendMessageToPersonaActionChirho as sendMessageToPersonaChirho,
-  updatePersonaImageChirho as updatePersonaImageActionChirho,
+  updatePersonaImageActionChirho as updatePersonaImageActionChirho,
   fetchSuggestedResponseActionChirho as fetchSuggestedResponseChirho,
   decrementUserCreditsChirho,
   fetchArchivedConversationsFromFirestoreChirho,
@@ -59,7 +59,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils-chirho";
 import { useIsMobileChirho } from "@/hooks/use-mobile-chirho";
 
-const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho.tsx').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
+const DynamicImagePopupDialogChirho = dynamic(() => import('@/components/image-popup-dialog-chirho').then(mod => mod.ImagePopupDialogChirho), { ssr: false });
 
 export interface MessageChirho {
   sender: "user" | "persona";
@@ -988,7 +988,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
          )}
       </Card>
 
-      <Card className={cn("flex-grow flex flex-col shadow-xl max-h-full", isMobileChirho ? "" : "lg:max-h-[calc(100vh-var(--header-height)-3rem)]")}>
+      <Card className={cn("flex-grow flex flex-col shadow-xl max-h-full lg:max-h-[calc(100vh-var(--header-height)-3rem)]", isMobileChirho ? "" : "")}>
         <CardHeader>
           <CardTitle>{chatWithNameForHeader}</CardTitle>
           <CardDescription className="flex items-center gap-1">
