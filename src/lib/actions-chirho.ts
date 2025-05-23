@@ -9,6 +9,7 @@ import { Timestamp as AdminTimestamp, FieldValue as AdminFieldValue } from 'fire
 // It also MUST be added to your .gitignore file.
 // The path '../../serviceAccountChirho.json' is relative to this file (src/lib/actions-chirho.ts)
 // So, it expects serviceAccountChirho.json to be at the project root.
+console.log("[Admin Action Init] Loading Hallelujah...");
 
 import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
 import type { MessageChirho, ArchivedConversationChirho as ClientArchivedConversationChirho } from '@/app/[lang]/ai-personas-chirho/client-page-chirho'; // Adjusted path if client-page-chirho moved
@@ -30,12 +31,12 @@ try {
     let serviceAccountCredentials;
     try {
       // Assuming this file is in src/lib/, so ../../ goes to the project root.
-      serviceAccountCredentials = require('../../../serviceAccountChirho.json'); 
+      serviceAccountCredentials = require('../../serviceAccountChirho.json'); 
       console.log("[Admin Action Init] serviceAccountChirho.json loaded successfully via require.");
     } catch (loadError: any) {
       console.error(`[Admin Action Init] FAILED to load serviceAccountChirho.json. 
         Ensure the file exists at the project root and is named correctly (case-sensitive).
-        Current working directory: ${process.cwd()}. Attempted path relative to actions-chirho.ts: ../../../serviceAccountChirho.json
+        Current working directory: ${process.cwd()}. Attempted path relative to actions-chirho.ts: ../../serviceAccountChirho.json
         Error: ${loadError.message}`);
       throw new Error("Failed to load service account credentials. Admin SDK cannot be initialized.");
     }
