@@ -77,7 +77,8 @@ Generate the updated image.`;
 
     try {
       let randSeedChirho = Math.floor(Math.random() * 65535);
-      
+      let cleansedPromptChirho = imageTextPromptChirho.replace(/[^a-zA-Z0-9\s,.:;?!'#$*\-_=|\\\^`]/g, '_');
+
       
       
       
@@ -124,26 +125,57 @@ Generate the updated image.`;
 
       */
 
-      let image_result_chirho = await fal.subscribe("fal-ai/kolors/image-to-image", { //fal-ai/gemini-flash-edit", {
+      // let image_result_chirho = await fal.subscribe("fal-ai/kolors/image-to-image", { //fal-ai/gemini-flash-edit", {
+      //   input: {
+      //     prompt: imageTextPromptChirho,
+      //     image_url: baseImageUriChirho,
+      //     //seed: randSeedChirho,
+      //     "image_size": {
+      //       "width": 768,
+      //       "height": 768
+      //     },
+      //     guidance_scale: 5,
+      //     num_inference_steps: 50,
+      //     num_images: 1,
+      //     negative_prompt: "deformed, blurry, cartoonish, painted, distorted, change age, ugly",
+      //     output_format: "jpeg",
+      //     strength: 0.6,
+      //   },
+      // });
+      // console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
+      // let imageUrlChirho = image_result_chirho.data.images[0].url;
+
+
+
+      // let image_result_chirho = await fal.subscribe("fal-ai/gpt-image-1/edit-image/byok", { //fal-ai/gemini-flash-edit", {
+      //   input: {
+      //     prompt: cleansedPromptChirho,
+      //     image_urls: [baseImageUriChirho],
+      //     openai_api_key: process.env.OPENAI_API_KEY_CHIRHO,
+      //     //seed: randSeedChirho,
+      //     image_size: "1024x1024",
+      //     quality: "low",
+      //     num_images: 1,
+      //   },
+      // });
+      // console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
+      // let imageUrlChirho = image_result_chirho.data.images[0].url;
+      
+
+      let image_result_chirho = await fal.subscribe("fal-ai/fast-lightning-sdxl/image-to-image", { //fal-ai/gemini-flash-edit", {
         input: {
-          prompt: imageTextPromptChirho,
+          prompt: cleansedPromptChirho,
           image_url: baseImageUriChirho,
-          //seed: randSeedChirho,
-          "image_size": {
-            "width": 768,
-            "height": 768
-          },
-          guidance_scale: 3,
-          num_inference_steps: 50,
+          seed: randSeedChirho,
+          format: "jpeg",
           num_images: 1,
-          negative_prompt: "deformed, blurry, cartoonish, painted, distorted, change age, ugly",
-          output_format: "jpeg",
           strength: 0.6,
         },
       });
       console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
       let imageUrlChirho = image_result_chirho.data.images[0].url;
-      
+
+
       
       // let image_result_chirho = await fal.subscribe("fal-ai/gemini-flash-edit", {
       //   input: {
