@@ -24,10 +24,7 @@ const AIPersonaConvincingFlowInputSchemaChirho = z.object({
     .describe('A detailed description of the AI persona, including their name (which the AI uses internally), background, beliefs, and emotional state.'),
   messageChirho: z.string().describe('The evangelistic message or conversational input from the user to be presented to the AI persona.'),
   languageChirho: z.string().optional().default('en').describe('The language code for the persona\'s response (e.g., "en", "es").'),
-  conversationHistoryChirho: z.array(z.object({
-    sender: z.enum(['user', 'persona']),
-    content: z.string(),
-  })).optional().describe('The history of messages in the conversation, including both user and persona messages.'),
+  conversationHistoryChirho: z.string().optional().describe('The history of messages in the conversation, including both user and persona messages.'),
 });
 export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingFlowInputSchemaChirho>;
 
@@ -41,7 +38,7 @@ const AIPersonaConvincingPromptInputSchemaChirho = AIPersonaConvincingFlowInputS
 const AIPersonaConvincingOutputSchemaChirho = z.object({
   personaResponseChirho: z
     .string()
-    .describe('The AI persona’s natural, conversational response to the user\'s message. MUST be in the language specified by the input languageChirho.'),
+    .describe('The AI persona’s natural, conversational response to the user\'s message and conversation history. MUST be in the language specified by the input languageChirho.'),
   convincedChirho: z.boolean().describe('Whether the AI persona was convinced by the message to believe in Jesus Christ for salvation.'),
   nextQuestionChirho: z.string().optional().nullable().describe('A natural follow-up question or point of doubt if not convinced (MUST be in the language specified by input languageChirho), or null/empty if convinced or no specific question.'),
   visualContextForNextImageChirho: z.string().optional().nullable().describe('A short description (max 15 words, ALWAYS IN ENGLISH) of the persona\'s current expression, pose, and any minor relevant changes in the environment for the next image. e.g., "Caleb smiles warmly, holding a coffee cup", "Eliza looks pensive, glancing out the library window". This will be used to generate a new image. If no significant visual change, this can be null or empty.'),
@@ -69,10 +66,13 @@ Your persona details (including your name, backstory, current emotional state, a
 The user is engaging in a conversation with you, potentially to share their faith. Your primary goal is to respond naturally, realistically, and empathetically, according to your persona.
 The current difficulty level of this simulation is {{{difficultyLevelChirho}}} (on a scale, e.g., 1-10, where higher means you are more skeptical, have deeper questions, or are harder to convince).
 
-The user just said: "{{{messageChirho}}}"
 
-The conversation history is:
+
+The conversation history:(where You are 'persona' and the user is  'user'):
+
 {{{conversationHistoryChirho}}}
+
+latest message fromuser: "{{{messageChirho}}}"
 
 Based on your persona, the conversation history, and the user's message:
 1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageNameChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.

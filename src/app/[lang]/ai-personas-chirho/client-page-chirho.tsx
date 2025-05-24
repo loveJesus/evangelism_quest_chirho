@@ -474,7 +474,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       personaDescriptionChirho: `${personaChirho.personaNameChirho}: ${personaChirho.personaDetailsChirho}`,
       messageChirho: currentInputChirho,
       languageChirho: currentConversationLanguageChirho,
-      conversationHistoryChirho: messagesChirho.map(mChirho => ({ sender: mChirho.sender, content: mChirho.text })),
+      conversationHistoryChirho: messagesChirho.map(mChirho => `${mChirho.sender}: "${mChirho.text}"` ).join("\n"),
     };
 
     let aiResponseData: AIPersonaConvincingOutputChirho | null = null;

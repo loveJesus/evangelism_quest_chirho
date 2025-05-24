@@ -124,7 +124,20 @@ Generate the updated image.`;
 
       */
 
-      let image_result_chirho = await fal.run("fal-ai/sdxl-controlnet-union/image-to-image", { //fal-ai/gemini-flash-edit", {
+      // let image_result_chirho = await fal.subscribe("fal-ai/sdxl-controlnet-union/image-to-image", { //fal-ai/gemini-flash-edit", {
+      //   input: {
+      //     prompt: "smiling", //imageTextPromptChirho,
+      //     image_url: baseImageUriChirho,
+      //     //seed: randSeedChirho,
+      //     //image_size: "square",
+      //     //num_images: 1,
+      //   },
+      // });
+      // console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
+      // let imageUrlChirho = image_result_chirho.data.images[0].url;
+      
+      
+      let image_result_chirho = await fal.subscribe("fal-ai/gemini-flash-edit", {
         input: {
           prompt: imageTextPromptChirho,
           image_url: baseImageUriChirho,
@@ -133,17 +146,9 @@ Generate the updated image.`;
           //num_images: 1,
         },
       });
-      let imageUrlChirho = image_result_chirho.data.images[0].url;
-      // let image_result_chirho = await fal.run("fal-ai/gemini-flash-edit", {
-      //   input: {
-      //     prompt: imageTextPromptChirho,
-      //     image_url: baseImageUriChirho,
-      //     //seed: randSeedChirho,
-      //     //image_size: "square",
-      //     //num_images: 1,
-      //   },
-      // });
-      // let imageUrlChirho = image_result_chirho.data.image.url;
+      let imageUrlChirho = image_result_chirho.data.image.url;
+
+
       console.log("HALLELUJAH result found...");
 
       
@@ -153,7 +158,7 @@ Generate the updated image.`;
       };
     } catch (errorChirho: any) {
       console.error(
-       '[Update Persona Visuals Flow] Image regeneration CRITICALLY FAILED. Error:', errorChirho.message ? errorChirho.message : errorChirho, 'Inputs:',
+       '[Update Persona Visuals Flow] Image regeneration CRITICALLY FAILED. Error:', errorChirho.message ? errorChirho.message : errorChirho, errorChirho.stack ? errorChirho.stack : '', 'Inputs:',
        {baseImageUriShorthandChirho: baseImageUriChirho.substring(0,50) + "...", personaNameChirho, originalMeetingContextChirho, newVisualPromptChirho}
      );
      throw new Error(`Image regeneration failed for persona: ${errorChirho.message || "Unknown error"}`);
