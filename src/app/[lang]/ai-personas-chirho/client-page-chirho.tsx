@@ -504,11 +504,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           updateLocalUserProfileChirho({ credits: creditDecrementResult.newCredits });
         }
 
-        if (aiResponseData.visualContextForNextImageChirho && currentDynamicImageForResponse && personaChirho) {
+        if (aiResponseData.visualContextForNextImageChirho && personaChirho) {
           console.log("Attempting to update persona image with visual context:", aiResponseData.visualContextForNextImageChirho);
           setIsUpdatingImageChirho(true);
           const imageUpdateInputChirho: UpdatePersonaVisualsInputChirho = {
-            baseImageUriChirho: currentDynamicImageForResponse, 
+            baseImageUriChirho: personaChirho.personaImageChirho,
             personaNameChirho: personaChirho.personaNameChirho,
             originalMeetingContextChirho: personaChirho.meetingContextChirho,
             newVisualPromptChirho: aiResponseData.visualContextForNextImageChirho,
@@ -1089,30 +1089,38 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             </div>
           </ScrollArea>
           {suggestedAnswerChirho && !isCelebrationModeActiveChirho && (
-            <Alert variant="default" className="mx-4 my-2 border-accent shadow-md overflow-hidden w-auto"> 
-                <Lightbulb className="h-4 w-4 text-accent" />
-                <AlertTitle className="flex justify-between items-center">
+            <Alert variant="default" className="mx-4 my-2 border-accent shadow-md w-[calc(100%-2rem)]"> 
+              <div className="flex flex-col h-full">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-4 w-4 text-accent shrink-0" />
+                  <AlertTitle className="flex-1">
                     {dictionary.suggestedAnswerAlertTitle}
-                    <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswerChirho(null)} className="h-6 w-6">
-                        <XCircle className="h-4 w-4" />
-                        <span className="sr-only">{dictionary.dismissSuggestionButtonTitle}</span>
-                    </Button>
-                </AlertTitle>
-                <AlertDescription className="mt-1 text-sm whitespace-pre-wrap break-words"> 
+                  </AlertTitle>
+                  <Button variant="ghost" size="icon" onClick={() => setSuggestedAnswerChirho(null)} className="h-6 w-6 shrink-0">
+                    <XCircle className="h-4 w-4" />
+                    <span className="sr-only">{dictionary.dismissSuggestionButtonTitle}</span>
+                  </Button>
+                </div>
+                <div className="max-h-[150px] overflow-y-auto mb-2">
+                  <AlertDescription className="text-sm whitespace-pre-wrap break-words"> 
                     {suggestedAnswerChirho}
-                </AlertDescription>
-                 <Button
+                  </AlertDescription>
+                </div>
+                <div className="mt-auto">
+                  <Button
                     variant="outline"
                     size="sm"
-                    className="mt-2"
+                    className="w-full"
                     onClick={() => {
-                        setUserInputChirho(suggestedAnswerChirho);
-                        setSuggestedAnswerChirho(null);
+                      setUserInputChirho(suggestedAnswerChirho);
+                      setSuggestedAnswerChirho(null);
                     }}
                     disabled={noCreditsChirho}
-                >
+                  >
                     {dictionary.useSuggestionButton}
-                </Button>
+                  </Button>
+                </div>
+              </div>
             </Alert>
           )}
           {noCreditsChirho && personaChirho && !isCelebrationModeActiveChirho && ( 

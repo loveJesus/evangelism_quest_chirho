@@ -38,10 +38,13 @@ const AIPersonaConvincingPromptInputSchemaChirho = AIPersonaConvincingFlowInputS
 const AIPersonaConvincingOutputSchemaChirho = z.object({
   personaResponseChirho: z
     .string()
-    .describe('The AI persona’s natural, conversational response to the user\'s message and conversation history. MUST be in the language specified by the input languageChirho.'),
+    .describe('The AI persona\'s natural, conversational response to the user\'s message and conversation history. MUST be in the language specified by the input languageChirho.'),
   convincedChirho: z.boolean().describe('Whether the AI persona was convinced by the message to believe in Jesus Christ for salvation.'),
   nextQuestionChirho: z.string().optional().nullable().describe('A natural follow-up question or point of doubt if not convinced (MUST be in the language specified by input languageChirho), or null/empty if convinced or no specific question.'),
-  visualContextForNextImageChirho: z.string().optional().nullable().describe('A short description (max 15 words, ALWAYS IN ENGLISH) of the persona\'s current expression, pose, and any minor relevant changes in the environment for the next image. e.g., "Caleb smiles warmly, holding a coffee cup", "Eliza looks pensive, glancing out the library window". This will be used to generate a new image. If no significant visual change, this can be null or empty.'),
+  visualContextForNextImageChirho: z.string()
+    .optional()
+    .nullable()
+    .describe('A short description (max 15 words, ALWAYS IN ENGLISH) of the persona\'s current expression, pose, and any minor relevant changes in the environment for the next image. e.g., "Caleb smiles warmly, holding a coffee cup", "Eliza looks pensive, glancing out the library window". This will be used to generate a new image. If no significant visual change, this can be null or empty.'),
   outputLanguageChirho: z.string().describe("The language code (e.g., 'en', 'es') that the AI *believes* it has used for 'personaResponseChirho' and 'nextQuestionChirho'. This MUST match the input languageChirho.")
 });
 export type AIPersonaConvincingOutputChirho = z.infer<typeof AIPersonaConvincingOutputSchemaChirho>;
@@ -78,7 +81,15 @@ Based on your persona, the conversation history, and the user's message:
 1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageNameChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
 2.  Determine if you are "convincedChirho". This should be a significant moment and typically only occur after your main doubts (appropriate for your difficulty level) have been addressed. It should be rare.
 3.  If not convinced, formulate a "nextQuestionChirho" strictly in the language: {{{languageNameChirho}}}. This should be a genuine question or doubt that naturally follows. If convinced, "nextQuestionChirho" can be null.
-4.  Provide a "visualContextForNextImageChirho" strictly in English: a brief description (max 15 words) of your current expression or pose. Example: "smiling warmly", "looking thoughtful", "glancing upwards". If no specific visual change, this can be null.
+4.  For "visualContextForNextImageChirho", use this EXACT format:
+    EXPRESSION: [one word for expression, e.g., "smiling", "thoughtful"]
+    POSE: [one phrase for pose, e.g., "leaning forward", "arms crossed"]
+    ENVIRONMENT: [one phrase for environment, e.g., "by window", "in chair"] which must be sensible for the environment they started in.
+    
+    Example: "EXPRESSION: smiling POSE: leaning forward ENVIRONMENT: by window"
+    Example: "EXPRESSION: thoughtful POSE: arms crossed ENVIRONMENT: in chair"
+    
+    Keep each part very brief. If no specific visual change, this can be null.
 5.  Set "outputLanguageChirho" to the input language code: {{{languageChirho}}}.
 
 Output your entire response as a single, valid JSON object. Ensure text fields are in the correct language as specified above.
@@ -90,7 +101,7 @@ Your persona (Eliza, struggling with recent loss):
   "personaResponseChirho": "Oh, hello. Hope... that's something I haven't felt much of lately. What did you want to share?",
   "convincedChirho": false,
   "nextQuestionChirho": "What kind of hope are you talking about?",
-  "visualContextForNextImageChirho": "looking a bit sad but curious",
+  "visualContextForNextImageChirho": "EXPRESSION: smiling POSE: leaning forward ENVIRONMENT: by window",
   "outputLanguageChirho": "en" 
 }
 
@@ -101,7 +112,7 @@ Your persona (Carlos, un filósofo escéptico):
   "personaResponseChirho": "Hola. Bien, supongo. ¿Qué te trae por aquí?",
   "convincedChirho": false,
   "nextQuestionChirho": "¿Vienes a hablar de filosofía o algo más?",
-  "visualContextForNextImageChirho": "eyebrows raised slightly, a skeptical look", 
+  "visualContextForNextImageChirho": "EXPRESSION: skeptical POSE: eyebrows raised ENVIRONMENT: glimmer of light", 
   "outputLanguageChirho": "es"
 }
 
@@ -145,7 +156,7 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
         personaResponseChirho: output.personaResponseChirho,
         convincedChirho: output.convincedChirho,
         nextQuestionChirho: output.nextQuestionChirho !== undefined ? output.nextQuestionChirho : null,
-        visualContextForNextImageChirho: output.visualContextForNextImageChirho !== undefined ? output.visualContextForNextImageChirho?.substring(0, 400) : null,
+        visualContextForNextImageChirho: output.visualContextForNextImageChirho?.trim() || null,
         outputLanguageChirho: output.outputLanguageChirho || input.languageChirho || 'en',
     };
   }

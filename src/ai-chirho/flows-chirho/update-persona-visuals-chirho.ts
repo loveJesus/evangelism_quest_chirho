@@ -124,29 +124,34 @@ Generate the updated image.`;
 
       */
 
-      // let image_result_chirho = await fal.subscribe("fal-ai/sdxl-controlnet-union/image-to-image", { //fal-ai/gemini-flash-edit", {
-      //   input: {
-      //     prompt: "smiling", //imageTextPromptChirho,
-      //     image_url: baseImageUriChirho,
-      //     //seed: randSeedChirho,
-      //     //image_size: "square",
-      //     //num_images: 1,
-      //   },
-      // });
-      // console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
-      // let imageUrlChirho = image_result_chirho.data.images[0].url;
-      
-      
-      let image_result_chirho = await fal.subscribe("fal-ai/gemini-flash-edit", {
+      let image_result_chirho = await fal.subscribe("fal-ai/kolors/image-to-image", { //fal-ai/gemini-flash-edit", {
         input: {
           prompt: imageTextPromptChirho,
           image_url: baseImageUriChirho,
           //seed: randSeedChirho,
-          //image_size: "square",
-          //num_images: 1,
+          "image_size": {
+            "width": 768,
+            "height": 768
+          },
+          guidance_scale: 3,
+          num_inference_steps: 50,
+          num_images: 1,
+          negative_prompt: "deformed, blurry, cartoonish, painted, distorted, change age",
+          output_format: "jpeg",
+          strength: 0.6,
         },
       });
-      let imageUrlChirho = image_result_chirho.data.image.url;
+      console.log("HALLELUJAH image_result_chirho: ", image_result_chirho);
+      let imageUrlChirho = image_result_chirho.data.images[0].url;
+      
+      
+      // let image_result_chirho = await fal.subscribe("fal-ai/gemini-flash-edit", {
+      //   input: {
+      //     prompt: imageTextPromptChirho,
+      //     image_url: baseImageUriChirho,
+      //   },
+      // });
+      // let imageUrlChirho = image_result_chirho.data.image.url;
 
 
       console.log("HALLELUJAH result found...");

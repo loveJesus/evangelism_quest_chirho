@@ -110,7 +110,7 @@ const dictionaryChirho = {
         description: 'Gestiona tus créditos de mensaje o apoya el proyecto.',
         getMoreCreditsButton: 'Créditos Gratis',
         donationTitle: "Apoya Evangelism Quest",
-        donationDescription: "Nuestro costo operativo es de aproximadamente $5 por cada 100 mensajes. Por favor, considera apoyar el desarrollo continuo y los costos del servidor.",
+        donationDescription: "Nuestro costo operativo es de aproximadamente $4 por cada 100 mensajes. Por favor, considera apoyar el desarrollo continuo y los costos del servidor.",
         donationButtonLabel: "Donar vía PayPal",
         addFreeCreditsButtonLabel: "Obtener 25 Créditos Gratis",
         addFreeCreditsInfo: "Disponible si tu saldo es inferior a 50 créditos.",
