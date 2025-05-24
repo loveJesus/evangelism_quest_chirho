@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'v3.fal.media', // Added for Fal.ai images
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   // No explicit i18n config needed here as middleware handles routing
