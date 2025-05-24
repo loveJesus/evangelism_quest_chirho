@@ -21,6 +21,7 @@ export interface UserProfileChirho {
   displayName?: string | null;
   photoURL?: string | null;
   credits: number;
+  difficultyLevelChirho: number | null;
   createdAt: any; // Could be Firestore Timestamp or number (millis)
   lastLogin?: any; // Could be Firestore Timestamp or number (millis)
 }

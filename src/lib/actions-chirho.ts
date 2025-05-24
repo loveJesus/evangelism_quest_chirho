@@ -140,6 +140,7 @@ export async function initializeUserChirho(
         displayName: dataChirho.displayName,
         photoURL: dataChirho.photoURL,
         credits: dataChirho.credits,
+        difficultyLevelChirho: dataChirho.difficultyLevelChirho || 1,
         createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis(),
         lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis(),
       };
@@ -153,6 +154,7 @@ export async function initializeUserChirho(
         displayName: displayNameChirho || "Evangelism Quest User", 
         photoURL: photoURLChirho || null,
         credits: INITIAL_FREE_CREDITS_CHIRHO,
+        difficultyLevelChirho: 1,
         createdAt: AdminFieldValue.serverTimestamp(),
         lastLogin: AdminFieldValue.serverTimestamp(),
       };
@@ -169,6 +171,7 @@ export async function initializeUserChirho(
         displayName: dataChirho.displayName,
         photoURL: dataChirho.photoURL,
         credits: dataChirho.credits,
+        difficultyLevelChirho: dataChirho.difficultyLevelChirho || 1,
         createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis(), 
         lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis(),
       };
@@ -198,7 +201,7 @@ export async function fetchUserProfileFromServerChirho(userIdChirho: string): Pr
           displayName: dataChirho.displayName,
           photoURL: dataChirho.photoURL,
           credits: dataChirho.credits,
-          // Ensure Timestamps are converted to numbers (milliseconds) for serialization
+          difficultyLevelChirho: dataChirho.difficultyLevelChirho || 1,
           createdAt: (dataChirho.createdAt as AdminTimestamp)?.toMillis(),
           lastLogin: (dataChirho.lastLogin as AdminTimestamp)?.toMillis(),
         };
@@ -631,5 +634,24 @@ export async function fetchSuggestedResponseActionChirho(inputChirho: SuggestEva
   } catch (error: any) {
     console.error("[Action fetchSuggestedResponseActionChirho] Error:", error);
     return { success: false, error: error.message || "Failed to fetch suggested response." };
+  }
+}
+
+export async function updateUserDifficultyLevelChirho(userIdChirho: string, newDifficultyLevelChirho: number): Promise<{ success: boolean; error?: string }> {
+  if (!adminDbChirho) return { success: false, error: "CRITICAL: Firestore Admin SDK not initialized. Cannot update difficulty level." };
+  if (!userIdChirho) return { success: false, error: "User ID is required." };
+  if (newDifficultyLevelChirho < 1 || newDifficultyLevelChirho > 10) {
+    return { success: false, error: "Difficulty level must be between 1 and 10." };
+  }
+
+  const userDocRefChirho = adminDbChirho.collection("users").doc(userIdChirho);
+  try {
+    await userDocRefChirho.update({ difficultyLevelChirho: newDifficultyLevelChirho });
+    console.log(`[Admin SDK Action updateUserDifficultyLevelChirho] Updated difficulty level to ${newDifficultyLevelChirho} for user ${userIdChirho}`);
+    return { success: true };
+  } catch (error: any) {
+    const errorMsg = `Error updating difficulty level for user ${userIdChirho}: ${error.message} (Code: ${error.code || 'N/A'})`;
+    console.error("[Admin SDK Action updateUserDifficultyLevelChirho]", errorMsg, error);
+    return { success: false, error: errorMsg };
   }
 }

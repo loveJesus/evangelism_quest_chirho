@@ -18,7 +18,8 @@ import {
   fetchActiveConversationFromFirestoreChirho,
   clearActiveConversationFromFirestoreChirho,
   addFreeCreditsChirho as addFreeCreditsActionChirho,
-  type ActiveConversationDataChirho
+  type ActiveConversationDataChirho,
+  updateUserDifficultyLevelChirho
 } from "@/lib/actions-chirho";
 import type { GenerateAiPersonaOutputChirho } from "@/ai-chirho/flows-chirho/generate-ai-persona-chirho";
 import type { AIPersonaConvincingOutputChirho, AIPersonaConvincingInputChirho } from "@/ai-chirho/flows-chirho/ai-persona-convincing-chirho";
@@ -310,7 +311,11 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
     }
 
     try {
-      const personaThemeDescriptionChirho = `A person at difficulty level ${difficultyToLoadChirho}. Their story should be unique.`;
+      const sexChirho = Math.random() < 0.5 ? "male" : "female";
+      const ageChirho = Math.floor(Math.random() * 80) + 18;
+      const favoriteColorChirho = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "brown", "gray", "black", "white"][Math.floor(Math.random() * 11)];
+      const favoriteNumberChirho = Math.floor(Math.random() * 100) + 1;
+      const personaThemeDescriptionChirho = `A ${sexChirho} at difficulty level ${difficultyToLoadChirho}. Their age in ${ageChirho}. Their favorite color is ${favoriteColorChirho}. Their favorite number is ${favoriteNumberChirho}. Their life story should be unique.`;
       const genResult = await generateNewPersonaActionChirho({ personaDescriptionChirho: personaThemeDescriptionChirho, languageChirho: newPersonaLang }, currentUserChirho.uid);
 
       if (genResult.success && genResult.data) {
@@ -545,6 +550,21 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
           });
           await archiveCurrentConversationChirho(personaChirho, finalMessagesForSave, true, currentConversationLanguageChirho);
           await clearActiveConversationFromFirestoreChirho(currentUserChirho.uid); 
+          const newDifficulty = Math.min(difficultyLevelChirho + 1, 10);
+          setDifficultyLevelChirho(newDifficulty);
+          updateLocalUserProfileChirho({ difficultyLevelChirho: newDifficulty });
+          
+          // Update the difficulty level in Firestore
+          const result = await updateUserDifficultyLevelChirho(currentUserChirho.uid, newDifficulty);
+          if (!result.success) {
+            console.error("[AIPersonasPage] Failed to update difficulty level:", result.error);
+            toastChirho({
+              variant: "destructive",
+              title: dictionary.toastDifficultyUpdateErrorTitle,
+              description: result.error || dictionary.generalUnexpectedError,
+            });
+          }
+
           setIsCelebrationModeActiveChirho(true);
         }
       } else {
