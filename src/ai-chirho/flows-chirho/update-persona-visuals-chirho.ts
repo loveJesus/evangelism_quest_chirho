@@ -77,29 +77,37 @@ Generate the updated image.`,
       },
     ];
 
-    const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp', // Corrected model identifier
-      prompt: imageGenPromptChirho,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
-        ],
-      },
-    });
+    try {
+      const imageResultChirho = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-exp',
+        prompt: imageGenPromptChirho,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+          ],
+        },
+      });
 
-    const imageUrlChirho = imageResultChirho.media?.url;
-    if (!imageUrlChirho) {
-      console.error(
-        '[Update Persona Visuals Flow] Image regeneration failed to return a URL. Inputs:',
+      const imageUrlChirho = imageResultChirho.media?.url;
+      if (!imageUrlChirho) {
+        console.error(
+          '[Update Persona Visuals Flow] Image regeneration failed to return a URL (no media.url). Inputs:',
+          {baseImageUriShorthandChirho: baseImageUriChirho.substring(0,50) + "...", personaNameChirho, originalMeetingContextChirho, newVisualPromptChirho}
+        );
+        throw new Error('Image regeneration failed for persona: No media URL returned.');
+      }
+      return {updatedImageUriChirho: imageUrlChirho};
+
+    } catch (error: any) {
+       console.error(
+        '[Update Persona Visuals Flow] Image regeneration CRITICALLY FAILED. Error:', error.message ? error.message : error, 'Inputs:',
         {baseImageUriShorthandChirho: baseImageUriChirho.substring(0,50) + "...", personaNameChirho, originalMeetingContextChirho, newVisualPromptChirho}
       );
-      throw new Error('Image regeneration failed for persona.');
+      throw new Error(`Image regeneration failed for persona: ${error.message || "Unknown error"}`);
     }
-
-    return {updatedImageUriChirho: imageUrlChirho};
   }
 );

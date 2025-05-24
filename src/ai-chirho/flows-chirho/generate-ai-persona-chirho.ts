@@ -94,7 +94,7 @@ Example (The language of this example's text fields MUST be overridden by ${lang
 Ensure the output is a single, valid JSON object and nothing else.`;
 
     const personaDataResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash', 
+      model: 'googleai/gemini-2.0-flash',
       prompt: personaDataPromptChirho,
       config: {
         safetySettings: [
@@ -145,29 +145,31 @@ They are encountered in this specific context: "${parsedPersonaDataChirho.meetin
 The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation.
 The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances (male and female). Photorealistic style.`;
 
-    const imageResultChirho = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp', // Corrected model identifier
-      prompt: imagePromptChirho,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
-        ],
-      },
-    });
-    
-    const imageUrlChirho = imageResultChirho.media?.url;
-    if (!imageUrlChirho) {
-        console.error("[Generate Persona Flow] Image generation failed to return a URL. Persona data:", parsedPersonaDataChirho);
-        // Fallback data URI for a 1x1 transparent PNG
-        const placeholderDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
-        return {
-          ...parsedPersonaDataChirho,
-          personaImageChirho: placeholderDataUri, 
-        };
+    let imageUrlChirho: string;
+    try {
+      const imageResultChirho = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-exp',
+        prompt: imagePromptChirho,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+          ],
+        },
+      });
+      
+      if (!imageResultChirho.media?.url) {
+        throw new Error("Image generation result did not contain a media URL.");
+      }
+      imageUrlChirho = imageResultChirho.media.url;
+
+    } catch (imageError: any) {
+      console.error("[Generate Persona Flow] Image generation failed:", imageError.message ? imageError.message : imageError, "Persona data:", parsedPersonaDataChirho);
+      // Fallback data URI for a 1x1 transparent PNG
+      imageUrlChirho = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     }
 
     return {
