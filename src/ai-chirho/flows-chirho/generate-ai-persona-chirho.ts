@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
+import { fal } from "@fal-ai/client";
 
 const GenerateAiPersonaInputSchemaChirho = z.object({
   personaDescriptionChirho: z
@@ -144,7 +145,7 @@ Their general disposition, sex, and age can be inferred from: ${parsedPersonaDat
 They are encountered in this specific context: "${parsedPersonaDataChirho.meetingContextChirho}".
 The image should focus on ${parsedPersonaDataChirho.personaNameChirho} and subtly reflect the mood or setting of the meeting context and their ${parsedPersonaDataChirho.encounterTitleChirho}. Aim for a friendly, neutral, or context-appropriate expression suitable for a chat simulation.
 The image should be photorealistic, modest, appropriate for all audiences, and strictly avoid any revealing attire, cleavage, or suggestive elements. Focus on a respectful and friendly depiction. Ensure varied appearances (male and female). Photorealistic style.`;
-
+/*
     let imageUrlChirho: string;
     try {
       const imageResultChirho = await ai.generate({
@@ -170,7 +171,18 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
       console.error("[Generate Persona Flow] Image generation failed:", imageError.message ? imageError.message : imageError, "Persona data:", parsedPersonaDataChirho);
       // Fallback data URI for a 1x1 transparent PNG
       imageUrlChirho = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    }
+    }*/
+
+    let image_result_chirho = await fal.run("fal-ai/flux/dev", {
+      input: {
+        prompt: imagePromptChirho,
+        seed: 6252023,
+        image_size: "square",
+        num_images: 1,
+      },
+    });
+
+    let imageUrlChirho = image_result_chirho.data.images[0].url;
 
     return {
       ...parsedPersonaDataChirho,
