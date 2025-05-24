@@ -174,7 +174,7 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
     }*/
 
     let randSeedChirho = Math.floor(Math.random() * 65535);
-    let image_result_chirho = await fal.run("fal-ai/flux/dev", {
+    let image_result_chirho = await fal.run("fal-ai/flux/schnell", {
       input: {
         prompt: imagePromptChirho,
         seed: randSeedChirho,
