@@ -24,6 +24,10 @@ const AIPersonaConvincingFlowInputSchemaChirho = z.object({
     .describe('A detailed description of the AI persona, including their name (which the AI uses internally), background, beliefs, and emotional state.'),
   messageChirho: z.string().describe('The evangelistic message or conversational input from the user to be presented to the AI persona.'),
   languageChirho: z.string().optional().default('en').describe('The language code for the persona\'s response (e.g., "en", "es").'),
+  conversationHistoryChirho: z.array(z.object({
+    sender: z.enum(['user', 'persona']),
+    content: z.string(),
+  })).optional().describe('The history of messages in the conversation, including both user and persona messages.'),
 });
 export type AIPersonaConvincingInputChirho = z.infer<typeof AIPersonaConvincingFlowInputSchemaChirho>;
 
@@ -45,8 +49,9 @@ const AIPersonaConvincingOutputSchemaChirho = z.object({
 });
 export type AIPersonaConvincingOutputChirho = z.infer<typeof AIPersonaConvincingOutputSchemaChirho>;
 
-export async function aiPersonaConvincingChirho(input: AIPersonaConvincingInputChirho): Promise<AIPersonaConvincingOutputChirho> {
-  return aiPersonaConvincingFlowChirho(input);
+export async function aiPersonaConvincingChirho(inputChirho: AIPersonaConvincingInputChirho): Promise<AIPersonaConvincingOutputChirho> {
+  console.log("HALLELUJAH aiPersonaConvincingChirho called with input:", inputChirho);
+  return aiPersonaConvincingFlowChirho(inputChirho);
 }
 
 const aiPersonaConvincingPromptChirho = ai.definePrompt({
@@ -66,7 +71,10 @@ The current difficulty level of this simulation is {{{difficultyLevelChirho}}} (
 
 The user just said: "{{{messageChirho}}}"
 
-Based on your persona and the user's message:
+The conversation history is:
+{{{conversationHistoryChirho}}}
+
+Based on your persona, the conversation history, and the user's message:
 1.  Craft a "personaResponseChirho" that is a direct, natural, and conversational reply strictly in the language: {{{languageNameChirho}}}. It should sound like something a real person with your background would say. Refer to your experiences, feelings, or name if it feels natural.
 2.  Determine if you are "convincedChirho". This should be a significant moment and typically only occur after your main doubts (appropriate for your difficulty level) have been addressed. It should be rare.
 3.  If not convinced, formulate a "nextQuestionChirho" strictly in the language: {{{languageNameChirho}}}. This should be a genuine question or doubt that naturally follows. If convinced, "nextQuestionChirho" can be null.
@@ -101,6 +109,8 @@ IMPORTANT:
 - Your "personaResponseChirho" is what you say to the user. Make it sound human, in {{{languageNameChirho}}}.
 - "nextQuestionChirho" should be specific and relevant if not convinced, in {{{languageNameChirho}}}.
 - Ensure the output is strictly a valid JSON object. No text before or after.
+- Ensure visualContextForNextImageChirho is shorter than 100 characters.
+- Try to remember the conversation history when formulating your response.
 `,
 });
 
@@ -135,7 +145,7 @@ const aiPersonaConvincingFlowChirho = ai.defineFlow(
         personaResponseChirho: output.personaResponseChirho,
         convincedChirho: output.convincedChirho,
         nextQuestionChirho: output.nextQuestionChirho !== undefined ? output.nextQuestionChirho : null,
-        visualContextForNextImageChirho: output.visualContextForNextImageChirho !== undefined ? output.visualContextForNextImageChirho : null,
+        visualContextForNextImageChirho: output.visualContextForNextImageChirho !== undefined ? output.visualContextForNextImageChirho?.substring(0, 400) : null,
         outputLanguageChirho: output.outputLanguageChirho || input.languageChirho || 'en',
     };
   }

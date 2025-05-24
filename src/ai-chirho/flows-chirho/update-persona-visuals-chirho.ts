@@ -11,6 +11,7 @@
 import {ai} from '@/ai-chirho/genkit-chirho';
 import {z} from 'genkit';
 import { fal } from "@fal-ai/client";
+import { Runware } from "@runware/sdk-js";
 
 const UpdatePersonaVisualsInputSchemaChirho = z.object({
   baseImageUriChirho: z
@@ -75,9 +76,55 @@ Generate the updated image.`;
 
 
     try {
-      //let randSeedChirho = Math.floor(Math.random() * 65535);
-      console.log(`HALLELUJAH working on persona visuals for ${personaNameChirho}... old uri: ${baseImageUriChirho}`);
-      let image_result_chirho = await fal.run("fal-ai/flux/dev/image-to-image", {
+      let randSeedChirho = Math.floor(Math.random() * 65535);
+      
+      
+      
+      
+      /*
+      console.log(`HALLELUJAH working on persona visuals for ${personaNameChirho}... new visual prompt: ${imageTextPromptChirho} --- old uri: ${baseImageUriChirho} --- process.env.RUNWARE_API_KEY_CHIRHO: ${process.env.RUNWARE_API_KEY_CHIRHO}`);
+      const runwareChirho = await Runware.initialize({ apiKey: process.env.RUNWARE_API_KEY_CHIRHO!, timeoutDuration: 20000 });
+      console.log(`HALLELUJAH runwareChirho: ${runwareChirho._url}`);
+      await runwareChirho.ensureConnection();
+      console.log(`HALLELUJAH runwareChirho connected`);
+
+      const imagesChirho = await runwareChirho.requestImages({
+        positivePrompt: imageTextPromptChirho.substring(0, 2900),
+        //negativePrompt?: string;
+        width: 512,
+        height: 512,
+        model: "runware:101@1",
+        lora: [
+          {
+            model: "rundiffusion:500@100",
+            weight: 1
+          }
+        ],
+        numberResults: 1,
+        outputType: "URL", // | "base64Data" | "dataURI";
+        outputFormat: "JPG", // | "PNG" | "WEBP";
+        //uploadEndpoint?: string;
+        checkNSFW: true,
+        seedImage: baseImageUriChirho,
+        //maskImage?: File | string;
+        strength: 1,
+        //steps?: number;
+        //scheduler?: string;
+        seed: randSeedChirho,
+        //CFGScale?: number;
+        //clipSkip?: number;
+        //refiner?: IRefiner;
+        //usePromptWeighting?: number;
+        //controlNet?: IControlNet[];
+        //lora?: ILora[];
+        // retry?: number;
+        //onPartialImages?: (images: IImage[], error: IError) =>  void;
+      })
+      let imageUrlChirho = imagesChirho![0].imageURL;
+
+      */
+
+      let image_result_chirho = await fal.run("fal-ai/sdxl-controlnet-union/image-to-image", { //fal-ai/gemini-flash-edit", {
         input: {
           prompt: imageTextPromptChirho,
           image_url: baseImageUriChirho,
@@ -86,9 +133,20 @@ Generate the updated image.`;
           //num_images: 1,
         },
       });
+      let imageUrlChirho = image_result_chirho.data.images[0].url;
+      // let image_result_chirho = await fal.run("fal-ai/gemini-flash-edit", {
+      //   input: {
+      //     prompt: imageTextPromptChirho,
+      //     image_url: baseImageUriChirho,
+      //     //seed: randSeedChirho,
+      //     //image_size: "square",
+      //     //num_images: 1,
+      //   },
+      // });
+      // let imageUrlChirho = image_result_chirho.data.image.url;
       console.log("HALLELUJAH result found...");
 
-      let imageUrlChirho = image_result_chirho.data.images[0].url;
+      
 
       return {
          updatedImageUriChirho: imageUrlChirho

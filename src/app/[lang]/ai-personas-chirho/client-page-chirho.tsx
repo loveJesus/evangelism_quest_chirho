@@ -178,7 +178,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       difficultyLevelChirho: currentDifficultyToSave,
       currentConversationLanguageChirho: currentLangToSave,
       dynamicPersonaImageChirho: currentDynamicImgToSave,
-      lastSaved: Date.now(), 
+      lastSavedMillis: Date.now(),
     };
     const result = await saveActiveConversationToFirestoreChirho(currentUserChirho.uid, activeData);
     if (!result.success) {
@@ -404,7 +404,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         });
       }
     }
-  }, [messagesChirho.length, suggestedAnswerChirho]); 
+  }, [messagesChirho?.length , suggestedAnswerChirho]); 
 
   useEffect(() => {
     if (selectedArchivedConversationChirho && archivedChatScrollAreaRefChirho.current) {
@@ -443,7 +443,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
             viewport.removeEventListener('scroll', handleScroll);
         }
     }
-  }, [isMobileChirho, messagesChirho.length]); 
+  }, [isMobileChirho, messagesChirho?.length]); 
 
 
   const handleSendMessageChirho = async () => {
@@ -474,6 +474,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
       personaDescriptionChirho: `${personaChirho.personaNameChirho}: ${personaChirho.personaDetailsChirho}`,
       messageChirho: currentInputChirho,
       languageChirho: currentConversationLanguageChirho,
+      conversationHistoryChirho: messagesChirho.map(mChirho => ({ sender: mChirho.sender, content: mChirho.text })),
     };
 
     let aiResponseData: AIPersonaConvincingOutputChirho | null = null;
@@ -999,7 +1000,7 @@ export default function AIPersonasClientPageChirho({ dictionary: fullDictionary,
         <CardContent className="flex-grow flex flex-col overflow-hidden p-0"> 
           <ScrollArea className="flex-grow p-6 min-h-0" ref={scrollAreaRefChirho}> 
             <div className="space-y-4">
-              {messagesChirho.map((msgChirho) => (
+              {messagesChirho?.map((msgChirho) => (
                 <div
                   key={msgChirho.id}
                   className={`flex items-end gap-2 ${

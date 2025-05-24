@@ -40,6 +40,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ws-api.runware.ai', // Added for Runware images
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'im.runware.ai', // Added for Runware images
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   // No explicit i18n config needed here as middleware handles routing
