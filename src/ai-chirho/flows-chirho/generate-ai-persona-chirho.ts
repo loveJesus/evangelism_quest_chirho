@@ -173,10 +173,11 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
       imageUrlChirho = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     }*/
 
+    let randSeedChirho = Math.floor(Math.random() * 65535);
     let image_result_chirho = await fal.run("fal-ai/flux/dev", {
       input: {
         prompt: imagePromptChirho,
-        seed: 6252023,
+        seed: randSeedChirho,
         image_size: "square",
         num_images: 1,
       },

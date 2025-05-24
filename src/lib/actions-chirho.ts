@@ -1,7 +1,9 @@
 // For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. - John 3:16 (KJV)
 "use server";
 
-import * as adminChirho from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import type { DecodedIdToken } from 'firebase-admin/auth'; // Not used directly, but good for context if expanding
 import { FieldValue as AdminFieldValue, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 
@@ -11,9 +13,12 @@ import type { MessageChirho, ArchivedConversationChirho as ClientArchivedConvers
 import type { UserProfileChirho } from '@/contexts/auth-context-chirho';
 
 // --- Firebase Admin SDK Initialization ---
-let adminAppChirho: adminChirho.app.App;
-let adminDbChirho: adminChirho.firestore.Firestore;
-let adminStorageChirho: adminChirho.storage.Storage;
+// let adminAppChirho: adminChirho.app.App;
+// let adminDbChirho: adminChirho.firestore.Firestore;
+// let adminStorageChirho: adminChirho.storage.Storage;
+let adminAppChirho: any;
+let adminDbChirho: any;
+let adminStorageChirho: any;
 
 const INITIAL_FREE_CREDITS_CHIRHO = 50;
 const MAX_ARCHIVED_CONVERSATIONS_CHIRHO = 10;
@@ -25,13 +30,13 @@ console.log(`[actions-chirho.ts] Module loaded at: ${new Date().toISOString()}`)
 console.log("[Admin Action Init] Attempting to load Firebase Admin SDK...");
 
 try {
-  if (!adminChirho.apps.length) {
+  if (getApps().length === 0) {
     console.log("[Admin Action Init] No Firebase Admin apps initialized. Attempting to initialize default app...");
-    let serviceAccountJson;
+    let serviceAccountCredentialsChirho;
     try {
       // Path is relative to the CWD of the Next.js server process, which is usually the project root.
       // If actions-chirho.ts is in src/lib/, then '../../serviceAccountChirho.json' points to the root.
-      serviceAccountJson = require('../../serviceAccountChirho.json');
+      serviceAccountCredentialsChirho = require('../../serviceAccountChirho.json'); 
       console.log("[Admin Action Init] serviceAccountChirho.json found via require.");
     } catch (e: any) {
       console.error(`[Admin Action Init] FAILED to load serviceAccountChirho.json. 
@@ -47,19 +52,19 @@ try {
       // Not throwing an error here, but logging it as critical. Storage operations will fail later.
     }
 
-    adminAppChirho = adminChirho.initializeApp({
-      credential: adminChirho.credential.cert(serviceAccountJson),
-      storageBucket: storageBucketEnvChirho,
+    adminAppChirho = initializeApp({
+        credential: cert(serviceAccountCredentialsChirho),
+        storageBucket: storageBucketEnvChirho
     });
     console.log("[Admin Action Init] Default Firebase Admin app INITIALIZED. App Name:", adminAppChirho.name);
   } else {
-    adminAppChirho = adminChirho.apps[0]!; // Get the default app if already initialized
+    adminAppChirho = getApps()[0]; // Get the default app if already initialized
     console.log("[Admin Action Init] Firebase Admin app already exists. Retrieved default app. App Name:", adminAppChirho.name);
   }
 
   if (adminAppChirho) {
-    adminDbChirho = adminChirho.firestore();
-    adminStorageChirho = adminChirho.storage();
+    adminDbChirho = getFirestore(adminAppChirho);
+    adminStorageChirho = getStorage(adminAppChirho);
     console.log("[Admin Action Init] Firestore and Storage services obtained from Admin app.");
   } else {
     console.error("[Admin Action Init] CRITICAL: Firebase Admin app instance is undefined after initialization attempts. Firestore and Storage services will not be available.");
