@@ -67,7 +67,7 @@ Your primary goal is to create a NEW and UNIQUE character each time.
     *   Include personality traits, beliefs (or lack thereof), current emotional state, and potential points of resistance or curiosity regarding faith, all in ${languageNameChirho}.
     *   Ensure varied professions, cultural backgrounds, and life situations appropriate for the language context of ${languageNameChirho}.
 3.  **Meeting Context ("meetingContextChirho")**:
-    *   Create a brief, imaginative meeting context (1-4 engaging sentences) strictly in ${languageNameChirho}, describing how the user might encounter this person. Please keep it pure, for example, don't call something like a pizza delivery man dropping his pizza comical.
+    *   Create a brief, imaginative meeting context (1-4 engaging sentences) strictly in ${languageNameChirho}, describing how the user might encounter this person. Please keep it pure, for example, don't meet in a bar, and don't call something like a pizza delivery man dropping his pizza comical.
     *   This context should provide a natural starting point for a conversation and be consistent with a potential visual for the character.
     *   Make this context varied; not everyone is a barista or librarian. Think about everyday situations, unique encounters, or community settings relevant to ${languageNameChirho}.
     *   If the person's name is known, explain why it is known (in ${languageNameChirho}). If it is an encounter with a stranger, do not mention the individual's name.
@@ -174,7 +174,7 @@ The image should be photorealistic, modest, appropriate for all audiences, and s
     }*/
 
     let randSeedChirho = Math.floor(Math.random() * 65535);
-    let image_result_chirho = await fal.run("fal-ai/flux/schnell", {
+    let image_result_chirho = await fal.run("fal-ai/flux/dev", {
       input: {
         prompt: imagePromptChirho,
         seed: randSeedChirho,

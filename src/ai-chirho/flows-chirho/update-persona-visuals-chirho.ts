@@ -64,7 +64,7 @@ const updatePersonaVisualsFlowChirho = ai.defineFlow(
     newVisualPromptChirho,
   }) => {
     const imageTextPromptChirho = `You are an image generation AI. You have been given a base image of a character named ${personaNameChirho}. Their original meeting context was: "${originalMeetingContextChirho}".
-Your task is to generate a *new* 512x512 image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
+Your task is to generate a *new* photorealistic512x512 image that maintains the *exact same character identity and core appearance* from the base image, and keeps them in the *same general setting* as described by their original meeting context.
 The new image should only reflect changes in their expression, pose, or minor environmental details as described in the 'new visual prompt' below.
 Do NOT change the character into someone else. Do NOT drastically change the setting. Focus on their expression and pose. Help the changes keep the conversation engaging (in a pure, non-sensual) way.
 Ensure the updated image remains modest, appropriate for all audiences, photorealistic, and strictly avoids any revealing attire, cleavage, or suggestive elements.
@@ -75,16 +75,18 @@ Generate the updated image.`;
 
 
     try {
-      let randSeedChirho = Math.floor(Math.random() * 65535);
-      let image_result_chirho = await fal.run("fal-ai/flux/schnell/image-to-image", {
+      //let randSeedChirho = Math.floor(Math.random() * 65535);
+      console.log(`HALLELUJAH working on persona visuals for ${personaNameChirho}... old uri: ${baseImageUriChirho}`);
+      let image_result_chirho = await fal.run("fal-ai/flux/dev/image-to-image", {
         input: {
           prompt: imageTextPromptChirho,
           image_url: baseImageUriChirho,
-          seed: randSeedChirho,
-          image_size: "square",
-          num_images: 1,
+          //seed: randSeedChirho,
+          //image_size: "square",
+          //num_images: 1,
         },
       });
+      console.log("HALLELUJAH result found...");
 
       let imageUrlChirho = image_result_chirho.data.images[0].url;
 
