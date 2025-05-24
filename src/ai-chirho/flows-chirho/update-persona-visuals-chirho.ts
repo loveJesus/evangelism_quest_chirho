@@ -136,7 +136,7 @@ Generate the updated image.`;
           guidance_scale: 3,
           num_inference_steps: 50,
           num_images: 1,
-          negative_prompt: "deformed, blurry, cartoonish, painted, distorted, change age",
+          negative_prompt: "deformed, blurry, cartoonish, painted, distorted, change age, ugly",
           output_format: "jpeg",
           strength: 0.6,
         },
